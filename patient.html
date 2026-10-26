@@ -672,6 +672,52 @@ body.theme-dark select.chip{background:#172236;color:#f1f5f9}
   #modalMorningSlotsGrid,#modalEveningSlotsGrid{grid-template-columns:repeat(2,1fr) !important}
   .pay-method-grid{grid-template-columns:1fr 1fr 1fr}
 }
+
+/* Long signed-in names/emails: only the text inside the pill shrinks (with "..."),
+   so "Logout" and the Appointments button always stay on screen. */
+.nav > .brand{flex-shrink:0}
+.header-actions{flex:0 1 auto;min-width:0}
+.header-actions > *{flex-shrink:0}
+.header-actions > #patientAuthNavBtn{
+  flex:0 1 auto;
+  min-width:0;
+  max-width:260px;
+  overflow:hidden;
+}
+#patientAuthNavBtn .pill-text{
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+#patientAuthNavBtn .pill-logout{
+  flex-shrink:0;
+  white-space:nowrap;
+  color:#b91c1c;
+  margin-left:4px;
+  cursor:pointer;
+  text-decoration:underline;
+}
+/* Mobile drawer account pill: long emails get "..." instead of overflowing */
+.drawer-account .patient-session-pill{max-width:100%;overflow:hidden;box-sizing:border-box}
+.drawer-account .patient-session-pill > span:first-child{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.drawer-account .patient-session-pill > span:last-child{flex-shrink:0;white-space:nowrap}
+/* When signed in the header carries an extra account pill, so make room:
+   compact nav links, and use the menu button on tighter screens. */
+body.patient-signed-in .nav{gap:12px}
+body.patient-signed-in .nav-link-item{padding:7px 9px;gap:4px}
+body.patient-signed-in .nav-link-item > span:first-child{display:none}
+@media (max-width:1180px){
+  body.patient-signed-in .desktop-navlinks{display:none}
+  body.patient-signed-in .mobile-menu-btn{display:grid}
+}
+@media (max-width:760px) and (min-width:641px){
+  body.patient-signed-in .header-actions .hide-mobile{display:none}
+}
+@media (max-width:960px) and (min-width:641px){
+  .header-actions > #patientAuthNavBtn{max-width:min(36vw,220px)}
+  .lang-select{max-width:96px}
+}
 </style>
 
   <style>
@@ -721,7 +767,7 @@ body.theme-dark select.chip{background:#172236;color:#f1f5f9}
 
       <!-- WhatsApp Session Pill -->
       <div id="patientAuthNavBtn" class="patient-session-pill guest" onclick="openWhatsAppAuthModal()">
-        <span>💬 <span data-i18n="signInWa">Sign In via WhatsApp</span></span>
+        <span>👤 <span data-i18n="signInWa">Sign In</span></span>
       </div>
 
       <!-- Quick Theme Switcher -->
@@ -1263,17 +1309,19 @@ body.theme-dark select.chip{background:#172236;color:#f1f5f9}
       <div class="auth-divider" aria-hidden="true"><span>OR</span></div>
       <div class="email-auth-card">
         <div style="font-weight:800;font-size:14px;margin-bottom:4px">✉️ Sign in with Email</div>
-        <p style="font-size:12px;color:var(--muted);margin:0 0 12px;line-height:1.5">No password needed. We’ll email you a one-time verification code.</p>
-        <form id="emailOtpRequestForm" onsubmit="requestEmailOTP(event)">
-          <div class="form-field"><label for="authEmailName">Full name <span style="font-weight:400;color:var(--muted)">(new accounts)</span></label><input id="authEmailName" type="text" autocomplete="name" placeholder="e.g. Ramesh Kumar" maxlength="100"></div>
+        <p style="font-size:12px;color:var(--muted);margin:0 0 12px;line-height:1.5">Use your email and password to sign in, or create an email account if this is your first time.</p>
+        <div style="display:flex;gap:8px;margin-bottom:12px">
+          <button id="emailSignInTab" type="button" class="primary" onclick="setEmailAuthMode('signin')" style="flex:1;padding:9px">Sign In</button>
+          <button id="emailCreateTab" type="button" class="navbtn" onclick="setEmailAuthMode('create')" style="flex:1;padding:9px">Create Account</button>
+        </div>
+        <form id="emailPasswordForm" onsubmit="submitEmailPasswordAuth(event)">
+          <div id="emailPasswordNameField" class="form-field" style="display:none"><label for="authEmailName">Full name *</label><input id="authEmailName" type="text" autocomplete="name" placeholder="e.g. Ramesh Kumar" maxlength="100"></div>
           <div class="form-field"><label for="authEmailAddress">Email address *</label><input id="authEmailAddress" type="email" autocomplete="email" required maxlength="254" placeholder="you@example.com"></div>
-          <button id="sendEmailOtpButton" class="primary" type="submit" style="width:100%;padding:12px">Send Email OTP →</button>
+          <div class="form-field"><label for="authEmailPassword">Password *</label><input id="authEmailPassword" type="password" autocomplete="current-password" required minlength="8" maxlength="128" placeholder="Enter your password"></div>
+          <div id="emailPasswordConfirmField" class="form-field" style="display:none"><label for="authEmailPasswordConfirm">Confirm password *</label><input id="authEmailPasswordConfirm" type="password" autocomplete="new-password" minlength="8" maxlength="128" placeholder="Enter password again"></div>
+          <button id="emailPasswordSubmitButton" class="primary" type="submit" style="width:100%;padding:12px">Sign In →</button>
         </form>
-        <form id="emailOtpVerifyForm" onsubmit="verifyEmailOTP(event)" style="display:none;margin-top:12px">
-          <div class="form-field"><label for="authEmailOtp">Verification code *</label><input id="authEmailOtp" type="text" inputmode="numeric" autocomplete="one-time-code" required pattern="[0-9]{4,8}" minlength="4" maxlength="8" placeholder="Enter the code from your email" style="text-align:center;letter-spacing:5px;font-size:20px"></div>
-          <button id="verifyEmailOtpButton" class="primary" type="submit" style="width:100%;padding:12px">Verify Email & Sign In ✓</button>
-          <button type="button" onclick="requestEmailOTP(event, true)" style="width:100%;padding:10px;margin-top:8px;background:transparent;border:1px solid var(--line);border-radius:10px;color:var(--ink);cursor:pointer">Resend code</button>
-        </form>
+        <p style="font-size:11px;color:var(--muted);line-height:1.5;margin:10px 0 0">Email/password accounts created in this static demo are saved in this browser only. A secure server is needed for production accounts and sign-in across devices.</p>
       </div>
     </div>
 
@@ -1342,9 +1390,13 @@ body.theme-dark select.chip{background:#172236;color:#f1f5f9}
             <label>Patient Full Name *</label>
             <input id="patientName" required placeholder="e.g. Ramesh Kumar">
           </div>
-          <div class="form-field">
+          <div class="form-field" id="patientPhoneField">
             <label>Mobile Number *</label>
             <input id="patientPhone" required pattern="[0-9]{10}" maxlength="10" placeholder="10-digit mobile number">
+          </div>
+          <div class="form-field" id="patientEmailField" style="display:none">
+            <label>Email</label>
+            <input id="patientEmail" type="email" readonly tabindex="-1" style="opacity:.85;cursor:not-allowed" title="Your signed-in email">
           </div>
         </div>
         <div class="form-field">
@@ -1771,7 +1823,7 @@ let pendingAuthName = null;
 const TRANSLATIONS = {
   en: {
     navHome: "Home", navHospitals: "Hospitals / Clinics", navSpecialities: "Specialities", navDoctors: "Find Doctors", navContact: "Contact Us",
-    signInWa: "Sign In via WhatsApp", myBookings: "Appointments", backHome: "Back to AIKDOC home",
+    signInWa: "Sign In", myBookings: "Appointments", backHome: "Back to AIKDOC home",
     eyebrow: "YOUR HEALTH, CLOSER TO HOME", lblLocation: "Location / District", lblAge: "Patient Age", lblSpeciality: "Speciality", lblDoctor: "Doctor Name", btnSearch: "Find doctors →",
     trust1: "Instant slot booking", trust2: "Adult & paediatric specialists", trust3: "Verified Bihar doctors",
     headSpecialities: "Browse by speciality", subSpecialities: "Choose patient group below to view relevant medical care and verified doctors.", exploreAllSpec: "Explore all specialities",
@@ -1784,7 +1836,7 @@ const TRANSLATIONS = {
   },
   hi: {
     navHome: "होम", navHospitals: "अस्पताल / क्लिनिक", navSpecialities: "विशेषज्ञताएं", navDoctors: "डॉक्टर खोजें", navContact: "संपर्क करें",
-    signInWa: "व्हाट्सएप लॉगिन", myBookings: "अपॉइंटमेंट", backHome: "होम पेज पर वापस जाएं",
+    signInWa: "साइन इन", myBookings: "अपॉइंटमेंट", backHome: "होम पेज पर वापस जाएं",
     eyebrow: "आपका स्वास्थ्य, आपके पास", lblLocation: "स्थान / जिला", lblAge: "मरीज की उम्र", lblSpeciality: "विशेषज्ञता", lblDoctor: "डॉक्टर का नाम", btnSearch: "डॉक्टर खोजें →",
     trust1: "तुरंत स्लॉट बुकिंग", trust2: "वयस्क और बाल विशेषज्ञ", trust3: "सत्यापित बिहार डॉक्टर",
     headSpecialities: "विशेषज्ञता अनुसार खोजें", subSpecialities: "सही डॉक्टर खोजने के लिए मरीज का आयु वर्ग चुनें।", exploreAllSpec: "सभी विशेषज्ञताएं देखें",
@@ -1797,7 +1849,7 @@ const TRANSLATIONS = {
   },
   bho: {
     navHome: "घर", navHospitals: "अस्पताल / क्लिनिक", navSpecialities: "विभाग", navDoctors: "डॉक्टर लोग", navContact: "संपर्क",
-    signInWa: "व्हाट्सएप लॉगिन", myBookings: "बुकिंग", backHome: "होम पन्ना पर लौटीं",
+    signInWa: "साइन इन", myBookings: "बुकिंग", backHome: "होम पन्ना पर लौटीं",
     eyebrow: "रउआ स्वास्थ्य, रउआ घरे के लगे", lblLocation: "शहर / जिला", lblAge: "मरीज के उमिर", lblSpeciality: "विभाग / रोग", lblDoctor: "डॉक्टर के नाम", btnSearch: "डॉक्टर खोजीं →",
     trust1: "तुरंत स्लॉट बुकिंग", trust2: "बड़ा आ बच्चा लोगन के डॉक्टर", trust3: "जाँचल बिहार के डॉक्टर",
     headSpecialities: "बीमारी अनुसार खोजीं", subSpecialities: "सही डॉक्टर पावे खातिर मरीज के उमिर चुनीं।", exploreAllSpec: "सभ विभाग देखीं",
@@ -1871,17 +1923,19 @@ function closeMobileDrawerOnBackdrop(e) {
 // ======================================================
 // 3. WHATSAPP SIGN IN & SMART HELPDESK
 // ======================================================
+function escPill(v){return String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function checkPatientSession() {
   const session = safeGetJSON("aikdoc_patient_session", null);
   const authPill = document.getElementById("patientAuthNavBtn");
+  document.body.classList.toggle("patient-signed-in", !!(session && (session.phone || session.email)));
 
   if (authPill) {
     if (session && (session.phone || session.email)) {
       authPill.className = "patient-session-pill";
       authPill.onclick = null;
       authPill.innerHTML = `
-        <span>👤 <b>${String(session.name || 'Patient').replace(/[&<>\"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]))}</b>${session.phone ? ` (${session.phone.slice(-4)})` : (session.email ? ` (${String(session.email).replace(/[&<>\"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]))})` : '')}</span>
-        <span style="color:#b91c1c;margin-left:4px;cursor:pointer;text-decoration:underline" onclick="patientLogout(event)">Logout</span>
+        <span class="pill-text" title="${escPill(session.name || 'Patient')}${session.phone ? ` (${escPill(session.phone)})` : (session.email ? ` (${escPill(session.email)})` : '')}">👤 <b>${escPill(session.name || 'Patient')}</b>${session.phone ? ` (${escPill(String(session.phone).slice(-4))})` : (session.email ? ` (${escPill(session.email)})` : '')}</span>
+        <span class="pill-logout" onclick="patientLogout(event)">Logout</span>
       `;
 
       const pNameInput = document.getElementById("patientName");
@@ -1891,90 +1945,150 @@ function checkPatientSession() {
     } else {
       authPill.className = "patient-session-pill guest";
       authPill.onclick = openWhatsAppAuthModal;
-      authPill.innerHTML = `<span>💬 <span data-i18n="signInWa">Sign In via WhatsApp</span></span>`;
+      authPill.innerHTML = `<span>👤 <span data-i18n="signInWa">Sign In</span></span>`;
     }
   }
   updateAppointmentBadge();
 }
 
-// Passwordless email OTP flow. These endpoints must be implemented by your backend
-// and connected to your chosen email OTP provider. Never generate/verify OTPs in browser code.
-let pendingEmailOtpAddress = "";
+// Email/password sign-in for the current browser-based AIKDOC demo.
+// Passwords are stored as SHA-256 hashes, not plain text. For production, use a
+// server-side authentication service with salted password hashing and secure sessions.
+let emailAuthMode = "signin";
 
-async function requestEmailOTP(event, resend = false) {
+function setEmailAuthMode(mode) {
+  emailAuthMode = mode === "create" ? "create" : "signin";
+  const create = emailAuthMode === "create";
+  const nameField = document.getElementById("emailPasswordNameField");
+  const confirmField = document.getElementById("emailPasswordConfirmField");
+  const nameInput = document.getElementById("authEmailName");
+  const confirmInput = document.getElementById("authEmailPasswordConfirm");
+  const passwordInput = document.getElementById("authEmailPassword");
+  const signTab = document.getElementById("emailSignInTab");
+  const createTab = document.getElementById("emailCreateTab");
+  const submit = document.getElementById("emailPasswordSubmitButton");
+
+  if (nameField) nameField.style.display = create ? "block" : "none";
+  if (confirmField) confirmField.style.display = create ? "block" : "none";
+  if (nameInput) nameInput.required = create;
+  if (confirmInput) confirmInput.required = create;
+  if (passwordInput) passwordInput.autocomplete = create ? "new-password" : "current-password";
+  if (signTab) signTab.className = create ? "navbtn" : "primary";
+  if (createTab) createTab.className = create ? "primary" : "navbtn";
+  if (submit) submit.textContent = create ? "Create Account →" : "Sign In →";
+}
+
+async function hashPatientPassword(password) {
+  if (!window.crypto || !window.crypto.subtle) {
+    throw new Error("Password hashing is unavailable in this browser context. Open the site on localhost or HTTPS.");
+  }
+  const bytes = new TextEncoder().encode(password);
+  const digest = await window.crypto.subtle.digest("SHA-256", bytes);
+  return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
+async function submitEmailPasswordAuth(event) {
   if (event && typeof event.preventDefault === "function") event.preventDefault();
   const name = (document.getElementById("authEmailName").value || "").trim();
   const email = (document.getElementById("authEmailAddress").value || "").trim().toLowerCase();
-  const sendButton = document.getElementById("sendEmailOtpButton");
+  const password = document.getElementById("authEmailPassword").value || "";
+  const confirm = document.getElementById("authEmailPasswordConfirm").value || "";
+  const button = document.getElementById("emailPasswordSubmitButton");
+
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     showToast("Please enter a valid email address."); return;
   }
+  if (password.length < 8) {
+    showToast("Use a password with at least 8 characters."); return;
+  }
+  if (emailAuthMode === "create" && !name) {
+    showToast("Please enter your full name."); return;
+  }
+  if (emailAuthMode === "create" && password !== confirm) {
+    showToast("The passwords do not match."); return;
+  }
+
   try {
-    if (sendButton) { sendButton.disabled = true; sendButton.textContent = "Sending code…"; }
-    const response = await fetch("/api/auth/email/send-otp", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, name, purpose: "patient-sign-in" })
-    });
-    const result = await response.json().catch(() => ({}));
-    if (!response.ok || result.success !== true) {
-      showToast(result.message || "Email OTP service is not configured yet. Connect your backend and email OTP provider.");
+    if (button) { button.disabled = true; button.textContent = emailAuthMode === "create" ? "Creating account…" : "Signing in…"; }
+    const accounts = safeGetJSON("aikdoc_patient_email_accounts", []);
+    if (!Array.isArray(accounts)) throw new Error("Stored email account data is invalid.");
+    const index = accounts.findIndex(a => String(a.email || "").toLowerCase() === email);
+
+    if (emailAuthMode === "create") {
+      if (index >= 0) {
+        showToast("An email account already exists. Please sign in instead.");
+        setEmailAuthMode("signin");
+        return;
+      }
+      const passwordHash = await hashPatientPassword(password);
+      const account = {
+        id: "email_" + Date.now() + "_" + Math.random().toString(36).slice(2, 9),
+        name,
+        email,
+        passwordHash,
+        createdAt: new Date().toISOString()
+      };
+      accounts.push(account);
+      safeSetJSON("aikdoc_patient_email_accounts", accounts);
+
+      let patients = safeGetJSON("aikdoc_registered_patients", []);
+      if (!Array.isArray(patients)) patients = [];
+      const pIndex = patients.findIndex(p => String(p.email || "").toLowerCase() === email);
+      const record = { name, email, authMethod: "Email & Password", lastActive: "Just now" };
+      if (pIndex >= 0) patients[pIndex] = Object.assign({}, patients[pIndex], record);
+      else patients.unshift(record);
+      safeSetJSON("aikdoc_registered_patients", patients);
+      await finishPatientEmailLogin({ name, email, authMethod: "Email & Password" });
+      showToast("Your email account has been created. Welcome, " + name + "!");
       return;
     }
-    pendingEmailOtpAddress = email;
-    document.getElementById("emailOtpVerifyForm").style.display = "block";
-    document.getElementById("authEmailOtp").focus();
-    showToast(resend ? "A new verification code has been sent." : "Verification code sent. Check your email.");
+
+    if (index < 0) {
+      showToast("No email account found. Choose Create Account to register first.");
+      return;
+    }
+    const passwordHash = await hashPatientPassword(password);
+    if (accounts[index].passwordHash !== passwordHash) {
+      showToast("Incorrect email or password.");
+      return;
+    }
+
+    await finishPatientEmailLogin({
+      name: accounts[index].name || email.split("@")[0],
+      email,
+      authMethod: "Email & Password"
+    });
+    showToast("Welcome back, " + (accounts[index].name || email) + "!");
   } catch (err) {
-    console.error("Email OTP request error:", err);
-    showToast("Could not send a code. The email OTP backend/provider must be configured first.");
+    console.error("Email/password authentication error:", err);
+    showToast(err && err.message ? err.message : "Could not sign in. Please try again.");
   } finally {
-    if (sendButton) { sendButton.disabled = false; sendButton.textContent = "Send Email OTP →"; }
+    if (button) {
+      button.disabled = false;
+      button.textContent = emailAuthMode === "create" ? "Create Account →" : "Sign In →";
+    }
   }
 }
 
-async function verifyEmailOTP(event) {
-  event.preventDefault();
-  const email = pendingEmailOtpAddress || (document.getElementById("authEmailAddress").value || "").trim().toLowerCase();
-  const name = (document.getElementById("authEmailName").value || "").trim();
-  const otp = (document.getElementById("authEmailOtp").value || "").trim();
-  const verifyButton = document.getElementById("verifyEmailOtpButton");
-  if (!email || !/^[0-9]{4,8}$/.test(otp)) { showToast("Enter the verification code sent to your email."); return; }
-  try {
-    if (verifyButton) { verifyButton.disabled = true; verifyButton.textContent = "Verifying…"; }
-    const response = await fetch("/api/auth/email/verify-otp", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, otp, name, purpose: "patient-sign-in" })
-    });
-    const result = await response.json().catch(() => ({}));
-    if (!response.ok || result.verified !== true) {
-      showToast(result.message || "The code could not be verified. Check it and try again."); return;
-    }
-    const verifiedUser = result.user || {};
-    const session = {
-      name: verifiedUser.name || name || email.split("@")[0],
-      email: verifiedUser.email || email,
-      authMethod: "Email OTP",
-      loginTime: new Date().toLocaleTimeString(),
-      // In production, prefer a secure, HttpOnly, SameSite session cookie set by the backend.
-      sessionToken: result.sessionToken || undefined
-    };
-    safeSetJSON("aikdoc_patient_session", session);
-    let patients = safeGetJSON("aikdoc_registered_patients", []);
-    const index = patients.findIndex(p => p.email && p.email.toLowerCase() === email);
-    const record = { name: session.name, email, authMethod: "Email OTP", lastActive: "Just now" };
-    if (index >= 0) patients[index] = Object.assign(patients[index], record); else patients.unshift(record);
-    safeSetJSON("aikdoc_registered_patients", patients);
-    pendingEmailOtpAddress = "";
-    document.getElementById("authEmailOtp").value = "";
-    closeAuthModal();
-    checkPatientSession();
-    showToast(`Welcome, ${session.name}! Your email is verified.`);
-  } catch (err) {
-    console.error("Email OTP verification error:", err);
-    showToast("Could not verify the code. Please check that the backend and OTP provider are configured.");
-  } finally {
-    if (verifyButton) { verifyButton.disabled = false; verifyButton.textContent = "Verify Email & Sign In ✓"; }
-  }
+async function finishPatientEmailLogin(user) {
+  const session = {
+    name: user.name || user.email.split("@")[0],
+    email: user.email,
+    authMethod: user.authMethod || "Email & Password",
+    loginTime: new Date().toLocaleTimeString()
+  };
+  safeSetJSON("aikdoc_patient_session", session);
+  let patients = safeGetJSON("aikdoc_registered_patients", []);
+  if (!Array.isArray(patients)) patients = [];
+  const index = patients.findIndex(p => String(p.email || "").toLowerCase() === user.email.toLowerCase());
+  const record = { name: session.name, email: session.email, authMethod: session.authMethod, lastActive: "Just now" };
+  if (index >= 0) patients[index] = Object.assign({}, patients[index], record);
+  else patients.unshift(record);
+  safeSetJSON("aikdoc_registered_patients", patients);
+  document.getElementById("authEmailPassword").value = "";
+  document.getElementById("authEmailPasswordConfirm").value = "";
+  closeAuthModal();
+  checkPatientSession();
 }
 
 function openWhatsAppAuthModal() {
@@ -1982,9 +2096,9 @@ function openWhatsAppAuthModal() {
   if (m) m.classList.add("show");
   document.getElementById("authFormStep1").style.display = "block";
   document.getElementById("authWaitingStep2").style.display = "none";
-  const verifyForm = document.getElementById("emailOtpVerifyForm");
-  if (verifyForm) verifyForm.style.display = "none";
-  pendingEmailOtpAddress = "";
+  const passwordForm = document.getElementById("emailPasswordForm");
+  if (passwordForm) passwordForm.reset();
+  setEmailAuthMode("signin");
 }
 
 function closeAuthModal() {
@@ -2079,6 +2193,7 @@ function verifyReceivedWhatsAppOTP() {
   showToast(`✅ Welcome, ${newSession.name}! Phone (+91 ${newSession.phone}) verified.`);
   checkPatientSession();
   renderAppointmentsList();
+  window.dispatchEvent(new CustomEvent("aikdoc:patient-session-updated"));
 
   if (window.aikdocPendingSupportWhatsAppChat) {
     window.aikdocPendingSupportWhatsAppChat = false;
@@ -2092,7 +2207,7 @@ function handlePatientWhatsAppChat(event) {
   if (event) event.preventDefault();
   const session = safeGetJSON("aikdoc_patient_session", null);
 
-  if (!session || !session.phone) {
+  if (!session || !(session.phone || session.email)) {
     window.aikdocPendingSupportWhatsAppChat = true;
     openWhatsAppAuthModal();
     showToast("Please sign in first to include your patient details and appointments.");
@@ -2105,6 +2220,25 @@ function handlePatientWhatsAppChat(event) {
 
 function normalizePatientPhone(value) {
   return String(value || "").replace(/\D/g, "").slice(-10);
+}
+
+// Does this appointment belong to the signed-in patient? Matches by mobile number
+// (WhatsApp sign-in) OR by email (email sign-in).
+function patientOwnsAppointment(a, session) {
+  if (!a || !session) return false;
+  const sp = normalizePatientPhone(session.phone || session.mobile || "");
+  if (sp && normalizePatientPhone(a.phone) === sp) return true;
+  const se = String(session.email || "").trim().toLowerCase();
+  const ae = String(a.email || a.patientEmail || "").trim().toLowerCase();
+  return !!se && !!ae && se === ae;
+}
+
+// Human-readable contact for the signed-in patient (mobile for WhatsApp users, email for email users).
+function patientContactLabel(sessionOrAppt) {
+  const o = sessionOrAppt || {};
+  const phone = o.phone || o.mobile || "";
+  if (phone) return "+91 " + phone;
+  return o.email || o.patientEmail || "";
 }
 
 function getAppointmentDateForSorting(value) {
@@ -2124,9 +2258,8 @@ function getAppointmentDateForSorting(value) {
 
 function buildPatientAppointmentWhatsAppSummary(session) {
   const allAppointments = safeGetJSON("aikdoc_appointments", []);
-  const phone = normalizePatientPhone(session.phone);
   const appointments = (Array.isArray(allAppointments) ? allAppointments : [])
-    .filter(a => normalizePatientPhone(a.phone) === phone);
+    .filter(a => patientOwnsAppointment(a, session));
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -2178,7 +2311,7 @@ function buildPatientAppointmentWhatsAppSummary(session) {
 
 function openPatientSupportWhatsApp() {
   const session = safeGetJSON("aikdoc_patient_session", null);
-  if (!session || !session.phone) {
+  if (!session || !(session.phone || session.email)) {
     window.aikdocPendingSupportWhatsAppChat = true;
     openWhatsAppAuthModal();
     return;
@@ -2282,14 +2415,15 @@ function syncFromSuperAdmin() {
 function checkDoctorLiveUpdates() {
   const activePhone = localStorage.getItem("aikdoc_active_patient_phone");
   const appts = safeGetJSON("aikdoc_appointments", []);
+  const liveSession = safeGetJSON("aikdoc_patient_session", null) || (activePhone ? { phone: activePhone } : null);
 
-  if (activePhone) {
-    const completedUnreviewed = appts.find(a => a.phone === activePhone && a.status === "Completed" && !a.review && !a.patientDismissedReview);
+  if (liveSession && (liveSession.phone || liveSession.email)) {
+    const completedUnreviewed = appts.find(a => patientOwnsAppointment(a, liveSession) && a.status === "Completed" && !a.review && !a.patientDismissedReview);
     if (completedUnreviewed) {
       openReviewModal(completedUnreviewed);
     }
 
-    const cancelledByDoc = appts.find(a => normalizePatientPhone(a.phone) === normalizePatientPhone(activePhone) && a.status === "Cancelled" && a.cancelledBy === "Doctor" && !a.patientDismissedCancellationNotice);
+    const cancelledByDoc = appts.find(a => patientOwnsAppointment(a, liveSession) && a.status === "Cancelled" && a.cancelledBy === "Doctor" && !a.patientDismissedCancellationNotice);
     if (cancelledByDoc) {
       openDoctorCancellationNotice(cancelledByDoc);
     }
@@ -2301,9 +2435,10 @@ function checkDoctorLiveUpdates() {
 function updateAppointmentBadge() {
   const activePhone = localStorage.getItem("aikdoc_active_patient_phone");
   const appts = safeGetJSON("aikdoc_appointments", []);
+  const badgeSession = safeGetJSON("aikdoc_patient_session", null) || (activePhone ? { phone: activePhone } : null);
 
-  const upcoming = activePhone 
-    ? appts.filter(a => a.phone === activePhone && (!a.status || a.status === "Confirmed")).length 
+  const upcoming = (badgeSession && (badgeSession.phone || badgeSession.email))
+    ? appts.filter(a => patientOwnsAppointment(a, badgeSession) && (!a.status || a.status === "Confirmed")).length
     : 0;
 
   const badge = document.getElementById("apptCount");
@@ -2764,9 +2899,10 @@ function openDoctorProfileModal(doctorId){
 
         <div class="doc-info-title"><span>🏥</span> Hospital Affiliation & Clinic</div>
         <div class="doc-hospital-card">
-          <strong style="color:var(--navy);font-size:14px">${selectedDoctor.hospital}</strong>
+          <strong style="color:var(--navy);font-size:14px">${selectedDoctor.hospital || 'Hospital / Clinic not specified'}</strong>
           <div style="font-size:12.5px;color:var(--muted)">📍 ${selectedDoctor.address || 'Main Road, Bihar'}</div>
           <div style="font-size:12px;color:var(--teal);font-weight:750;margin-top:4px">🕒 OPD Timings: ${selectedDoctor.timings || 'Mon–Sat · 10:00 AM–2:00 PM'}</div>
+          <button class="primary" type="button" onclick="openDoctorAffiliationDetails()" style="width:100%;margin-top:12px">View Hospital / Clinic Details →</button>
         </div>
       </div>
 
@@ -2800,6 +2936,67 @@ function openDoctorProfileModal(doctorId){
     </div>
   `;
 
+  document.getElementById("modalBackdrop").classList.add("show");
+}
+
+function openDoctorAffiliationDetails(){
+  if (!selectedDoctor) return;
+
+  const affiliationName = String(selectedDoctor.hospital || "").trim();
+  if (!affiliationName) {
+    if (typeof showToast === "function") showToast("Hospital / clinic details are not available for this doctor yet.");
+    return;
+  }
+
+  // Match the doctor's affiliation to the registered hospital/clinic record.
+  const facility = hospitals.find(h =>
+    String(h.name || "").trim().toLowerCase() === affiliationName.toLowerCase()
+  ) || hospitals.find(h =>
+    String(h.ownClinicDoctorId || "") === String(selectedDoctor.id)
+  );
+
+  if (facility && typeof window.openHospitalDetailsModal === "function") {
+    window.openHospitalDetailsModal(facility.name);
+    return;
+  }
+
+  // If the affiliation has no separate facility record, still open a useful
+  // details view using the information available on the doctor's profile.
+  const escFacility = value => String(value == null ? "" : value).replace(/[&<>"']/g, ch => ({
+    "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;"
+  }[ch]));
+  const affiliatedDoctors = doctors.filter(d =>
+    String(d.hospital || "").trim().toLowerCase() === affiliationName.toLowerCase()
+  );
+  const hView = document.getElementById("hospitalModalView");
+  document.getElementById("modalTitle").textContent = "Hospital / Clinic Details";
+  document.getElementById("profileView").style.display = "none";
+  document.getElementById("bookingContainer").style.display = "none";
+  document.getElementById("paymentContainer").style.display = "none";
+  document.getElementById("bookingSuccessScreen").style.display = "none";
+  hView.style.display = "block";
+  hView.innerHTML = `
+    <div style="background:var(--input-bg);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:14px">
+      <div style="font-size:28px;margin-bottom:8px">🏥</div>
+      <h2 style="color:var(--navy);margin:0 0 8px;font-size:20px">${escFacility(affiliationName)}</h2>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:12px">📍 ${escFacility(selectedDoctor.address || "Address not provided")}</div>
+      <div style="font-size:12px;font-weight:750;color:var(--teal)">🕒 OPD timings: ${escFacility(selectedDoctor.timings || "Please contact the doctor to confirm timings")}</div>
+    </div>
+    <p style="font-size:12.5px;color:var(--muted);line-height:1.6">A separate hospital/clinic record has not been added for this affiliation yet. The details shown here are the information currently available on the doctor's profile.</p>
+    <div style="font-size:12px;font-weight:800;color:var(--navy);text-transform:uppercase;margin:14px 0 6px">Doctors listed at this location (${affiliatedDoctors.length})</div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      ${affiliatedDoctors.map(d => `
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 12px;background:var(--input-bg);border:1px solid var(--line);border-radius:12px">
+          <div><strong style="font-size:13px;color:var(--navy);display:block">${escFacility(d.name)}</strong><span style="font-size:11.5px;color:var(--muted)">${escFacility(d.speciality)} · ₹${escFacility(d.fee)}</span></div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <button class="navbtn" type="button" onclick="openDoctorProfileModal(${Number(d.id)})" style="padding:6px 10px;font-size:11px">Profile</button>
+            <button class="slot-pill" type="button" onclick="bookDoctorSlot(${Number(d.id)})">Book Slot</button>
+          </div>
+        </div>
+      `).join("")}
+    </div>
+    <button class="navbtn" type="button" onclick="closeModal()" style="width:100%;margin-top:16px">Close</button>
+  `;
   document.getElementById("modalBackdrop").classList.add("show");
 }
 
@@ -2893,15 +3090,40 @@ function bookDoctorSlot(doctorId, preselectedSlot = null){
   }
 
   const session = safeGetJSON("aikdoc_patient_session", null);
+  configureBookingContactFields(session);
   if (session && session.phone) {
     document.getElementById("patientName").value = session.name || "";
     document.getElementById("patientPhone").value = session.phone || "";
+  } else if (session && session.email) {
+    document.getElementById("patientName").value = session.name || "";
   }
 
   renderGroupedSlots(selectedDoctor);
   updateSlotSummary();
 
   document.getElementById("modalBackdrop").classList.add("show");
+}
+
+// Email-signed-in patients are asked for name + email only (no mobile number).
+// Everyone else keeps the original name + mobile form.
+function isEmailOnlySession(session) {
+  return !!(session && session.email && !session.phone && !session.mobile);
+}
+function configureBookingContactFields(session) {
+  const emailOnly = isEmailOnlySession(session);
+  const phoneField = document.getElementById("patientPhoneField");
+  const emailField = document.getElementById("patientEmailField");
+  const phoneInput = document.getElementById("patientPhone");
+  const emailInput = document.getElementById("patientEmail");
+  if (phoneField) phoneField.style.display = emailOnly ? "none" : "";
+  if (emailField) emailField.style.display = emailOnly ? "" : "none";
+  if (phoneInput) {
+    // A hidden required field would silently block the form from submitting.
+    phoneInput.required = !emailOnly;
+    if (emailOnly) { phoneInput.removeAttribute("pattern"); phoneInput.value = ""; }
+    else phoneInput.setAttribute("pattern", "[0-9]{10}");
+  }
+  if (emailInput) emailInput.value = emailOnly ? session.email : "";
 }
 
 function selectBookingDate(dateFull, btnElement) {
@@ -2968,20 +3190,29 @@ function updateSlotSummary(){
 function handleBookingFormSubmit(e) {
   if (e) e.preventDefault();
   const name = document.getElementById("patientName").value.trim();
-  const phone = document.getElementById("patientPhone").value.trim();
+  const currentSession = safeGetJSON("aikdoc_patient_session", null);
+  const emailOnly = isEmailOnlySession(currentSession);
+  const phone = emailOnly ? "" : document.getElementById("patientPhone").value.trim();
+  const email = emailOnly ? String(currentSession.email).trim() : "";
   const bMode = document.getElementById("bookingMode").value;
 
-  if(!name || !phone){
-    showToast("Please enter your name and phone number.");
-    return;
-  }
-  if(phone.length !== 10 || isNaN(phone)){
-    showToast("Please enter a valid 10-digit mobile number.");
-    return;
+  if (emailOnly) {
+    if(!name){
+      showToast("Please enter your name.");
+      return;
+    }
+  } else {
+    if(!name || !phone){
+      showToast("Please enter your name and phone number.");
+      return;
+    }
+    if(phone.length !== 10 || isNaN(phone)){
+      showToast("Please enter a valid 10-digit mobile number.");
+      return;
+    }
   }
 
-  const currentSession = safeGetJSON("aikdoc_patient_session", null);
-  if (!currentSession || currentSession.phone !== phone) {
+  if (!emailOnly && (!currentSession || currentSession.phone !== phone)) {
     const autoSession = { name: name, phone: phone, authMethod: "Direct Booking" };
     safeSetJSON("aikdoc_patient_session", autoSession);
     localStorage.setItem("aikdoc_active_patient_phone", phone);
@@ -2992,6 +3223,7 @@ function handleBookingFormSubmit(e) {
     doctor: selectedDoctor,
     name: name,
     phone: phone,
+    email: email,
     mode: bMode,
     date: selectedSlotDate,
     time: `${getSlotIcon(selectedSlotTime)} ${selectedSlotTime.replace(/^[🌅☀️🌇🕒]\s*/, '')}`,
@@ -3053,7 +3285,8 @@ function confirmPaymentAndBook() {
       hospital: pendingBooking.doctor.hospital,
       address: pendingBooking.doctor.address || "Bihar",
       patientName: pendingBooking.name,
-      phone: pendingBooking.phone,
+      phone: pendingBooking.phone || "",
+      email: pendingBooking.email || "",
       date: pendingBooking.date,
       time: pendingBooking.time,
       mode: pendingBooking.mode,
@@ -3084,7 +3317,7 @@ function confirmPaymentAndBook() {
       <div><strong>Location:</strong> ${newAppointment.address}</div>
       <div><strong>Slot:</strong> <span style="color:var(--blue);font-weight:800">${newAppointment.date} at ${newAppointment.time}</span></div>
       <div><strong>Consultation:</strong> ${newAppointment.mode}</div>
-      <div><strong>Patient:</strong> ${newAppointment.patientName} (Ph: ${newAppointment.phone})</div>
+      <div><strong>Patient:</strong> ${newAppointment.patientName} (${newAppointment.phone ? "Ph: " + newAppointment.phone : newAppointment.email})</div>
       <div><strong>Payment:</strong> ₹${newAppointment.fee} — <span style="color:var(--teal);font-weight:800">${newAppointment.paymentStatus}</span></div>
     `;
 
@@ -3142,7 +3375,7 @@ function generateReceiptPrint(appt){
           <div>
             <div class="item-label">Patient Name</div>
             <div class="item-val">${appt.patientName}</div>
-            <div style="font-size:12px;color:#64748b">Mobile: ${appt.phone}</div>
+            <div style="font-size:12px;color:#64748b">${appt.phone ? "Mobile: " + appt.phone : (appt.email ? "Email: " + appt.email : "")}</div>
           </div>
           <div>
             <div class="item-label">Appointment Date & Slot</div>
@@ -3244,21 +3477,24 @@ function setApptSubTab(subTab) {
   renderAppointmentsList();
 }
 
+function escapePatientHtml(value) { return String(value == null ? "" : value).replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch])); }
+
 function renderAppointmentsList() {
   const activeSession = safeGetJSON("aikdoc_patient_session", null);
   const container = document.getElementById("myApptsList");
   if (!container) return;
 
-  if (!activeSession || !activeSession.phone) {
+  const hasPatientSession = !!(activeSession && (activeSession.phone || activeSession.mobile || activeSession.email));
+  if (!hasPatientSession) {
     container.innerHTML = `
       <div style="text-align:center;padding:36px 16px;color:var(--muted)">
         <div style="font-size:42px;margin-bottom:8px">💬</div>
         <strong style="color:var(--navy);font-size:16px;display:block">Sign In to View Your Medical Appointments</strong>
         <p style="font-size:13px;max-width:360px;margin:6px auto 18px;line-height:1.5">
-          Sign in via WhatsApp with your 10-digit mobile number to securely view your upcoming tokens, download past receipts, and rate consultations.
+          Sign in with your email and password or WhatsApp number to securely view your medical appointments.
         </p>
         <button class="primary" type="button" onclick="closeMyApptsModal(); openWhatsAppAuthModal();">
-          Sign In via WhatsApp →
+          Sign In →
         </button>
       </div>
     `;
@@ -3266,7 +3502,7 @@ function renderAppointmentsList() {
   }
 
   const appts = safeGetJSON("aikdoc_appointments", []);
-  const myAppts = appts.filter(a => a.phone === activeSession.phone);
+  const myAppts = appts.filter(a => patientOwnsAppointment(a, activeSession));
 
   const upcoming = myAppts.filter(a => (!a.status || a.status === "Confirmed"));
   const completed = myAppts.filter(a => a.status === "Completed");
@@ -3277,7 +3513,7 @@ function renderAppointmentsList() {
   if (list.length === 0) {
     container.innerHTML = `
       <div style="text-align:center;padding:34px;color:var(--muted)">
-        No ${patientActiveTab.toLowerCase()} appointments found for <b>+91 ${activeSession.phone}</b>.
+        No ${patientActiveTab.toLowerCase()} appointments found for <b>${escapePatientHtml(patientContactLabel(activeSession))}</b>.
       </div>
     `;
     return;
@@ -3296,9 +3532,16 @@ function renderAppointmentsList() {
       </div>
       <div style="font-size:12.5px;background:var(--input-bg);padding:10px 12px;border-radius:10px;margin:10px 0;line-height:1.6">
         <div>🗓 <strong>${a.date} at ${a.time}</strong> (${a.mode})</div>
-        <div>👤 Patient: <strong>${a.patientName}</strong> (${a.phone})</div>
+        <div>👤 Patient: <strong>${a.patientName}</strong>${(a.phone || a.email) ? ` (${escapePatientHtml(a.phone || a.email)})` : ""}</div>
         <div>🏷 Token: <code style="color:var(--blue);font-weight:800">${a.token}</code> · Fee: <strong>₹${a.fee}</strong></div>
       </div>
+      ${a.status === 'Cancelled' ? `
+        <div style="display:flex;gap:10px;align-items:flex-start;margin:10px 0;padding:12px;border:1px solid #fecaca;border-radius:11px;background:linear-gradient(135deg,#fff5f5,#fffafa);color:#7f1d1d">
+          <span aria-hidden="true" style="font-size:18px">ⓘ</span>
+          <div style="min-width:0;flex:1"><div style="font-size:11px;font-weight:850;letter-spacing:.4px;text-transform:uppercase;color:#b91c1c;margin-bottom:4px">Cancellation reason</div>
+          <div style="font-size:13px;line-height:1.5;overflow-wrap:anywhere">${escapePatientHtml(a.cancellationReason || a.cancelReason || a.cancellation_reason || 'No cancellation reason was provided.')}</div>
+          <div style="font-size:11px;color:#9f5b5b;margin-top:5px">${a.cancelledBy ? `Cancelled by ${escapePatientHtml(a.cancelledBy)}` : ''}${a.cancelledAt ? `${a.cancelledBy ? ' · ' : ''}${escapePatientHtml(new Date(a.cancelledAt).toLocaleString())}` : ''}</div></div>
+        </div>` : ''}
 
       <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px">
         <button class="navbtn" type="button" style="padding:6px 12px;font-size:11.5px" onclick="printReceiptFromToken('${a.token}')">🖨️ Receipt</button>
@@ -3459,7 +3702,7 @@ renderDoctorGrid();
 checkPatientSession();
 checkDoctorLiveUpdates();
 changeLanguage(currentLang);
-setTimeout(()=>{const session=safeGetJSON('aikdoc_patient_session',null);if(!session||!session.phone)return;const x=safeGetJSON('aikdoc_appointments',[]).find(v=>normalizePatientPhone(v.phone)===normalizePatientPhone(session.phone)&&v.status==='Cancelled'&&v.cancelledBy==='Doctor'&&!v.patientDismissedCancellationNotice);if(x)openDoctorCancellationNotice(x);},350);
+setTimeout(()=>{const session=safeGetJSON('aikdoc_patient_session',null);if(!session||!(session.phone||session.email))return;const x=safeGetJSON('aikdoc_appointments',[]).find(v=>patientOwnsAppointment(v,session)&&v.status==='Cancelled'&&v.cancelledBy==='Doctor'&&!v.patientDismissedCancellationNotice);if(x)openDoctorCancellationNotice(x);},350);
 
 if(location.hash && location.hash.startsWith("#page-") && location.hash !== "#page-home"){
   setPage(location.hash.replace("#page-", ""));
@@ -3647,9 +3890,9 @@ if(location.hash && location.hash.startsWith("#page-") && location.hash !== "#pa
       bottom.insertBefore(box, bottom.firstChild);
     }
     const s = safeGetJSON('aikdoc_patient_session', null);
-    const acct = (s && s.phone)
-      ? `<div class="patient-session-pill" style="justify-content:space-between"><span>👤 <b>${esc(s.name || 'Patient')}</b> (${esc(String(s.phone).slice(-4))})</span><span style="color:#b91c1c;text-decoration:underline" onclick="patientLogout(); closeMobileDrawer();">Logout</span></div>`
-      : `<div class="patient-session-pill guest" style="justify-content:center" onclick="closeMobileDrawer(); openWhatsAppAuthModal();">💬 Sign In via WhatsApp</div>`;
+    const acct = (s && (s.phone || s.email))
+      ? `<div class="patient-session-pill" style="justify-content:space-between"><span>👤 <b>${esc(s.name || 'Patient')}</b> (${esc(s.phone ? String(s.phone).slice(-4) : String(s.email))})</span><span style="color:#b91c1c;text-decoration:underline" onclick="patientLogout(); closeMobileDrawer();">Logout</span></div>`
+      : `<div class="patient-session-pill guest" style="justify-content:center" onclick="closeMobileDrawer(); openWhatsAppAuthModal();">👤 Sign In</div>`;
     box.innerHTML = acct +
       `<select class="lang-select" onchange="changeLanguage(this.value)" style="width:100%">
          <option value="en">English</option><option value="hi">हिन्दी</option><option value="bho">भोजपुरी</option>
@@ -3678,38 +3921,172 @@ if(location.hash && location.hash.startsWith("#page-") && location.hash !== "#pa
 
   console.log("AIKDOC Supabase client initialized.");
 </script>
-<!-- AIKDOC Instant Help (FAQ prototype; real AI requires a secure backend) -->
+<!-- AIKDOC Instant Help: local, multilingual guided assistant (no backend/API calls) -->
 <style>
 .aikhelp-launch{position:fixed;right:20px;bottom:20px;z-index:9998;border:0;border-radius:999px;background:#087f8c;color:#fff;padding:13px 18px;font-weight:800;box-shadow:0 8px 28px #0003;cursor:pointer}
-.aikhelp-panel{position:fixed;right:20px;bottom:78px;width:min(360px,calc(100vw - 28px));height:440px;max-height:calc(100vh - 110px);z-index:9999;background:#fff;color:#17263c;border:1px solid #dbe4ee;border-radius:18px;box-shadow:0 16px 48px #0003;display:none;overflow:hidden;font:14px/1.45 Arial,sans-serif}
-.aikhelp-panel.open{display:flex;flex-direction:column}.aikhelp-head{background:#087f8c;color:#fff;padding:14px;display:flex;align-items:center;justify-content:space-between;font-weight:800}.aikhelp-head button{background:transparent;border:0;color:#fff;font-size:22px;cursor:pointer}.aikhelp-messages{padding:13px;overflow:auto;flex:1;background:#f7fafc}.aikhelp-msg{padding:10px 12px;border-radius:12px;margin:0 0 10px;max-width:90%;white-space:pre-wrap;overflow-wrap:anywhere}.aikhelp-bot{background:#e8f3f4;margin-right:auto}.aikhelp-user{background:#dbeafe;margin-left:auto}.aikhelp-form{display:flex;gap:7px;padding:10px;border-top:1px solid #e2e8f0}.aikhelp-form input{min-width:0;flex:1;border:1px solid #cbd5e1;border-radius:999px;padding:10px}.aikhelp-form button{border:0;border-radius:999px;background:#087f8c;color:#fff;padding:0 14px;font-weight:700;cursor:pointer}.aikhelp-note{font-size:10px;color:#64748b;text-align:center;padding:0 8px 8px}
-@media(max-width:480px){.aikhelp-launch{right:12px;bottom:12px}.aikhelp-panel{right:8px;bottom:70px}}
+.aikhelp-panel{position:fixed;right:20px;bottom:78px;width:min(380px,calc(100vw - 28px));height:500px;max-height:calc(100vh - 110px);z-index:9999;background:#fff;color:#17263c;border:1px solid #dbe4ee;border-radius:18px;box-shadow:0 16px 48px #0003;display:none;overflow:hidden;font:14px/1.45 Arial,sans-serif}
+.aikhelp-panel.open{display:flex;flex-direction:column}.aikhelp-head{background:#087f8c;color:#fff;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:8px;font-weight:800}.aikhelp-head button{background:transparent;border:0;color:#fff;font-size:22px;cursor:pointer}.aikhelp-tools{display:flex;align-items:center;gap:6px}.aikhelp-lang{max-width:125px;border:1px solid #ffffff80;border-radius:8px;background:#fff;color:#17263c;padding:6px;font-size:12px}.aikhelp-messages{padding:13px;overflow:auto;flex:1;background:#f7fafc}.aikhelp-msg{padding:10px 12px;border-radius:12px;margin:0 0 10px;max-width:92%;white-space:pre-wrap;overflow-wrap:anywhere}.aikhelp-bot{background:#e8f3f4;margin-right:auto}.aikhelp-user{background:#dbeafe;margin-left:auto}.aikhelp-suggestions{display:flex;gap:6px;flex-wrap:wrap;padding:0 10px 9px;background:#f7fafc}.aikhelp-chip{border:1px solid #b7d9dc;border-radius:999px;background:#fff;color:#075d66;padding:6px 9px;font-size:12px;cursor:pointer}.aikhelp-note{font-size:10px;color:#64748b;text-align:center;padding:0 8px 8px}
+@media(max-width:480px){.aikhelp-launch{right:12px;bottom:12px}.aikhelp-panel{right:8px;bottom:70px;height:min(500px,calc(100vh - 90px))}}
+
+/* Instant Help polish: soft glass surface, teal/blue glow, readable conversation bubbles */
+.aikhelp-launch{background:linear-gradient(115deg,#087f8c,#2563eb 58%,#7c3aed)!important;box-shadow:0 0 0 1px #ffffff35 inset,0 0 18px #14b8a655,0 8px 28px #1d4ed855!important;transition:transform .2s ease,box-shadow .2s ease;animation:aikhelpPulse 3.4s ease-in-out infinite}
+.aikhelp-launch:hover{transform:translateY(-2px);box-shadow:0 0 0 1px #ffffff55 inset,0 0 26px #22d3ee88,0 12px 34px #1d4ed866!important}
+.aikhelp-panel{border:1px solid #7dd3fc!important;background:linear-gradient(160deg,#ffffff,#f5fbff 65%,#f5f3ff)!important;box-shadow:0 0 0 1px #ffffffaa inset,0 0 24px #38bdf833,0 20px 60px #0f172a35!important;border-radius:22px!important}
+.aikhelp-head{background:linear-gradient(115deg,#073b4c,#087f8c 48%,#4f46e5)!important;box-shadow:0 4px 18px #0f766e33;min-height:48px}
+.aikhelp-head #aikhelpTitle{letter-spacing:.15px;text-shadow:0 1px 10px #ffffff33}
+.aikhelp-messages{background:radial-gradient(ellipse at top left,#dbeafe88,transparent 55%),linear-gradient(180deg,#f8fbff,#f7f9ff)!important;padding:15px!important}
+.aikhelp-msg{font-size:13px;line-height:1.62;padding:12px 14px;border-radius:15px;box-shadow:0 3px 12px #0f172a0a;animation:aikhelpIn .18s ease-out}
+.aikhelp-bot{background:#fff!important;color:#1e293b;border:1px solid #dbeafe;margin-right:auto;border-bottom-left-radius:5px;box-shadow:0 5px 18px #0f766e0d!important}
+.aikhelp-bot:before{content:'✦ AIKDOC GUIDE';display:block;color:#087f8c;font-size:9px;font-weight:900;letter-spacing:1.05px;margin-bottom:5px}
+.aikhelp-user{background:linear-gradient(135deg,#dbeafe,#e0e7ff)!important;color:#1e3a8a;border:1px solid #bfdbfe;border-bottom-right-radius:5px}
+.aikhelp-suggestions{background:#f7faff!important;padding:8px 11px 11px!important;gap:7px!important}
+.aikhelp-chip{background:linear-gradient(180deg,#fff,#f8fbff)!important;border-color:#b6d9ee!important;color:#075d66!important;box-shadow:0 2px 7px #0f766e0c;transition:transform .15s ease,box-shadow .15s ease}
+.aikhelp-chip:hover{transform:translateY(-1px);box-shadow:0 4px 12px #0891b222;border-color:#67c9d3!important}
+.aikhelp-form{background:#fff;border-top:1px solid #dbeafe!important;padding:11px!important}
+.aikhelp-form input{outline:none;border-color:#cbd5e1;box-shadow:0 0 0 0 #38bdf8;transition:border-color .2s,box-shadow .2s}
+.aikhelp-form input:focus{border-color:#0ea5e9;box-shadow:0 0 0 3px #38bdf826}
+.aikhelp-form button{background:linear-gradient(120deg,#087f8c,#2563eb)!important;box-shadow:0 4px 12px #2563eb33;min-height:38px}
+.aikhelp-note{color:#64748b!important;padding:2px 10px 9px!important;font-size:10px!important}
+@keyframes aikhelpPulse{0%,100%{filter:saturate(1);box-shadow:0 0 0 1px #ffffff35 inset,0 0 16px #14b8a644,0 8px 28px #1d4ed844}50%{filter:saturate(1.15);box-shadow:0 0 0 1px #ffffff55 inset,0 0 24px #14b8a677,0 8px 32px #1d4ed866}}
+@keyframes aikhelpIn{from{opacity:.65;transform:translateY(3px)}to{opacity:1;transform:translateY(0)}}
+@media(prefers-reduced-motion:reduce){.aikhelp-launch,.aikhelp-msg{animation:none!important;transition:none!important}}
+
 </style>
 <button type="button" class="aikhelp-launch" id="aikhelpLaunch" aria-label="Open AIKDOC Instant Help">💬 Instant Help</button>
 <section class="aikhelp-panel" id="aikhelpPanel" role="dialog" aria-label="AIKDOC Instant Help" aria-modal="false">
-<div class="aikhelp-head"><span>AIKDOC Instant Help</span><button type="button" id="aikhelpClose" aria-label="Minimize chat">−</button></div>
-<div class="aikhelp-messages" id="aikhelpMessages" aria-live="polite"><div class="aikhelp-msg aikhelp-bot">Hi! I can help you navigate AIKDOC. Ask about appointments, cancellations, accounts, or using this panel.</div></div>
-<form class="aikhelp-form" id="aikhelpForm"><input id="aikhelpInput" maxlength="500" autocomplete="off" placeholder="Type your question…" aria-label="Your question" required><button type="submit">Send</button></form>
-<div class="aikhelp-note">FAQ prototype only — not medical advice. Live AI will need a secure backend.</div>
+ <div class="aikhelp-head"><span id="aikhelpTitle">AIKDOC Instant Help</span><div class="aikhelp-tools"><select class="aikhelp-lang" id="aikhelpLang" aria-label="Chat language"><option value="en">English</option><option value="hi">हिन्दी</option><option value="bho">भोजपुरी</option></select><button type="button" id="aikhelpClose" aria-label="Minimize chat">−</button></div></div>
+ <div class="aikhelp-messages" id="aikhelpMessages" aria-live="polite"></div>
+ <div class="aikhelp-suggestions" id="aikhelpSuggestions"></div>
+ <div class="aikhelp-note" id="aikhelpNote">Local guided help; not medical advice. No message is sent to an AI service.</div>
 </section>
 <script>
 (function(){
- const launch=document.getElementById("aikhelpLaunch"),panel=document.getElementById("aikhelpPanel"),close=document.getElementById("aikhelpClose"),form=document.getElementById("aikhelpForm"),input=document.getElementById("aikhelpInput"),messages=document.getElementById("aikhelpMessages");
- if(!launch||!panel||!form||!input||!messages)return;
- launch.addEventListener("click",()=>{panel.classList.add("open");input.focus()});
- close.addEventListener("click",()=>panel.classList.remove("open"));
- function addMessage(text,who){const el=document.createElement("div");el.className="aikhelp-msg "+(who==="user"?"aikhelp-user":"aikhelp-bot");el.textContent=text;messages.appendChild(el);messages.scrollTop=messages.scrollHeight}
- function answer(q){const s=q.toLowerCase();
-  if(/cancel/.test(s))return "To cancel an appointment, open your appointment list and choose the cancel option. A cancellation reason is required before confirmation.";
-  if(/book|appointment|schedule/.test(s))return "To book an appointment, open the Patient Panel, choose an available doctor and time slot, then follow the booking steps. If you cannot find a slot, contact the clinic.";
-  if(/doctor|specialit|find/.test(s))return "Browse available doctors and review their specialties, qualifications, consultation modes and clinic details before choosing.";
-  if(/payment|fee|refund/.test(s))return "Check the appointment details for the listed consultation fee and payment status. For payment or refund issues, contact AIKDOC support or the clinic.";
-  if(/login|account|register|profile/.test(s))return "Use the sign-in or profile options available in this panel. Never share passwords or verification codes in chat.";
-  if(/admin|approv/.test(s))return "Admins can use the Admin Panel's existing dashboard and management sections to review registrations and manage records.";
-  if(/medical|symptom|pain|medicine|diagnos|treatment|emergency/.test(s))return "I can help with website navigation, but I cannot diagnose or recommend treatment. Please contact a qualified healthcare professional. For a medical emergency, contact local emergency services.";
-  return "I can answer basic AIKDOC navigation FAQs about appointments, cancellations, doctor listings, accounts and payments. This prototype does not yet use a live AI service.";
+ const role = 'patient';
+ const launch=document.getElementById('aikhelpLaunch'),panel=document.getElementById('aikhelpPanel'),close=document.getElementById('aikhelpClose'),messages=document.getElementById('aikhelpMessages'),langSelect=document.getElementById('aikhelpLang'),suggestions=document.getElementById('aikhelpSuggestions');
+ if(!launch||!panel||!close||!messages||!langSelect||!suggestions)return;
+ const roleNames={patient:{en:'Patient help',hi:'मरीज़ सहायता',bho:'मरीज़न के मदद'},doctor:{en:'Doctor help',hi:'डॉक्टर सहायता',bho:'डॉक्टरन के मदद'},admin:{en:'Admin help',hi:'एडमिन सहायता',bho:'एडमिन के मदद'}};
+ const text={
+  en:{welcome:{patient:'Hello! I can guide you around AIKDOC. Ask about finding doctors, appointments, cancellations, or your account.',doctor:'Hello, Doctor. I can guide you through appointment management, your profile, clinic details, and dashboard features.',admin:'Hello! I can guide you through AIKDOC admin features, including doctor, hospital, specialty, and registration management.'},placeholder:'Type your question…',send:'Send',note:'Local guided help only — not medical advice. Messages are not sent to an AI service.',thinking:'Let me check the available guidance…',fallback:'I’m not sure which AIKDOC feature you mean yet. Try asking about {topics}, or tell me which page you are on.',topics:'appointments, accounts, profiles, or the dashboard',appt:'For appointments, open the appointments section on this page and review the available details and actions. Check the appointment status before making changes.',cancel:'Open the relevant appointment and use its cancellation option if available. Read the confirmation carefully before submitting. Some cancellations may require a reason.',finddoctor:'Use the doctor listing/search area to review specialties, clinic details, consultation options, and available slots before choosing.',account:'Use the sign-in, profile, or account controls already provided on this website. Do not share passwords, OTPs, or verification codes in chat.',payment:'Review the fee and payment status shown in the relevant appointment details. For a disputed payment or refund, contact the clinic or AIKDOC support.',medical:'I can help with AIKDOC website navigation, but I cannot diagnose, prescribe, or recommend treatment. For medical advice, contact a qualified healthcare professional. If this is an emergency, contact local emergency services.',doctor:'Use the doctor management area to review doctor profiles and registration status. Only make changes you are authorized to make.',hospital:'Use the hospital management section to review or update hospital records, checking details before saving.',specialty:'Use the specialty management section to review the available specialties and follow the existing add/edit controls.',profile:'Open your profile or settings section and use its existing edit/save controls. Review changes before saving.',availability:'Open your availability or schedule settings, if provided in this panel, and review the selected days and time slots before saving.',security:'Never enter passwords, OTPs, or private patient information into chat. This local helper does not verify identity and cannot securely retrieve private records.',followup:'I can clarify that. Which part do you want help with: where to find it, what it does, or the steps to use it?'},
+  hi:{welcome:{patient:'नमस्ते! मैं AIKDOC वेबसाइट इस्तेमाल करने में मदद कर सकता हूँ। डॉक्टर खोजने, अपॉइंटमेंट, रद्द करने या अकाउंट के बारे में पूछें।',doctor:'नमस्ते डॉक्टर। मैं अपॉइंटमेंट, प्रोफ़ाइल, क्लिनिक विवरण और डैशबोर्ड इस्तेमाल करने में मार्गदर्शन कर सकता हूँ।',admin:'नमस्ते! मैं डॉक्टर, अस्पताल, विशेषज्ञता और रजिस्ट्रेशन प्रबंधन जैसे AIKDOC एडमिन फीचर्स समझाने में मदद कर सकता हूँ।'},placeholder:'अपना सवाल लिखें…',send:'भेजें',note:'यह स्थानीय मार्गदर्शक सहायता है, चिकित्सा सलाह नहीं। संदेश किसी AI सेवा को नहीं भेजे जाते।',thinking:'उपलब्ध मार्गदर्शन देख रहा हूँ…',fallback:'मुझे अभी स्पष्ट नहीं है कि आप AIKDOC के किस फीचर के बारे में पूछ रहे हैं। {topics} के बारे में पूछें या बताएं कि आप कौन-सा पेज खोल रहे हैं।',topics:'अपॉइंटमेंट, अकाउंट, प्रोफ़ाइल या डैशबोर्ड',appt:'अपॉइंटमेंट के लिए इस पेज का अपॉइंटमेंट सेक्शन खोलें और उपलब्ध जानकारी व विकल्प देखें। कोई बदलाव करने से पहले अपॉइंटमेंट का स्टेटस जाँचें।',cancel:'संबंधित अपॉइंटमेंट खोलें और विकल्प उपलब्ध होने पर रद्द करने का विकल्प चुनें। पुष्टि करने से पहले विवरण ध्यान से पढ़ें। कारण माँगा जा सकता है।',finddoctor:'डॉक्टर चुनने से पहले डॉक्टर की सूची या खोज में विशेषज्ञता, क्लिनिक, परामर्श विकल्प और उपलब्ध समय देखें।',account:'इस वेबसाइट पर मौजूद साइन-इन, प्रोफ़ाइल या अकाउंट विकल्प इस्तेमाल करें। चैट में पासवर्ड, OTP या सत्यापन कोड न दें।',payment:'संबंधित अपॉइंटमेंट में शुल्क और भुगतान की स्थिति देखें। भुगतान या रिफंड की समस्या के लिए क्लिनिक या AIKDOC सहायता से संपर्क करें।',medical:'मैं AIKDOC वेबसाइट इस्तेमाल करने में मदद कर सकता हूँ, लेकिन बीमारी का निदान, दवा लिखना या इलाज सुझाना नहीं कर सकता। चिकित्सा सलाह के लिए योग्य स्वास्थ्य पेशेवर से संपर्क करें। आपात स्थिति में स्थानीय आपातकालीन सेवा से संपर्क करें।',doctor:'डॉक्टर प्रोफ़ाइल और रजिस्ट्रेशन स्थिति देखने के लिए डॉक्टर प्रबंधन सेक्शन खोलें। केवल अधिकृत बदलाव करें।',hospital:'अस्पताल रिकॉर्ड देखने या अपडेट करने के लिए अस्पताल प्रबंधन सेक्शन खोलें। सेव करने से पहले विवरण जाँचें।',specialty:'उपलब्ध विशेषज्ञताओं को देखने या बदलने के लिए विशेषज्ञता प्रबंधन सेक्शन और उसके मौजूदा विकल्प इस्तेमाल करें।',profile:'प्रोफ़ाइल या सेटिंग्स सेक्शन खोलें और मौजूदा एडिट/सेव विकल्प इस्तेमाल करें। सेव करने से पहले बदलाव जाँचें।',availability:'यदि इस पैनल में उपलब्धता या शेड्यूल सेटिंग है, तो उसे खोलकर दिन और समय ध्यान से जाँचें और फिर सेव करें।',security:'चैट में पासवर्ड, OTP या निजी मरीज जानकारी न लिखें। यह स्थानीय सहायक पहचान सत्यापित नहीं करता और निजी रिकॉर्ड सुरक्षित रूप से नहीं निकाल सकता।',followup:'मैं इसे और स्पष्ट कर सकता हूँ। आपको किसमें मदद चाहिए—विकल्प कहाँ मिलेगा, उसका काम क्या है, या उसे इस्तेमाल करने के चरण?'},
+  bho:{welcome:{patient:'प्रणाम! हम AIKDOC वेबसाइट चलावे में मदद कर सकत बानी। डॉक्टर खोजे, अपॉइंटमेंट, रद्द करे भा अकाउंट के बारे में पूछीं।',doctor:'प्रणाम डॉक्टर साहेब। हम अपॉइंटमेंट, प्रोफाइल, क्लिनिक के जानकारी आ डैशबोर्ड चलावे में मदद कर सकत बानी।',admin:'प्रणाम! हम डॉक्टर, अस्पताल, विशेषज्ञता आ रजिस्ट्रेशन प्रबंधन वाला AIKDOC फीचर समझावे में मदद कर सकत बानी।'},placeholder:'अपना सवाल लिखीं…',send:'भेजीं',note:'ई स्थानीय मार्गदर्शक मदद ह, मेडिकल सलाह ना। संदेश कवनो AI सेवा लगे ना भेजल जाला।',thinking:'मौजूद जानकारी देखत बानी…',fallback:'अभी साफ नइखे कि रउआ AIKDOC के कवन फीचर के बारे में पूछत बानी। {topics} के बारे में पूछीं, भा बताईं कि कवन पेज खुलल बा।',topics:'अपॉइंटमेंट, अकाउंट, प्रोफाइल भा डैशबोर्ड',appt:'अपॉइंटमेंट खातिर एह पेज के अपॉइंटमेंट सेक्शन खोलीं आ मौजूद जानकारी आ विकल्प देखीं। बदलाव करे से पहिले स्टेटस जाँच लीं।',cancel:'संबंधित अपॉइंटमेंट खोलीं आ विकल्प होखे त रद्द करे वाला विकल्प चुनीं। पुष्टि करे से पहिले जानकारी ध्यान से पढ़ीं। कारण माँगल जा सकेला।',finddoctor:'डॉक्टर चुने से पहिले डॉक्टर के सूची में विशेषज्ञता, क्लिनिक, परामर्श के तरीका आ खाली समय देख लीं।',account:'वेबसाइट पर मौजूद साइन-इन, प्रोफाइल भा अकाउंट विकल्प इस्तेमाल करीं। चैट में पासवर्ड, OTP भा कोड मत दीं।',payment:'संबंधित अपॉइंटमेंट में फीस आ भुगतान के स्थिति देखीं। भुगतान भा रिफंड के समस्या होखे त क्लिनिक भा AIKDOC सहायता से संपर्क करीं।',medical:'हम AIKDOC वेबसाइट चलावे में मदद कर सकत बानी, बाकिर बीमारी के निदान, दवाई लिखे भा इलाज बतावे के काम ना कर सकत बानी। मेडिकल सलाह खातिर योग्य स्वास्थ्य पेशेवर से बात करीं। आपात स्थिति में स्थानीय आपात सेवा से संपर्क करीं।',doctor:'डॉक्टर प्रोफाइल आ रजिस्ट्रेशन के स्थिति देखे खातिर डॉक्टर प्रबंधन सेक्शन खोलीं। खाली अधिकृत बदलाव करीं।',hospital:'अस्पताल के रिकॉर्ड देखे भा बदले खातिर अस्पताल प्रबंधन सेक्शन खोलीं। सेव करे से पहिले जानकारी जाँच लीं।',specialty:'विशेषज्ञता के सूची देखे भा बदले खातिर विशेषज्ञता प्रबंधन सेक्शन के मौजूदा विकल्प इस्तेमाल करीं।',profile:'प्रोफाइल भा सेटिंग्स सेक्शन खोलीं आ मौजूद एडिट/सेव विकल्प इस्तेमाल करीं। सेव करे से पहिले बदलाव देख लीं।',availability:'अगर एह पैनल में उपलब्धता भा शेड्यूल के सेटिंग बा, त दिन आ समय जाँच के सेव करीं।',security:'चैट में पासवर्ड, OTP भा मरीज के निजी जानकारी मत लिखीं। ई स्थानीय सहायक पहचान जाँचेला ना आ निजी रिकॉर्ड सुरक्षित तरीका से निकाल ना सकेला।',followup:'हम अउरी साफ समझा सकत बानी। रउआ का जानल चाहत बानी—विकल्प कहाँ बा, ओकर काम का बा, भा इस्तेमाल करे के तरीका?'}
+ };
+ let currentLang='en',lastIntent='',doctorFlowStep='',chosenDoctorSpecialty='';
+ function detectLang(q){if(/[\u0900-\u097F]/.test(q)){if(/रउआ|बानी|बा\b|कइसे|कहाँ|काहे|हमनी|भोजपुरी/.test(q))return 'bho';return currentLang==='bho'?'bho':'hi';}if(/\b(kaise|kahan|batao|kripya|namaste|mujhe|chahiye|appointment kaise)\b/i.test(q))return 'hi';if(/\b(rauwa|bani|ba|kaise|kaha|ka haal|bhojpuri|hamni)\b/i.test(q))return 'bho';return currentLang;}
+ function addMessage(value,who){const el=document.createElement('div');el.className='aikhelp-msg '+(who==='user'?'aikhelp-user':'aikhelp-bot');el.textContent=value;messages.appendChild(el);messages.scrollTop=messages.scrollHeight;}
+ function getIntent(q){const s=String(q||'').toLowerCase();
+  if(/sign.?in|log.?in|login|लॉग.?इन|साइन.?इन|प्रवेश|साइन इन/.test(s))return 'login';
+  if(/cancel|cancell?ation|cancelled|रद्द|कैंसल|रद्द करे|रद्द करीं/.test(s))return 'cancelled';
+  if(/past|history|previous|completed|old appointment|बीता|पुराना|इतिहास|पूरा हो गइल|भइल रहे/.test(s))return 'past';
+  if(/upcoming|future|next appointment|आने वाला|आगामी|आवे वाला|अगिला/.test(s))return 'upcoming';
+  if(/appointment|booking|bookings|schedule|token|अपॉइंट|मुलाकात|बुकिंग|टोकन|भेंट/.test(s))return 'appointments';
+  if(/emergency|urgent|symptom|pain|medicine|medication|diagnos|treatment|medical|बीमारी|दर्द|दवा|इलाज|आपात|बेमारी|दरद|दवाई/.test(s))return 'medical';
+  if(/find doctor|doctor search|specialist|डॉक्टर खोज|डाक्टर|डॉक्टर|चिकित्सक/.test(s))return 'finddoctor';
+  if(/payment|fee|refund|pay|भुगतान|फीस|रिफंड|पैसा/.test(s))return 'payment';
+  if(/password|otp|privacy|secure|security|पासवर्ड|ओटीपी|गोपनीय|सुरक्षा/.test(s))return 'security';
+  if(/profile|account|register|प्रोफाइल|खाता|अकाउंट/.test(s))return 'account';
+  if(/how do i|what about that|tell me more|explain|और बत|कैसे|कहाँ|फिर क्या|uske baad|aur bata/.test(s)&&lastIntent)return lastIntent;
+  return '';
  }
- form.addEventListener("submit",e=>{e.preventDefault();const q=input.value.trim();if(!q)return;addMessage(q,"user");input.value="";addMessage(answer(q),"bot")});
+ function getMyAppointments(){
+  const session=window.safeGetJSON?safeGetJSON('aikdoc_patient_session',null):null;
+  if(!session||!(session.phone||session.mobile||session.email))return {session:null,groups:{upcoming:[],past:[],cancelled:[]}};
+  const phone=String(session.phone||session.mobile||'').replace(/\D/g,'').slice(-10);
+  const email=String(session.email||'').trim().toLowerCase();
+  const all=window.safeGetJSON?safeGetJSON('aikdoc_appointments',[]):[];
+  const mine=(Array.isArray(all)?all:[]).filter(a=>{
+   const apptPhone=String(a.phone||'').replace(/\D/g,'').slice(-10);
+   const apptEmail=String(a.email||a.patientEmail||'').trim().toLowerCase();
+   return (!!phone && apptPhone===phone) || (!!email && !!apptEmail && apptEmail===email);
+  });
+  const today=new Date();today.setHours(0,0,0,0);
+  const groups={upcoming:[],past:[],cancelled:[]};
+  mine.forEach(a=>{
+   const status=String(a.status||'Confirmed').toLowerCase();
+   if(status==='cancelled'){groups.cancelled.push(a);return;}
+   let d=null; if(a.date){d=new Date(a.date);if(Number.isNaN(d.getTime())){const m=String(a.date).match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})$/);if(m)d=new Date(+m[3],+m[2]-1,+m[1]);}}
+   if(status==='completed'||(d&&!Number.isNaN(d.getTime())&&new Date(d.getFullYear(),d.getMonth(),d.getDate())<today))groups.past.push(a);
+   else groups.upcoming.push(a);
+  });
+  const byDate=(a,b)=>String(a.date||'').localeCompare(String(b.date||''));
+  groups.upcoming.sort(byDate);groups.past.sort((a,b)=>byDate(b,a));groups.cancelled.sort((a,b)=>String(b.cancelledAt||'').localeCompare(String(a.cancelledAt||'')));
+  return {session,groups};
+ }
+ function formatAppointment(a,lang){
+  const doctor=a.doctorName||'Doctor not specified',hospital=a.hospital||a.hospitalName||'',specialty=a.speciality||a.specialty||'',when=[a.date,a.time].filter(Boolean).join(' at ')||'Date/time not specified';
+  const status=a.status||'Confirmed';
+  if(lang==='hi')return `• डॉक्टर: ${doctor}${specialty?' · विशेषज्ञता: '+specialty:''}${hospital?' · अस्पताल: '+hospital:''}\n  तारीख/समय: ${when}\n  स्थिति: ${status}${a.cancelledBy?' · रद्द किया: '+a.cancelledBy:''}${a.token?'\n  टोकन: '+a.token:''}${a.fee!==undefined&&a.fee!==''?' · फीस: ₹'+a.fee:''}`;
+  if(lang==='bho')return `• डॉक्टर: ${doctor}${specialty?' · विशेषज्ञता: '+specialty:''}${hospital?' · अस्पताल: '+hospital:''}\n  तारीख/समय: ${when}\n  स्थिति: ${status}${a.cancelledBy?' · रद्द कइलस: '+a.cancelledBy:''}${a.token?'\n  टोकन: '+a.token:''}${a.fee!==undefined&&a.fee!==''?' · फीस: ₹'+a.fee:''}`;
+  return `• Doctor: ${doctor}${specialty?' · Specialty: '+specialty:''}${hospital?' · Hospital: '+hospital:''}\n  Date/time: ${when}\n  Status: ${status}${a.cancelledBy?' · Cancelled by: '+a.cancelledBy:''}${a.token?'\n  Token: '+a.token:''}${a.fee!==undefined&&a.fee!==''?' · Fee: ₹'+a.fee:''}`;
+ }
+ function appointmentReply(kind,lang){
+  const data=getMyAppointments();
+  if(!data.session){
+   const prompts={en:'To protect your appointment details, please sign in first using the “Sign In” option. After sign-in, I can show your upcoming, past/completed, and cancelled appointments, including doctor, date/time, status, token, and fee when available.',hi:'आपकी अपॉइंटमेंट जानकारी सुरक्षित रखने के लिए पहले “Sign In” से लॉग इन करें। लॉग इन के बाद मैं आपकी आने वाली, पुरानी/पूरी हुई और रद्द अपॉइंटमेंट दिखा सकता हूँ।',bho:'रउआ के अपॉइंटमेंट के जानकारी सुरक्षित रखे खातिर पहिले “Sign In” से लॉग इन करीं। लॉग इन के बाद हम रउआ के आवे वाला, पुरान/पूरा भइल आ रद्द अपॉइंटमेंट देखाइब।'};
+   showLoginSuggestion=true;return prompts[lang]||prompts.en;
+  }
+  showLoginSuggestion=false;
+  const labels={en:{title:'Your AIKDOC appointments',upcoming:'UPCOMING',past:'PAST / COMPLETED',cancelled:'CANCELLED',none:'None found',name:'Patient',phone:'Mobile'},hi:{title:'आपकी AIKDOC अपॉइंटमेंट',upcoming:'आने वाली',past:'पुरानी / पूरी हुई',cancelled:'रद्द',none:'कोई अपॉइंटमेंट नहीं मिली',name:'मरीज़',phone:'मोबाइल'},bho:{title:'रउआ के AIKDOC अपॉइंटमेंट',upcoming:'आवे वाला',past:'पुरान / पूरा भइल',cancelled:'रद्द',none:'कवनो अपॉइंटमेंट नइखे मिलल',name:'मरीज़',phone:'मोबाइल'}}[lang]||{title:'Your AIKDOC appointments',upcoming:'UPCOMING',past:'PAST / COMPLETED',cancelled:'CANCELLED',none:'None found',name:'Patient',phone:'Mobile'};
+  const section=(label,items)=>`\n\n${label} (${items.length})\n${items.length?items.map(a=>formatAppointment(a,lang)).join('\n\n'):labels.none}`;
+  let out=`${labels.title}\n${labels.name}: ${data.session.name||'Patient'}\n${labels.phone}: ${data.session.phone || data.session.email || ''}`;
+  if(kind==='upcoming')return out+section(labels.upcoming,data.groups.upcoming);
+  if(kind==='past')return out+section(labels.past,data.groups.past);
+  if(kind==='cancelled')return out+section(labels.cancelled,data.groups.cancelled);
+  return out+section(labels.upcoming,data.groups.upcoming)+section(labels.past,data.groups.past)+section(labels.cancelled,data.groups.cancelled);
+ }
+ let showLoginSuggestion=false;
+ function answer(q){const intent=getIntent(q);if(intent)lastIntent=intent;const lang=detectLang(q);currentLang=lang;langSelect.value=lang;const pack=text[lang]||text.en;
+  if(role==='patient'&&['appointments','upcoming','past','cancelled'].includes(intent)){
+    const patientSession = safeGetJSON("aikdoc_patient_session", null);
+    if (!patientSession || !(patientSession.email || patientSession.phone || patientSession.mobile)) {
+      showLoginSuggestion = true;
+      return lang==='hi'?'अपॉइंटमेंट देखने के लिए पहले साइन इन करें।':lang==='bho'?'अपॉइंटमेंट देखे खातिर पहिले साइन इन करीं।':'Please sign in first to view your appointments.';
+    }
+    showLoginSuggestion = false;
+    return appointmentReply(intent,lang);
+  }
+  if(role==='patient'&&intent==='login'){
+    const patientSession = safeGetJSON("aikdoc_patient_session", null);
+    if (patientSession && (patientSession.email || patientSession.phone || patientSession.mobile)) {
+      showLoginSuggestion = false;
+      return lang==='hi'?'आप लॉग इन हैं। अपनी अपॉइंटमेंट देखने के लिए “मेरी अपॉइंटमेंट” चुनें।':lang==='bho'?'रउआ लॉग इन बानी। अपॉइंटमेंट देखे खातिर “हमार अपॉइंटमेंट” चुनीं।':'You are already signed in. Choose “My appointments” to view your appointments.';
+    }
+    showLoginSuggestion=true;
+    return lang==='hi'?'अपॉइंटमेंट देखने के लिए पहले साइन इन करें।':lang==='bho'?'अपॉइंटमेंट देखे खातिर पहिले साइन इन करीं।':'Please sign in first to view your appointments.';
+  }
+  showLoginSuggestion=false;let key=intent||'fallback';let reply=pack[key]||text.en[key]||text.en.fallback;if(key==='fallback')reply=reply.replace('{topics}',pack.topics||text.en.topics);if(key==='doctor'&&role!=='admin')reply=pack.finddoctor;if(key==='hospital'&&role!=='admin')reply=pack.profile;return reply;
+ }
+ function addChip(label,action){const b=document.createElement('button');b.type='button';b.className='aikhelp-chip';b.textContent=label;b.addEventListener('click',action);suggestions.appendChild(b);}
+ function startDoctorFlow(){doctorFlowStep='specialty';chosenDoctorSpecialty='';addMessage('Let’s find a doctor for you. First, choose the medical speciality you need.','bot');renderSuggestions();}
+ function chooseDoctorSpecialty(spec){chosenDoctorSpecialty=spec;doctorFlowStep='age';addMessage('Speciality: '+spec,'user');addMessage('What is the patient’s age group?','bot');renderSuggestions();}
+ function chooseDoctorAge(age){addMessage(age==='Paediatric'?'Child / Paediatric':'Adult','user');doctorFlowStep='';const all=Array.isArray(doctors)?doctors:[];const norm=x=>String(x||'').trim().toLowerCase();const matches=all.filter(d=>norm(d.speciality).includes(norm(chosenDoctorSpecialty))||norm(chosenDoctorSpecialty).includes(norm(d.speciality))).filter(d=>!d.patientGroup||norm(d.patientGroup)==='all'||norm(d.patientGroup)===norm(age));
+  if(!matches.length){addMessage('I could not find a doctor matching '+chosenDoctorSpecialty+' for the '+(age==='Paediatric'?'child/paediatric':'adult')+' age group in the currently available website data. Try another speciality or age group.','bot');renderSuggestions();return;}
+  const details=matches.map((d,i)=>`${i+1}. ${d.name}\n   ${d.speciality}${d.qualification?' · '+d.qualification:''}\n   ${d.hospital||'Hospital not listed'}${d.district?', '+d.district:''}\n   Consultation fee: ${d.fee!==undefined?'₹'+d.fee:'Not listed'}\n   Available slots: ${(d.quickSlots||[]).join(', ')||'Check all slots on the doctor listing'}`).join('\n\n');
+  addMessage(`Available doctors for ${chosenDoctorSpecialty} (${age==='Paediatric'?'Child / Paediatric':'Adult'}):\n\n${details}\n\nChoose “View these doctors” to open the website’s doctor list and book a listed slot. Availability shown here comes from the doctor data stored in this browser.`, 'bot');
+  window.aikdocInstantHelpDoctorSearch={speciality:chosenDoctorSpecialty,ageGroup:age};renderSuggestions();
+ }
+ function renderSuggestions(){const lang=text[currentLang]||text.en;suggestions.replaceChildren();
+  if(doctorFlowStep==='specialty'){
+   const specs=[...new Set((Array.isArray(doctors)?doctors:[]).map(d=>String(d.speciality||'').trim()).filter(Boolean))].sort();
+   specs.forEach(spec=>addChip(spec,()=>chooseDoctorSpecialty(spec)));
+   addChip('Cancel',()=>{doctorFlowStep='';renderSuggestions()});
+  }else if(doctorFlowStep==='age'){
+   addChip('Adult',()=>chooseDoctorAge('Adult'));addChip('Child / Paediatric',()=>chooseDoctorAge('Paediatric'));addChip('Back to specialities',()=>{doctorFlowStep='specialty';renderSuggestions()});
+  }else{
+   let labels,queries;
+   if(role==='patient'){
+    labels=currentLang==='hi'?['मेरी अपॉइंटमेंट','आने वाली','पुरानी / पूरी हुई','रद्द अपॉइंटमेंट','डॉक्टर खोजें']:currentLang==='bho'?['हमार अपॉइंटमेंट','आवे वाला','पुरान / पूरा भइल','रद्द अपॉइंटमेंट','डॉक्टर खोजीं']:['My appointments','Upcoming','Past / completed','Cancelled','Find a doctor'];
+    queries=currentLang==='hi'?['मेरी अपॉइंटमेंट दिखाएँ','आने वाली अपॉइंटमेंट','पुरानी अपॉइंटमेंट','रद्द अपॉइंटमेंट','डॉक्टर खोजें']:currentLang==='bho'?['हमार अपॉइंटमेंट देखाईं','आवे वाला अपॉइंटमेंट','पुरान अपॉइंटमेंट','रद्द अपॉइंटमेंट','डॉक्टर खोजीं']:['Show my appointments','Upcoming appointments','Past completed appointments','Cancelled appointments','Find a doctor'];
+    if(showLoginSuggestion){labels.unshift(currentLang==='hi'?'लॉग इन करें':currentLang==='bho'?'लॉग इन करीं':'Sign in');queries.unshift('__login__');}
+   }else{labels=currentLang==='hi'?['अपॉइंटमेंट','डॉक्टर खोजें','अकाउंट']:currentLang==='bho'?['अपॉइंटमेंट','डॉक्टर खोजीं','अकाउंट']:['Appointments','Find a doctor','Account help'];queries=currentLang==='hi'?['अपॉइंटमेंट कैसे देखें','डॉक्टर खोजें','अकाउंट']:currentLang==='bho'?['अपॉइंटमेंट कइसे देखीं','डॉक्टर खोजीं','अकाउंट']:['How do I manage appointments?','Find a doctor','Account help'];}
+   labels.forEach((label,i)=>addChip(label,()=>{const q=queries[i];if(q==='__login__'){window.aikdocPendingInstantHelpAppointments=true;if(typeof openWhatsAppAuthModal==='function')openWhatsAppAuthModal();return;}if(i===4&&role==='patient'||/find a doctor|डॉक्टर खोजें|डॉक्टर खोजीं/i.test(q)){startDoctorFlow();return;}submitQuestion(q);}));
+   const found=window.aikdocInstantHelpDoctorSearch;if(found)addChip('View these doctors',()=>{selectedSpeciality=found.speciality;selectedPatientType=found.ageGroup;const ss=document.getElementById('specialitySearch');if(ss)ss.value=found.speciality;const fs=document.getElementById('filterSpeciality');if(fs)fs.value=found.speciality;const age=document.getElementById('patientType');if(age)age.value=found.ageGroup;setPage('doctors');applyFilters();const section=document.getElementById('doctors');if(section)section.scrollIntoView({behavior:'smooth'});panel.classList.remove('open');});
+  }
+  document.getElementById('aikhelpTitle').textContent='AIKDOC · '+roleNames[role][currentLang];document.getElementById('aikhelpNote').textContent=lang.note;
+ }
+ function submitQuestion(q){q=String(q||'').trim();if(!q)return;addMessage(q,'user');const lang=detectLang(q);currentLang=lang;const reply=answer(q);renderSuggestions();window.setTimeout(()=>addMessage(reply,'bot'),100);}
+ window.addEventListener('aikdoc:patient-session-updated',()=>{if(role==='patient'&&window.aikdocPendingInstantHelpAppointments){window.aikdocPendingInstantHelpAppointments=false;showLoginSuggestion=false;addMessage(appointmentReply('appointments',currentLang),'bot');renderSuggestions();}});
+ launch.addEventListener('click',()=>panel.classList.add('open'));close.addEventListener('click',()=>panel.classList.remove('open'));langSelect.addEventListener('change',()=>{currentLang=langSelect.value;renderSuggestions();});
+ currentLang='en';renderSuggestions();addMessage(role==='patient'?'Welcome! Start with your appointments. I can show upcoming, past/completed, and cancelled bookings after you sign in.':text.en.welcome[role],'bot');
 })();
 </script>
 </body>
