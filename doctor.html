@@ -251,15 +251,57 @@ body.dark-mode .doctor-banned-screen{background:#101827}.dark-mode .doctor-banne
 
 </style>
 <style>
-/* AIKDOC cancellation modal: hidden until the doctor clicks Cancel */
-.modal-backdrop{position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:16px;background:rgba(10,18,32,.72);backdrop-filter:blur(4px);z-index:9999}
-.modal-backdrop.show{display:flex}
-.modal{box-sizing:border-box;width:min(100%,460px);max-height:92vh;overflow-y:auto;padding:22px;border-radius:20px;background:#fff;color:#17263c;border:1px solid #dbe4ee;box-shadow:0 24px 60px rgba(0,0,0,.3)}
-.modal-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
-.modal-header h2{margin:0;font-size:19px;font-weight:850;color:#12345b}
-.modal .close{width:34px;height:34px;border:0;border-radius:10px;background:#f1f5f9;color:#17263c;font-size:22px;cursor:pointer}
-@media(max-width:520px){.modal-backdrop{padding:12px}.modal{padding:18px 14px}}
+/* Refined cancellation dialog: clear hierarchy, accessible focus, mobile-friendly spacing */
+#doctorCancelModal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:18px;background:rgba(8,18,38,.66);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);z-index:10050;opacity:0;transition:opacity .18s ease}
+#doctorCancelModal.show{display:flex;opacity:1}
+#doctorCancelModal .modal{box-sizing:border-box;width:min(100%,500px);max-height:min(92vh,760px);overflow-y:auto;padding:0;border-radius:24px;background:#fff;color:#17263c;border:1px solid #e3eaf4;box-shadow:0 30px 90px rgba(8,18,38,.34),0 0 0 1px #ffffff55;animation:doctorCancelIn .2s ease-out}
+@keyframes doctorCancelIn{from{transform:translateY(10px) scale(.985);opacity:.5}to{transform:translateY(0) scale(1);opacity:1}}
+#doctorCancelModal .cancel-modal-top{padding:22px 24px 18px;background:linear-gradient(135deg,#fff7f7 0%,#fff 65%,#f8fbff 100%);border-bottom:1px solid #edf1f7}
+#doctorCancelModal .cancel-modal-title-row{display:flex;align-items:flex-start;gap:13px}
+#doctorCancelModal .cancel-modal-icon{width:46px;height:46px;flex:0 0 46px;display:grid;place-items:center;border-radius:15px;background:#fee2e2;color:#b91c1c;font-size:23px;box-shadow:inset 0 0 0 1px #fecaca}
+#doctorCancelModal .modal-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 5px}
+#doctorCancelModal .modal-header h2{margin:0;font-size:21px;line-height:1.25;font-weight:850;letter-spacing:-.35px;color:#17263c}
+#doctorCancelModal .close{width:36px;height:36px;flex:0 0 36px;border:1px solid #e2e8f0;border-radius:12px;background:#fff;color:#475569;font-size:22px;cursor:pointer;transition:background .15s,border-color .15s}
+#doctorCancelModal .close:hover{background:#f1f5f9;border-color:#cbd5e1}
+#doctorCancelModal .cancel-modal-subtitle{margin:0;color:#64748b;font-size:13px;line-height:1.5}
+#doctorCancelModal .cancel-modal-body{padding:20px 24px 22px}
+#doctorCancelModal .cancel-appointment-summary{display:flex;align-items:flex-start;gap:10px;padding:13px 14px;margin-bottom:20px;border:1px solid #dbeafe;border-radius:14px;background:linear-gradient(120deg,#eff6ff,#f8fbff);color:#1e3a5f;font-size:13px;line-height:1.5}
+#doctorCancelModal .cancel-appointment-summary .summary-icon{font-size:18px;line-height:1.4}
+#doctorCancelModal .cancel-field-label{display:block;margin:0 0 8px;font-size:13px;font-weight:800;color:#26364b}
+#doctorCancelModal .cancel-field-hint{display:block;margin:-3px 0 9px;color:#64748b;font-size:12px;line-height:1.5}
+#doctorCancelModal select,#doctorCancelModal textarea{display:block;box-sizing:border-box;width:100%;font:inherit;font-size:14px;color:#17263c;background:#fff;border:1px solid #cbd5e1;border-radius:12px;padding:12px 13px;outline:none;transition:border-color .15s,box-shadow .15s}
+#doctorCancelModal select{min-height:46px;margin-bottom:0}
+#doctorCancelModal textarea{resize:vertical;min-height:94px}
+#doctorCancelModal select:focus,#doctorCancelModal textarea:focus{border-color:#3b82f6;box-shadow:0 0 0 3px #3b82f622}
+#doctorCancelModal .cancel-other-wrap{margin-top:15px}
+#doctorCancelModal .cancel-modal-warning{display:flex;gap:9px;align-items:flex-start;margin-top:17px;padding:11px 12px;border-radius:12px;background:#fff7ed;color:#9a3412;font-size:12px;line-height:1.5}
+#doctorCancelModal .cancel-modal-actions{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;margin-top:22px}
+#doctorCancelModal .cancel-modal-actions button{min-height:43px;padding:10px 15px;border-radius:12px;font:inherit;font-size:13px;font-weight:800;cursor:pointer;transition:transform .15s,box-shadow .15s,background .15s}
+#doctorCancelModal .cancel-keep-btn{background:#fff;color:#334155;border:1px solid #cbd5e1}
+#doctorCancelModal .cancel-keep-btn:hover{background:#f8fafc}
+#doctorCancelModal .cancel-confirm-btn{background:linear-gradient(135deg,#dc2626,#b91c1c);color:#fff;border:1px solid #b91c1c;box-shadow:0 5px 14px #b91c1c26}
+#doctorCancelModal .cancel-confirm-btn:hover{transform:translateY(-1px);box-shadow:0 8px 18px #b91c1c35}
+#doctorCancelModal .cancel-modal-actions button:focus-visible,#doctorCancelModal .close:focus-visible{outline:3px solid #60a5fa;outline-offset:2px}
+@media(max-width:520px){#doctorCancelModal{padding:10px}#doctorCancelModal .modal{border-radius:19px}#doctorCancelModal .cancel-modal-top{padding:18px 17px 15px}#doctorCancelModal .cancel-modal-body{padding:17px}#doctorCancelModal .modal-header h2{font-size:19px}#doctorCancelModal .cancel-modal-actions{display:grid;grid-template-columns:1fr}#doctorCancelModal .cancel-modal-actions button{width:100%}}
+@media(prefers-reduced-motion:reduce){#doctorCancelModal,#doctorCancelModal .modal,#doctorCancelModal .cancel-modal-actions button{animation:none;transition:none}}
 </style>
+
+<style id="doctorAppointmentNoticeStyles">
+#doctorAppointmentNotice{position:fixed;inset:0;z-index:11000;display:none;align-items:center;justify-content:center;padding:18px;background:rgba(9,20,42,.62);backdrop-filter:blur(7px)}
+#doctorAppointmentNotice.show{display:flex}
+#doctorAppointmentNotice .notice-card{width:min(100%,460px);background:var(--card,#fff);color:var(--ink,#17263c);border:1px solid #dbe5f2;border-radius:22px;box-shadow:0 28px 90px #06142b55;overflow:hidden;animation:docNoticeIn .2s ease-out}
+#doctorAppointmentNotice .notice-head{padding:22px 24px 16px;background:linear-gradient(135deg,#eefbf5,#f7fbff);border-bottom:1px solid #e5edf5;display:flex;gap:13px;align-items:center}
+#doctorAppointmentNotice .notice-icon{width:48px;height:48px;border-radius:15px;display:grid;place-items:center;background:#d1fae5;color:#047857;font-size:24px;flex-shrink:0}
+#doctorAppointmentNotice[data-kind="cancelled"] .notice-head{background:linear-gradient(135deg,#fff1f2,#fffafa)}
+#doctorAppointmentNotice[data-kind="cancelled"] .notice-icon{background:#ffe4e6;color:#be123c}
+#doctorAppointmentNotice .notice-body{padding:20px 24px;line-height:1.65;font-size:14px}
+#doctorAppointmentNotice .notice-actions{display:flex;justify-content:flex-end;gap:10px;padding:0 24px 22px}
+#doctorAppointmentNotice .notice-actions button{border:0;border-radius:11px;padding:11px 17px;font-weight:800;cursor:pointer;background:#0f766e;color:white}
+#doctorAppointmentNotice .notice-actions button.secondary{background:#eef2f7;color:#334155}
+@keyframes docNoticeIn{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
+@media(prefers-reduced-motion:reduce){#doctorAppointmentNotice .notice-card{animation:none}}
+</style>
+
 </head>
 <body>
 
@@ -705,6 +747,12 @@ body.dark-mode .doctor-banned-screen{background:#101827}.dark-mode .doctor-banne
 <section id="doctorBannedScreen" class="doctor-banned-screen" style="display:none" role="alert" aria-live="assertive">
   <div class="doctor-banned-card"><div class="doctor-banned-icon">⛔</div><h1>Access Restricted</h1><p>You have been banned by the admin.</p><p class="doctor-banned-sub">Your AIKDOC doctor account is currently suspended. Please contact the AIKDOC administration team for further assistance.</p><button type="button" class="primary-btn" onclick="doctorBannedLogout()">Back to Login</button></div>
 </section>
+
+<div id="doctorAppointmentNotice" role="dialog" aria-modal="true" aria-labelledby="doctorAppointmentNoticeTitle" data-kind="new">
+ <div class="notice-card"><div class="notice-head"><div class="notice-icon" id="doctorAppointmentNoticeIcon">✚</div><div><div id="doctorAppointmentNoticeEyebrow" style="font-size:11px;letter-spacing:.8px;text-transform:uppercase;font-weight:900;color:#64748b">Appointment update</div><h2 id="doctorAppointmentNoticeTitle" style="margin:3px 0 0;font-size:21px;line-height:1.25">New appointment booked</h2></div></div>
+ <div class="notice-body" id="doctorAppointmentNoticeBody"></div><div class="notice-actions"><button type="button" class="secondary" onclick="closeDoctorAppointmentNotice(false)">Dismiss</button><button type="button" onclick="closeDoctorAppointmentNotice(true)">View appointments</button></div></div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -713,16 +761,16 @@ let currentPhotoBase64 = DEFAULT_AVATAR;
 let activeApptSubtab = "Upcoming";
 
 function getMasterDoctors() {
-  return JSON.parse(localStorage.getItem("aikdoc_master_doctors") || "[]");
+  try { const value = JSON.parse(localStorage.getItem("aikdoc_master_doctors") || "[]"); return Array.isArray(value) ? value : []; } catch (e) { return []; }
 }
 function getMasterHospitals() {
-  return JSON.parse(localStorage.getItem("aikdoc_master_hospitals") || "[]");
+  try { const value = JSON.parse(localStorage.getItem("aikdoc_master_hospitals") || "[]"); return Array.isArray(value) ? value : []; } catch (e) { return []; }
 }
 function getMasterSpecialties() {
-  return JSON.parse(localStorage.getItem("aikdoc_master_specialties") || "[]");
+  try { const value = JSON.parse(localStorage.getItem("aikdoc_master_specialties") || "[]"); return Array.isArray(value) ? value : []; } catch (e) { return []; }
 }
 function getDoctorAccounts() {
-  return JSON.parse(localStorage.getItem("aikdoc_doctor_accounts") || "[]");
+  try { const value = JSON.parse(localStorage.getItem("aikdoc_doctor_accounts") || "[]"); return Array.isArray(value) ? value : []; } catch (e) { return []; }
 }
 
 function populateSpecialityDatalists() {
@@ -803,6 +851,8 @@ function showDoctorBannedScreen() {
 }
 function doctorBannedLogout() {
   localStorage.removeItem("aikdoc_doctor_session");
+  localStorage.removeItem("aikdoc_doctor_session_backup");
+  localStorage.removeItem("aikdoc_active_doctor_name");
   const banned = document.getElementById("doctorBannedScreen");
   if (banned) banned.style.display = "none";
   showAuthGate();
@@ -813,32 +863,69 @@ function isDoctorBanned(user) {
 }
 
 function checkAuthSession() {
-  const sessionUser = JSON.parse(localStorage.getItem("aikdoc_doctor_session") || "null");
-  if (!sessionUser) {
+  const isValidDoctorSession = value =>
+    !!(value && typeof value === "object" && !Array.isArray(value) &&
+       (value.name || value.mobile || value.email || value.id != null));
+
+  let sessionUser = null;
+
+  // Prefer the current session, then the backup copy.
+  for (const key of ["aikdoc_doctor_session", "aikdoc_doctor_session_backup"]) {
+    try {
+      const candidate = JSON.parse(localStorage.getItem(key) || "null");
+      if (isValidDoctorSession(candidate)) {
+        sessionUser = candidate;
+        break;
+      }
+    } catch (e) {}
+  }
+
+  // Recover if both session keys were lost: search both the published doctor
+  // directory and the registered doctor-account list by the last active name.
+  if (!isValidDoctorSession(sessionUser)) {
+    const activeName = (localStorage.getItem("aikdoc_active_doctor_name") || "").trim().toLowerCase();
+    if (activeName) {
+      let directories = [];
+      try { directories.push(...getMasterDoctors()); } catch (e) {}
+      try { directories.push(...getDoctorAccounts()); } catch (e) {}
+      sessionUser = directories.find(d =>
+        d && String(d.name || "").trim().toLowerCase() === activeName
+      ) || null;
+    }
+  }
+
+  if (!isValidDoctorSession(sessionUser)) {
     showAuthGate();
     return;
   }
 
-  const master = getMasterDoctors();
-  const exists = master.some(d => d.name === sessionUser.name || (sessionUser.mobile && d.mobile === sessionUser.mobile));
+  // Re-save both copies immediately so the next refresh has a recovery source.
+  try {
+    const saved = JSON.stringify(sessionUser);
+    localStorage.setItem("aikdoc_doctor_session", saved);
+    localStorage.setItem("aikdoc_doctor_session_backup", saved);
+    if (sessionUser.name) localStorage.setItem("aikdoc_active_doctor_name", sessionUser.name);
+  } catch (e) {}
 
-  if (exists && isDoctorBanned(sessionUser)) {
+  // Only enforce the banned flag when the doctor is actually found in the
+  // master directory. A missing/stale directory entry must not log them out.
+  let master = [];
+  try { master = getMasterDoctors(); } catch (e) {}
+  const masterDoctor = master.find(d =>
+    (sessionUser.id != null && d.id != null && String(d.id) === String(sessionUser.id)) ||
+    (sessionUser.name && d.name && String(d.name).trim().toLowerCase() === String(sessionUser.name).trim().toLowerCase()) ||
+    (sessionUser.mobile && d.mobile && String(d.mobile).replace(/\D/g, "").slice(-10) === String(sessionUser.mobile).replace(/\D/g, "").slice(-10))
+  );
+
+  if (masterDoctor && (masterDoctor.banned === true || String(masterDoctor.status || "").toLowerCase() === "banned")) {
     showDoctorBannedScreen();
     return;
   }
+
   const bannedScreen = document.getElementById("doctorBannedScreen");
   if (bannedScreen) bannedScreen.style.display = "none";
-
-  if (!exists) {
-    localStorage.removeItem("aikdoc_doctor_session");
-    alert("⚠️ Your doctor account has been deleted by the Super Admin.");
-    showAuthGate();
-    return;
-  }
-
   showDashboard(sessionUser);
 }
-
 function showAuthGate() {
   authGateSection.style.display = "flex";
   mainDashboardSection.style.display = "none";
@@ -847,6 +934,7 @@ function showAuthGate() {
 }
 
 function showDashboard(doctor) {
+  try { if (doctor && doctor.name) localStorage.setItem("aikdoc_active_doctor_name", doctor.name); } catch (e) {}
   authGateSection.style.display = "none";
   mainDashboardSection.style.display = "block";
   navTabsWrap.style.display = "flex";
@@ -893,11 +981,13 @@ loginForm.addEventListener("submit", (e) => {
   }
   if (isDoctorBanned(user)) {
     localStorage.setItem("aikdoc_doctor_session", JSON.stringify(user));
+    localStorage.setItem("aikdoc_doctor_session_backup", JSON.stringify(user));
     showDoctorBannedScreen();
     return;
   }
 
   localStorage.setItem("aikdoc_doctor_session", JSON.stringify(user));
+    localStorage.setItem("aikdoc_doctor_session_backup", JSON.stringify(user));
   showToast(`Welcome back, ${user.name}!`);
   showDashboard(user);
 });
@@ -954,12 +1044,15 @@ registerForm.addEventListener("submit", (e) => {
   localStorage.setItem("aikdoc_last_sync", Date.now().toString());
 
   localStorage.setItem("aikdoc_doctor_session", JSON.stringify(newDoc));
+  localStorage.setItem("aikdoc_doctor_session_backup", JSON.stringify(newDoc));
   showToast(`🎉 Practice registered! Welcome, ${name}.`);
   showDashboard(newDoc);
 });
 
 document.getElementById("logoutBtn").addEventListener("click", () => {
   localStorage.removeItem("aikdoc_doctor_session");
+  localStorage.removeItem("aikdoc_doctor_session_backup");
+  localStorage.removeItem("aikdoc_active_doctor_name");
   showToast("Logged out.");
   showAuthGate();
 });
@@ -1152,6 +1245,7 @@ document.getElementById("doctorForm").addEventListener("submit", (e) => {
   sessionUser.photo = docProfile.photo;
   sessionUser.speciality = docProfile.speciality;
   localStorage.setItem("aikdoc_doctor_session", JSON.stringify(sessionUser));
+  localStorage.setItem("aikdoc_doctor_session_backup", JSON.stringify(sessionUser));
 
   docPillName.textContent = docProfile.name;
   docPillImg.src = docProfile.photo;
@@ -1161,13 +1255,26 @@ document.getElementById("doctorForm").addEventListener("submit", (e) => {
 
 // GET RELEVANT APPOINTMENTS FOR CURRENT DOCTOR
 function getCurrentDoctorAppointments() {
-  const currentDocName = document.getElementById("docName").value.trim() || localStorage.getItem("aikdoc_active_doctor_name") || "Dr. Stark";
-  const appts = JSON.parse(localStorage.getItem("aikdoc_appointments") || "[]");
-  
-  return appts.filter(a => 
-    (a.doctorName && a.doctorName.toLowerCase().includes(currentDocName.toLowerCase())) || 
-    (currentDocName && currentDocName.toLowerCase().includes(a.doctorName.toLowerCase()))
-  );
+  let sessionUser = null;
+  try { sessionUser = JSON.parse(localStorage.getItem("aikdoc_doctor_session") || "null"); } catch (e) {}
+  const inputName = document.getElementById("docName")?.value?.trim() || "";
+  const currentDocName = inputName || sessionUser?.name || sessionUser?.doctorName || localStorage.getItem("aikdoc_active_doctor_name") || "";
+  const normalize = value => String(value || "").trim().toLowerCase().replace(/^dr\.?\s*/, "").replace(/\s+/g, " ");
+  const name = normalize(currentDocName);
+  let appts = [];
+  try { const parsed = JSON.parse(localStorage.getItem("aikdoc_appointments") || "[]"); appts = Array.isArray(parsed) ? parsed : []; } catch (e) { appts = []; }
+  return appts.filter(a => {
+    const assigned = normalize(a && (a.doctorName || a.doctor || a.providerName || a.assignedDoctor || a.doctor_name));
+    // First match the displayed doctor name, then fall back to the same
+    // ID/mobile-aware ownership check used by live notifications.
+    if (name && assigned && (assigned === name || assigned.includes(name) || name.includes(assigned))) return true;
+    try { return typeof doctorOwnsAppointment === "function" && doctorOwnsAppointment(a); } catch (e) { return false; }
+  });
+}
+
+// Escape saved appointment text before inserting it into HTML.
+function escapeDoctorHtml(value) {
+  return String(value == null ? "" : value).replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;", "'":"&#39;"}[ch]));
 }
 
 // 1. Appointments Loader
@@ -1213,7 +1320,7 @@ function loadDoctorAppointments() {
         <div class="appt-top">
           <div>
             <div class="appt-patient-name">${a.patientName}</div>
-            <div style="font-size:12.5px;color:var(--muted);margin-top:2px">Phone: <strong>${a.phone}</strong></div>
+            <div style="font-size:12.5px;color:var(--muted);margin-top:2px">${a.phone ? `Phone: <strong>${a.phone}</strong>` : `Email: <strong>${a.email || "Not provided"}</strong>`}</div>
           </div>
           <span class="appt-token">${a.token}</span>
         </div>
@@ -1224,11 +1331,20 @@ function loadDoctorAppointments() {
           <div><small>Fee & Status</small><strong>₹${a.fee} (${a.paymentStatus})</strong></div>
         </div>
 
+        ${status === "Cancelled" ? `
+          <div class="appt-cancellation-reason" style="display:flex;gap:10px;align-items:flex-start;margin-top:14px;padding:12px 14px;border:1px solid #fecaca;border-radius:13px;background:linear-gradient(135deg,#fff7f7,#fffafa);color:#7f1d1d">
+            <span aria-hidden="true" style="font-size:18px;line-height:1.4">ⓘ</span>
+            <div><div style="font-size:11px;font-weight:850;letter-spacing:.45px;text-transform:uppercase;color:#b91c1c;margin-bottom:4px">Cancellation reason</div>
+              <div style="font-size:13px;line-height:1.55;overflow-wrap:anywhere">${escapeDoctorHtml(a.cancellationReason || a.cancelReason || a.cancellation_reason || "No reason was recorded.")}</div>
+              ${a.cancelledAt ? `<div style="font-size:11px;color:#9f5b5b;margin-top:5px">Cancelled ${escapeDoctorHtml(new Date(a.cancelledAt).toLocaleString())}${a.cancelledBy ? ` · By ${escapeDoctorHtml(a.cancelledBy)}` : ""}</div>` : (a.cancelledBy ? `<div style="font-size:11px;color:#9f5b5b;margin-top:5px">Cancelled by ${escapeDoctorHtml(a.cancelledBy)}</div>` : "")}
+            </div>
+          </div>` : ""}
+
         <div class="appt-actions">
           <span class="status-pill ${statusClass}">● ${status} ${a.cancelledBy ? `(by ${a.cancelledBy})` : ''}</span>
           
           <div class="action-btn-group">
-            <a class="action-btn call" href="tel:${a.phone}">📞 Call Patient</a>
+            ${a.phone ? `<a class="action-btn call" href="tel:${a.phone}">📞 Call Patient</a>` : (a.email ? `<a class="action-btn call" href="mailto:${a.email}">✉️ Email Patient</a>` : "")}
             ${status === "Confirmed" ? `
               <button class="action-btn done" type="button" onclick="doctorSetStatus('${a.token}', 'Completed')">✓ Mark Done</button>
               <button class="action-btn cancel" type="button" onclick="doctorSetStatus('${a.token}', 'Cancelled')">✕ Cancel</button>
@@ -1243,7 +1359,13 @@ function loadDoctorAppointments() {
 // 2. Reviews Loader & Scorecard Calculator
 function loadDoctorReviews() {
   const myAppts = getCurrentDoctorAppointments();
-  const reviewedAppts = myAppts.filter(a => a.review && a.review.rating);
+  const reviewedAppts = myAppts.filter(a => {
+    const r = a && (a.review || a.patientReview || a.feedback);
+    return !!(r && (r.rating != null || r.stars != null));
+  }).map(a => {
+    const raw = a.review || a.patientReview || a.feedback || {};
+    return { ...a, review: { ...raw, rating: Number(raw.rating ?? raw.stars ?? a.rating) || 5, comment: raw.comment || raw.text || raw.feedback || "", date: raw.date || raw.createdAt || a.reviewDate || a.date || "Recent" } };
+  });
 
   const totalReviews = reviewedAppts.length;
   const badge = document.getElementById("docReviewBadge");
@@ -1362,7 +1484,7 @@ function loadDoctorRevenue() {
       <tr>
         <td><strong>${a.date}</strong></td>
         <td><code style="color:var(--blue);font-weight:800">${a.token}</code></td>
-        <td><strong>${a.patientName}</strong><br><small style="color:var(--muted)">${a.phone}</small></td>
+        <td><strong>${a.patientName}</strong><br><small style="color:var(--muted)">${a.phone || a.email || ""}</small></td>
         <td>${a.mode === "Clinic visit" ? "🏥 Clinic Visit" : "📱 Teleconsult"}</td>
         <td>${a.paymentMethod || "UPI / Online"}</td>
         <td><strong style="color:var(--navy);font-size:14px">₹${a.fee}</strong></td>
@@ -1375,9 +1497,11 @@ function loadDoctorRevenue() {
 }
 
 function loadAllDoctorData() {
-  loadDoctorAppointments();
-  loadDoctorReviews();
-  loadDoctorRevenue();
+  // Refresh each panel independently: a malformed legacy record must not prevent
+  // review/appointment badges from updating.
+  try { loadDoctorAppointments(); } catch (err) { console.warn("Appointment refresh failed", err); }
+  try { loadDoctorReviews(); } catch (err) { console.warn("Review refresh failed", err); }
+  try { loadDoctorRevenue(); } catch (err) { console.warn("Revenue refresh failed", err); }
 }
 
 // Doctor updates status: Done or Cancelled
@@ -1388,13 +1512,18 @@ window.doctorSetStatus=function(token,newStatus){
   doctorCancelSelectedToken=token;document.getElementById("doctorCancelReason").value="";document.getElementById("doctorCancelOther").value="";
   document.getElementById("doctorCancelOtherWrap").style.display="none";
   document.getElementById("doctorCancelReason").onchange=e=>document.getElementById("doctorCancelOtherWrap").style.display=e.target.value==="Other"?"block":"none";
-  document.getElementById("doctorCancelApptInfo").textContent="Appointment "+token+" for "+(target.patientName||"your patient");
-  document.getElementById("doctorCancelModal").classList.add("show");return;
+  const infoBits=["Appointment "+token,"Patient: "+(target.patientName||"your patient")];
+  if(target.date)infoBits.push("Date: "+target.date);if(target.time)infoBits.push("Time: "+target.time);
+  document.getElementById("doctorCancelApptInfo").textContent=infoBits.join(" · ");
+  const cancelModal=document.getElementById("doctorCancelModal");cancelModal.classList.add("show");
+  window.setTimeout(()=>document.getElementById("doctorCancelReason").focus(),40);return;
  }
  target.status=newStatus;target.lastUpdated=Date.now();localStorage.setItem("aikdoc_appointments",JSON.stringify(appts));localStorage.setItem("aikdoc_last_sync",Date.now().toString());
  showToast("Appointment "+token+" marked as "+newStatus+".");loadAllDoctorData();
 };
 function closeDoctorCancelModal(){document.getElementById("doctorCancelModal").classList.remove("show");doctorCancelSelectedToken=null;}
+document.addEventListener("keydown",e=>{if(e.key==="Escape"){const modal=document.getElementById("doctorCancelModal");if(modal&&modal.classList.contains("show"))closeDoctorCancelModal();}});
+document.getElementById("doctorCancelModal").addEventListener("click",e=>{if(e.target.id==="doctorCancelModal")closeDoctorCancelModal();});
 function submitDoctorCancellation(){
  if(!doctorCancelSelectedToken)return;const choice=document.getElementById("doctorCancelReason").value;
  const reason=choice==="Other"?document.getElementById("doctorCancelOther").value.trim():choice;
@@ -1406,19 +1535,158 @@ function submitDoctorCancellation(){
  const token=doctorCancelSelectedToken;closeDoctorCancelModal();showToast("Appointment "+token+" cancelled.");loadAllDoctorData();
 };
 
-// Storage event listener (syncs across tabs in real-time)
+// Appointment notices are triggered by changes made in another AIKDOC tab.
+function doctorOwnsAppointment(a) {
+  if (!a) return false;
+  // Use exactly the same identity sources and normalization as the live badge.
+  let u = null;
+  for (const key of ["aikdoc_doctor_session", "aikdoc_doctor_session_backup"]) {
+    try {
+      const candidate = JSON.parse(localStorage.getItem(key) || "null");
+      if (candidate && typeof candidate === "object" && !Array.isArray(candidate) &&
+          (candidate.name || candidate.mobile || candidate.email || candidate.id != null)) { u = candidate; break; }
+    } catch (e) {}
+  }
+  const normalize = value => String(value || "").trim().toLowerCase()
+    .replace(/^dr\.?\s*/, "").replace(/[^a-z0-9]+/g, " ").trim().replace(/\s+/g, " ");
+  const inputName = document.getElementById("docName")?.value || "";
+  const currentName = normalize((u && (u.name || u.doctorName)) || inputName || localStorage.getItem("aikdoc_active_doctor_name") || "");
+  const assignedName = normalize(a.doctorName || a.doctor || a.providerName || a.assignedDoctor || a.doctor_name);
+  const currentId = u && (u.id ?? u.doctorId ?? u.doctor_id);
+  const assignedId = a.doctorId ?? a.doctor_id ?? a.assignedDoctorId;
+  const currentMobile = String((u && (u.mobile || u.phone)) || "").replace(/\D/g, "").slice(-10);
+  const assignedMobile = String(a.doctorMobile || a.doctorPhone || a.providerMobile || "").replace(/\D/g, "").slice(-10);
+  if (currentId != null && assignedId != null && String(currentId) === String(assignedId)) return true;
+  if (currentMobile && assignedMobile && currentMobile === assignedMobile) return true;
+  return !!(currentName && assignedName &&
+    (currentName === assignedName || currentName.includes(assignedName) || assignedName.includes(currentName)));
+}
+function openDoctorAppointmentNotice(kind, appt) {
+  const modal=document.getElementById("doctorAppointmentNotice"); if(!modal||!appt)return;
+  modal.dataset.kind=kind;
+  const cancelled=kind==="cancelled", reviewed=kind==="review";
+  document.getElementById("doctorAppointmentNoticeIcon").textContent=cancelled?"×":reviewed?"★":"✚";
+  document.getElementById("doctorAppointmentNoticeEyebrow").textContent=cancelled?"Patient cancellation":reviewed?"New patient review":"New booking received";
+  document.getElementById("doctorAppointmentNoticeTitle").textContent=cancelled?"Appointment cancelled by patient":reviewed?"New patient review received":"New appointment booked";
+  const safe=(v)=>escapeDoctorHtml(v||"");
+  const review=appt.review||appt.patientReview||appt.feedback||{};
+  const reviewDetails=reviewed?`<div style="margin-top:10px;color:#b45309;font-size:16px;letter-spacing:2px">${"★".repeat(Math.min(5,Math.max(1,Number(review.rating||review.stars||appt.rating)||5)))}${"☆".repeat(5-Math.min(5,Math.max(1,Number(review.rating||review.stars||appt.rating)||5)))}</div><div style="margin-top:5px;line-height:1.55">${safe(review.comment||review.text||review.feedback||"Rating submitted without a written comment.")}</div>`:"";
+  document.getElementById("doctorAppointmentNoticeBody").innerHTML=`<strong>${safe(appt.patientName||appt.name||"A patient")}</strong> ${cancelled?"cancelled their appointment":reviewed?"submitted feedback for their appointment":"booked a new appointment"}.<div style="margin-top:12px;padding:12px 14px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px"><div><b>Token:</b> ${safe(appt.token||"—")}</div><div><b>Date:</b> ${safe(appt.date||"Not listed")}</div><div><b>Time:</b> ${safe(appt.time||appt.slot||"Not listed")}</div>${cancelled?`<div style="margin-top:7px;color:#9f1239"><b>Reason:</b> ${safe(appt.cancellationReason||appt.cancelReason||appt.cancellation_reason||"No reason provided")}</div>`:""}${reviewDetails}</div>`;
+  modal.style.setProperty("display", "flex", "important");
+  modal.classList.add("show");
+  modal.setAttribute("aria-live", "assertive");
+}
+window.closeDoctorAppointmentNotice=function(view){
+  const modal=document.getElementById("doctorAppointmentNotice");
+  const kind=modal&&modal.dataset.kind;
+  if(modal){modal.classList.remove("show");modal.style.setProperty("display","none","important");}
+  doctorNoticeCurrentlyOpen=false;
+  if(view){
+    if(kind==="review"){switchMainTab("reviews");loadDoctorReviews();}
+    else{switchMainTab("appointments");activeApptSubtab=kind==="cancelled"?"Cancelled":"Upcoming";loadDoctorAppointments();}
+  }
+  // If multiple updates arrived together, display each popup instead of silently dropping the rest.
+  window.setTimeout(showNextDoctorAppointmentNotice, 180);
+};
+// Live reconciliation for appointment bookings, patient cancellations and reviews.
+// The Patient page writes reviews into aikdoc_appointments, so compare the whole
+// appointment snapshot and refresh all badge/list DOM on every pass.
+let doctorAppointmentsSnapshot = localStorage.getItem("aikdoc_appointments") || "[]";
+const doctorNoticeSeen = new Set();
+const doctorNoticeQueue = [];
+let doctorNoticeCurrentlyOpen = false;
+try { const initialNotice = document.getElementById("doctorAppointmentNotice"); if (initialNotice) initialNotice.style.display = "none"; } catch (e) {}
+function safeDoctorParse(raw) { try { const value = JSON.parse(raw || "[]"); return Array.isArray(value) ? value : []; } catch (e) { return []; } }
+function queueDoctorAppointmentNotice(kind, appt, key) {
+  if (!appt || doctorNoticeSeen.has(key)) return;
+  doctorNoticeSeen.add(key);
+  doctorNoticeQueue.push({ kind, appt });
+  showNextDoctorAppointmentNotice();
+}
+function showNextDoctorAppointmentNotice() {
+  const modal = document.getElementById("doctorAppointmentNotice");
+  if (!modal || doctorNoticeCurrentlyOpen || modal.classList.contains("show") || !doctorNoticeQueue.length) return;
+  const next = doctorNoticeQueue.shift();
+  doctorNoticeCurrentlyOpen = true;
+  openDoctorAppointmentNotice(next.kind, next.appt);
+}
+function doctorApptKey(a) {
+  if (!a) return "";
+  const explicit = a.token || a.id || a.bookingId || a.appointmentId;
+  if (explicit != null && String(explicit).trim()) return String(explicit).trim();
+  // Fallback for older appointment records that do not have a token/id field.
+  return [a.phone || a.patientPhone || "", a.date || "", a.time || a.slot || "",
+    a.doctorId || a.doctor_id || a.doctorName || a.doctor || "", a.patientName || a.name || ""]
+    .map(v => String(v).trim().toLowerCase()).join("|");
+}
+function doctorReviewOf(a) { return a && (a.review || a.patientReview || a.feedback || a.patient_review || a.ratingReview) || null; }
+function doctorReviewSignature(a) { const r = doctorReviewOf(a); return r ? JSON.stringify({rating:r.rating ?? r.stars ?? a.rating ?? null, comment:r.comment ?? r.text ?? r.feedback ?? "", date:r.date ?? r.createdAt ?? ""}) : ""; }
+function syncDoctorAppointmentChanges(previousRaw, currentRaw) {
+  const prevRaw = previousRaw == null ? "[]" : previousRaw;
+  const nextRaw = currentRaw == null ? "[]" : currentRaw;
+  if (prevRaw === nextRaw) { doctorAppointmentsSnapshot = nextRaw; try { loadAllDoctorData(); } catch(e) {} return; }
+  const oldList = safeDoctorParse(prevRaw), newList = safeDoctorParse(nextRaw);
+  const oldByKey = new Map(oldList.map(a => [doctorApptKey(a), a]).filter(([k]) => k));
+  const owned = a => {
+    try { return doctorOwnsAppointment(a); } catch (e) { return false; }
+  };
+  const isConfirmed = a => !a.status || String(a.status).trim().toLowerCase() === "confirmed";
+  // Notify both when a record is newly added and when an existing pending record
+  // becomes confirmed. Some booking flows update a pre-created record in place.
+  const newBookings = newList.filter(a => {
+    const k = doctorApptKey(a), before = oldByKey.get(k);
+    return k && isConfirmed(a) && (!before || !isConfirmed(before)) && owned(a);
+  });
+  const patientCancellations = newList.filter(a => {
+    const k = doctorApptKey(a), before = oldByKey.get(k);
+    return k && before && String(before.status || "confirmed").trim().toLowerCase() !== "cancelled" &&
+      String(a.status || "").trim().toLowerCase() === "cancelled" &&
+      String(a.cancelledBy || a.cancelled_by || "").trim().toLowerCase() === "patient" && owned(a);
+  });
+  const changedReviews = newList.filter(a => {
+    const k=doctorApptKey(a), before=oldByKey.get(k);
+    return k && before && doctorReviewSignature(a) && doctorReviewSignature(a)!==doctorReviewSignature(before) && owned(a);
+  });
+  doctorAppointmentsSnapshot = nextRaw;
+  try { loadAllDoctorData(); } catch(e) { console.warn("Live dashboard refresh failed", e); }
+  // Queue every event found in this update. If several patients book/cancel at once,
+  // each event gets its own popup instead of later events being hidden by the first.
+  const enqueue = (kind, a) => {
+    const stamp = kind === "review"
+      ? doctorReviewSignature(a)
+      : String(a.lastUpdated || a.cancelledAt || a.createdAt || a.id || "");
+    const key = kind + ":" + doctorApptKey(a) + ":" + stamp;
+    queueDoctorAppointmentNotice(kind, a, key);
+  };
+  patientCancellations.forEach(a => enqueue("cancelled", a));
+  newBookings.forEach(a => enqueue("new", a));
+  changedReviews.forEach(a => enqueue("review", a));
+}
 window.addEventListener("storage", (e) => {
-  if (e.key === "aikdoc_appointments") {
-    loadAllDoctorData();
-    showToast("🔔 Real-time appointment or review update received!");
+  if (e.key === "aikdoc_appointments") syncDoctorAppointmentChanges(e.oldValue, e.newValue);
+  if (e.key === "aikdoc_doctor_deleted" || e.key === "aikdoc_master_doctors") {
+    // Directory updates are data updates, not authentication events. Never hide
+    // the active dashboard just because another tab changes the doctor directory.
+    try { if (document.getElementById("mainDashboardSection")?.style.display !== "none") { loadAllDoctorData(); } } catch (err) { console.warn("Doctor directory refresh skipped", err); }
   }
-  if (e.key === "aikdoc_doctor_deleted" || e.key === "aikdoc_master_doctors" || e.key === "aikdoc_last_sync") {
-    checkAuthSession();
-  }
-  if (e.key === "aikdoc_master_specialties" || e.key === "aikdoc_master_hospitals") {
-    populateSpecialityDatalists();
-  }
+  if (e.key === "aikdoc_master_specialties" || e.key === "aikdoc_master_hospitals") { try { populateSpecialityDatalists(); } catch(err) {} }
+  if (e.key === "aikdoc_doctor_session" && e.newValue) { try { localStorage.setItem("aikdoc_doctor_session_backup", e.newValue); } catch(err) {} }
 });
+// Poll even when a storage event is missed; this is still same-browser/same-origin sync.
+window.setInterval(() => {
+  try {
+    const latest = localStorage.getItem("aikdoc_appointments") || "[]";
+    if (latest !== doctorAppointmentsSnapshot) syncDoctorAppointmentChanges(doctorAppointmentsSnapshot, latest);
+    else if (document.visibilityState !== "hidden" && document.getElementById("mainDashboardSection")?.style.display !== "none") loadAllDoctorData();
+  } catch (err) { console.warn("Background doctor refresh skipped", err); }
+}, 1000);
+window.addEventListener("focus", () => { try { const latest=localStorage.getItem("aikdoc_appointments")||"[]"; if(latest!==doctorAppointmentsSnapshot)syncDoctorAppointmentChanges(doctorAppointmentsSnapshot,latest); else loadAllDoctorData(); } catch(e){} });
+window.addEventListener("pageshow", () => { try {
+  const session = JSON.parse(localStorage.getItem("aikdoc_doctor_session") || localStorage.getItem("aikdoc_doctor_session_backup") || "null");
+  if (session && typeof session === "object" && (session.name || session.mobile || session.email || session.id != null) && document.getElementById("mainDashboardSection")?.style.display === "none") showDashboard(session);
+  const latest=localStorage.getItem("aikdoc_appointments")||"[]";
+  if(latest!==doctorAppointmentsSnapshot) syncDoctorAppointmentChanges(doctorAppointmentsSnapshot,latest); else loadAllDoctorData();
+} catch(e){} });
 
 function showToast(msg){
   const t = document.getElementById("toast");
@@ -1590,8 +1858,13 @@ function closeFullPreview(){
 }
 document.addEventListener("keydown", e => { if (e.key === "Escape") closeFullPreview(); });
 
-populateSpecialityDatalists();
-checkAuthSession();
+// Startup must continue to authentication even if optional dropdown setup fails.
+try { populateSpecialityDatalists(); } catch (startupError) {
+  console.warn("Optional doctor dropdown setup skipped:", startupError);
+}
+try { checkAuthSession(); } catch (authStartupError) {
+  console.error("Doctor session restoration failed during startup:", authStartupError);
+}
 </script>
 
 <script>
@@ -1667,46 +1940,293 @@ renderOwnClinicPhotoGallery();
 })();
 </script>
 
-<!-- AIKDOC website-style doctor cancellation modal -->
-<div class="modal-backdrop" id="doctorCancelModal"><div class="modal" style="width:min(100%,460px)">
-<div class="modal-header"><h2>Cancel Appointment</h2><button class="close" type="button" onclick="closeDoctorCancelModal()">×</button></div>
-<p id="doctorCancelApptInfo" style="font-size:13px;color:var(--muted);margin:0 0 14px"></p><label for="doctorCancelReason" style="display:block;font-size:12px;font-weight:800;margin-bottom:6px">Reason for cancelling *</label>
-<select id="doctorCancelReason" style="width:100%;padding:11px;border:1.5px solid var(--line);border-radius:10px;background:var(--input-bg);color:var(--ink);margin-bottom:12px"><option value="">Select a reason</option><option>Unavailable at the scheduled time</option><option>Emergency or unforeseen circumstances</option><option>Scheduling conflict</option><option>Clinic or consultation unavailable</option><option>Other</option></select>
-<div id="doctorCancelOtherWrap" style="display:none;margin-bottom:12px"><label for="doctorCancelOther">Please explain *</label><textarea id="doctorCancelOther" rows="3" maxlength="500" style="width:100%;padding:10px;border:1.5px solid var(--line);border-radius:10px;background:var(--input-bg);color:var(--ink)" placeholder="Enter the reason for the patient"></textarea></div>
-<div style="display:flex;gap:8px;justify-content:flex-end"><button type="button" class="navbtn" onclick="closeDoctorCancelModal()">Keep Appointment</button><button type="button" class="primary" style="background:var(--danger)" onclick="submitDoctorCancellation()">Confirm Cancellation</button></div></div></div>
-<!-- AIKDOC Instant Help (FAQ prototype; real AI requires a secure backend) -->
+<!-- Refined doctor cancellation dialog -->
+<div class="modal-backdrop" id="doctorCancelModal" role="dialog" aria-modal="true" aria-labelledby="doctorCancelTitle" aria-describedby="doctorCancelSubtitle">
+  <div class="modal">
+    <div class="cancel-modal-top">
+      <div class="cancel-modal-title-row">
+        <div class="cancel-modal-icon" aria-hidden="true">✕</div>
+        <div style="flex:1;min-width:0">
+          <div class="modal-header"><h2 id="doctorCancelTitle">Cancel appointment?</h2><button class="close" type="button" aria-label="Close cancellation dialog" onclick="closeDoctorCancelModal()">×</button></div>
+          <p class="cancel-modal-subtitle" id="doctorCancelSubtitle">Please review the appointment and provide a clear reason for the patient.</p>
+        </div>
+      </div>
+    </div>
+    <div class="cancel-modal-body">
+      <div class="cancel-appointment-summary"><span class="summary-icon" aria-hidden="true">📅</span><div id="doctorCancelApptInfo">Appointment details will appear here.</div></div>
+      <label class="cancel-field-label" for="doctorCancelReason">Why are you cancelling? <span style="color:#dc2626">*</span></label>
+      <span class="cancel-field-hint">This reason will be saved and shown in the cancelled appointment record.</span>
+      <select id="doctorCancelReason" required><option value="">Choose a reason</option><option>Unavailable at the scheduled time</option><option>Emergency or unforeseen circumstances</option><option>Scheduling conflict</option><option>Clinic or consultation unavailable</option><option>Patient requested cancellation</option><option>Other</option></select>
+      <div id="doctorCancelOtherWrap" class="cancel-other-wrap" style="display:none"><label class="cancel-field-label" for="doctorCancelOther">Please explain the reason <span style="color:#dc2626">*</span></label><textarea id="doctorCancelOther" rows="3" maxlength="500" placeholder="Write a brief, patient-friendly explanation…"></textarea></div>
+      <div class="cancel-modal-warning"><span aria-hidden="true">ⓘ</span><span>Once confirmed, the appointment will be marked as cancelled and this reason will remain visible in the Cancelled appointments tab.</span></div>
+      <div class="cancel-modal-actions"><button class="cancel-keep-btn" type="button" onclick="closeDoctorCancelModal()">Keep appointment</button><button class="cancel-confirm-btn" type="button" onclick="submitDoctorCancellation()">Confirm cancellation</button></div>
+    </div>
+  </div>
+</div>
+<!-- AIKDOC Instant Help: local, multilingual guided assistant (no backend/API calls) -->
 <style>
 .aikhelp-launch{position:fixed;right:20px;bottom:20px;z-index:9998;border:0;border-radius:999px;background:#087f8c;color:#fff;padding:13px 18px;font-weight:800;box-shadow:0 8px 28px #0003;cursor:pointer}
-.aikhelp-panel{position:fixed;right:20px;bottom:78px;width:min(360px,calc(100vw - 28px));height:440px;max-height:calc(100vh - 110px);z-index:9999;background:#fff;color:#17263c;border:1px solid #dbe4ee;border-radius:18px;box-shadow:0 16px 48px #0003;display:none;overflow:hidden;font:14px/1.45 Arial,sans-serif}
-.aikhelp-panel.open{display:flex;flex-direction:column}.aikhelp-head{background:#087f8c;color:#fff;padding:14px;display:flex;align-items:center;justify-content:space-between;font-weight:800}.aikhelp-head button{background:transparent;border:0;color:#fff;font-size:22px;cursor:pointer}.aikhelp-messages{padding:13px;overflow:auto;flex:1;background:#f7fafc}.aikhelp-msg{padding:10px 12px;border-radius:12px;margin:0 0 10px;max-width:90%;white-space:pre-wrap;overflow-wrap:anywhere}.aikhelp-bot{background:#e8f3f4;margin-right:auto}.aikhelp-user{background:#dbeafe;margin-left:auto}.aikhelp-form{display:flex;gap:7px;padding:10px;border-top:1px solid #e2e8f0}.aikhelp-form input{min-width:0;flex:1;border:1px solid #cbd5e1;border-radius:999px;padding:10px}.aikhelp-form button{border:0;border-radius:999px;background:#087f8c;color:#fff;padding:0 14px;font-weight:700;cursor:pointer}.aikhelp-note{font-size:10px;color:#64748b;text-align:center;padding:0 8px 8px}
-@media(max-width:480px){.aikhelp-launch{right:12px;bottom:12px}.aikhelp-panel{right:8px;bottom:70px}}
+.aikhelp-panel{position:fixed;right:20px;bottom:78px;width:min(380px,calc(100vw - 28px));height:500px;max-height:calc(100vh - 110px);z-index:9999;background:#fff;color:#17263c;border:1px solid #dbe4ee;border-radius:18px;box-shadow:0 16px 48px #0003;display:none;overflow:hidden;font:14px/1.45 Arial,sans-serif}
+.aikhelp-panel.open{display:flex;flex-direction:column}.aikhelp-head{background:#087f8c;color:#fff;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:8px;font-weight:800}.aikhelp-head button{background:transparent;border:0;color:#fff;font-size:22px;cursor:pointer}.aikhelp-tools{display:flex;align-items:center;gap:6px}.aikhelp-lang{max-width:125px;border:1px solid #ffffff80;border-radius:8px;background:#fff;color:#17263c;padding:6px;font-size:12px}.aikhelp-messages{padding:13px;overflow:auto;flex:1;background:#f7fafc}.aikhelp-msg{padding:10px 12px;border-radius:12px;margin:0 0 10px;max-width:92%;white-space:pre-wrap;overflow-wrap:anywhere}.aikhelp-bot{background:#e8f3f4;margin-right:auto}.aikhelp-user{background:#dbeafe;margin-left:auto}.aikhelp-suggestions{display:flex;gap:6px;flex-wrap:wrap;padding:0 10px 9px;background:#f7fafc}.aikhelp-chip{border:1px solid #b7d9dc;border-radius:999px;background:#fff;color:#075d66;padding:6px 9px;font-size:12px;cursor:pointer}.aikhelp-form{display:flex;gap:7px;padding:10px;border-top:1px solid #e2e8f0}.aikhelp-form input{min-width:0;flex:1;border:1px solid #cbd5e1;border-radius:999px;padding:10px}.aikhelp-form button{border:0;border-radius:999px;background:#087f8c;color:#fff;padding:0 14px;font-weight:700;cursor:pointer}.aikhelp-form button:disabled{opacity:.55;cursor:wait}.aikhelp-note{font-size:10px;color:#64748b;text-align:center;padding:0 8px 8px}
+@media(max-width:480px){.aikhelp-launch{right:12px;bottom:12px}.aikhelp-panel{right:8px;bottom:70px;height:min(500px,calc(100vh - 90px))}}
+
+/* Instant Help polish: soft glass surface, teal/blue glow, readable conversation bubbles */
+.aikhelp-launch{background:linear-gradient(115deg,#087f8c,#2563eb 58%,#7c3aed)!important;box-shadow:0 0 0 1px #ffffff35 inset,0 0 18px #14b8a655,0 8px 28px #1d4ed855!important;transition:transform .2s ease,box-shadow .2s ease;animation:aikhelpPulse 3.4s ease-in-out infinite}
+.aikhelp-launch:hover{transform:translateY(-2px);box-shadow:0 0 0 1px #ffffff55 inset,0 0 26px #22d3ee88,0 12px 34px #1d4ed866!important}
+.aikhelp-panel{border:1px solid #7dd3fc!important;background:linear-gradient(160deg,#ffffff,#f5fbff 65%,#f5f3ff)!important;box-shadow:0 0 0 1px #ffffffaa inset,0 0 24px #38bdf833,0 20px 60px #0f172a35!important;border-radius:22px!important}
+.aikhelp-head{background:linear-gradient(115deg,#073b4c,#087f8c 48%,#4f46e5)!important;box-shadow:0 4px 18px #0f766e33;min-height:48px}
+.aikhelp-head #aikhelpTitle{letter-spacing:.15px;text-shadow:0 1px 10px #ffffff33}
+.aikhelp-messages{background:radial-gradient(ellipse at top left,#dbeafe88,transparent 55%),linear-gradient(180deg,#f8fbff,#f7f9ff)!important;padding:15px!important}
+.aikhelp-msg{font-size:13px;line-height:1.62;padding:12px 14px;border-radius:15px;box-shadow:0 3px 12px #0f172a0a;animation:aikhelpIn .18s ease-out}
+.aikhelp-bot{background:#fff!important;color:#1e293b;border:1px solid #dbeafe;margin-right:auto;border-bottom-left-radius:5px;box-shadow:0 5px 18px #0f766e0d!important}
+.aikhelp-bot:before{content:'✦ AIKDOC GUIDE';display:block;color:#087f8c;font-size:9px;font-weight:900;letter-spacing:1.05px;margin-bottom:5px}
+.aikhelp-user{background:linear-gradient(135deg,#dbeafe,#e0e7ff)!important;color:#1e3a8a;border:1px solid #bfdbfe;border-bottom-right-radius:5px}
+.aikhelp-suggestions{background:#f7faff!important;padding:8px 11px 11px!important;gap:7px!important}
+.aikhelp-chip{background:linear-gradient(180deg,#fff,#f8fbff)!important;border-color:#b6d9ee!important;color:#075d66!important;box-shadow:0 2px 7px #0f766e0c;transition:transform .15s ease,box-shadow .15s ease}
+.aikhelp-chip:hover{transform:translateY(-1px);box-shadow:0 4px 12px #0891b222;border-color:#67c9d3!important}
+.aikhelp-form{background:#fff;border-top:1px solid #dbeafe!important;padding:11px!important}
+.aikhelp-form input{outline:none;border-color:#cbd5e1;box-shadow:0 0 0 0 #38bdf8;transition:border-color .2s,box-shadow .2s}
+.aikhelp-form input:focus{border-color:#0ea5e9;box-shadow:0 0 0 3px #38bdf826}
+.aikhelp-form button{background:linear-gradient(120deg,#087f8c,#2563eb)!important;box-shadow:0 4px 12px #2563eb33;min-height:38px}
+.aikhelp-note{color:#64748b!important;padding:2px 10px 9px!important;font-size:10px!important}
+@keyframes aikhelpPulse{0%,100%{filter:saturate(1);box-shadow:0 0 0 1px #ffffff35 inset,0 0 16px #14b8a644,0 8px 28px #1d4ed844}50%{filter:saturate(1.15);box-shadow:0 0 0 1px #ffffff55 inset,0 0 24px #14b8a677,0 8px 32px #1d4ed866}}
+@keyframes aikhelpIn{from{opacity:.65;transform:translateY(3px)}to{opacity:1;transform:translateY(0)}}
+@media(prefers-reduced-motion:reduce){.aikhelp-launch,.aikhelp-msg{animation:none!important;transition:none!important}}
+
 </style>
 <button type="button" class="aikhelp-launch" id="aikhelpLaunch" aria-label="Open AIKDOC Instant Help">💬 Instant Help</button>
 <section class="aikhelp-panel" id="aikhelpPanel" role="dialog" aria-label="AIKDOC Instant Help" aria-modal="false">
-<div class="aikhelp-head"><span>AIKDOC Instant Help</span><button type="button" id="aikhelpClose" aria-label="Minimize chat">−</button></div>
-<div class="aikhelp-messages" id="aikhelpMessages" aria-live="polite"><div class="aikhelp-msg aikhelp-bot">Hi! I can help you navigate AIKDOC. Ask about appointments, cancellations, accounts, or using this panel.</div></div>
-<form class="aikhelp-form" id="aikhelpForm"><input id="aikhelpInput" maxlength="500" autocomplete="off" placeholder="Type your question…" aria-label="Your question" required><button type="submit">Send</button></form>
-<div class="aikhelp-note">FAQ prototype only — not medical advice. Live AI will need a secure backend.</div>
+ <div class="aikhelp-head"><span id="aikhelpTitle">AIKDOC Instant Help</span><div class="aikhelp-tools"><select class="aikhelp-lang" id="aikhelpLang" aria-label="Chat language"><option value="en">English</option><option value="hi">हिन्दी</option><option value="bho">भोजपुरी</option></select><button type="button" id="aikhelpClose" aria-label="Minimize chat">−</button></div></div>
+ <div class="aikhelp-messages" id="aikhelpMessages" aria-live="polite"></div>
+ <div class="aikhelp-suggestions" id="aikhelpSuggestions"></div>
+ <form class="aikhelp-form" id="aikhelpForm" aria-hidden="true" style="display:none!important"><input id="aikhelpInput" type="hidden" maxlength="500" autocomplete="off" aria-label="Quick action query"><button id="aikhelpSend" type="submit" tabindex="-1">Send</button></form>
+ <div class="aikhelp-note" id="aikhelpNote">Local guided help; not medical advice. No message is sent to an AI service.</div>
 </section>
 <script>
 (function(){
- const launch=document.getElementById("aikhelpLaunch"),panel=document.getElementById("aikhelpPanel"),close=document.getElementById("aikhelpClose"),form=document.getElementById("aikhelpForm"),input=document.getElementById("aikhelpInput"),messages=document.getElementById("aikhelpMessages");
- if(!launch||!panel||!form||!input||!messages)return;
- launch.addEventListener("click",()=>{panel.classList.add("open");input.focus()});
- close.addEventListener("click",()=>panel.classList.remove("open"));
- function addMessage(text,who){const el=document.createElement("div");el.className="aikhelp-msg "+(who==="user"?"aikhelp-user":"aikhelp-bot");el.textContent=text;messages.appendChild(el);messages.scrollTop=messages.scrollHeight}
- function answer(q){const s=q.toLowerCase();
-  if(/cancel/.test(s))return "To cancel an appointment, open your appointment list and choose the cancel option. A cancellation reason is required before confirmation.";
-  if(/book|appointment|schedule/.test(s))return "To book an appointment, open the Patient Panel, choose an available doctor and time slot, then follow the booking steps. If you cannot find a slot, contact the clinic.";
-  if(/doctor|specialit|find/.test(s))return "Browse available doctors and review their specialties, qualifications, consultation modes and clinic details before choosing.";
-  if(/payment|fee|refund/.test(s))return "Check the appointment details for the listed consultation fee and payment status. For payment or refund issues, contact AIKDOC support or the clinic.";
-  if(/login|account|register|profile/.test(s))return "Use the sign-in or profile options available in this panel. Never share passwords or verification codes in chat.";
-  if(/admin|approv/.test(s))return "Admins can use the Admin Panel's existing dashboard and management sections to review registrations and manage records.";
-  if(/medical|symptom|pain|medicine|diagnos|treatment|emergency/.test(s))return "I can help with website navigation, but I cannot diagnose or recommend treatment. Please contact a qualified healthcare professional. For a medical emergency, contact local emergency services.";
-  return "I can answer basic AIKDOC navigation FAQs about appointments, cancellations, doctor listings, accounts and payments. This prototype does not yet use a live AI service.";
+ const role = 'doctor';
+ const launch=document.getElementById('aikhelpLaunch'),panel=document.getElementById('aikhelpPanel'),close=document.getElementById('aikhelpClose'),form=document.getElementById('aikhelpForm'),input=document.getElementById('aikhelpInput'),messages=document.getElementById('aikhelpMessages'),langSelect=document.getElementById('aikhelpLang'),suggestions=document.getElementById('aikhelpSuggestions'),send=document.getElementById('aikhelpSend');
+ if(!launch||!panel||!close||!form||!input||!messages||!langSelect||!suggestions)return;
+ function instantHelpSignedIn(){try{const u=JSON.parse(localStorage.getItem('aikdoc_doctor_session')||'null');return !!(u&&(u.id||u.name||u.mobile||u.email)&&document.getElementById('mainDashboardSection')?.style.display!=='none'&&document.getElementById('authGateSection')?.style.display==='none');}catch(e){return false;}}
+ function syncInstantHelpAccess(){const ok=instantHelpSignedIn();launch.style.display=ok?'':'none';if(!ok)panel.classList.remove('open');}
+ syncInstantHelpAccess();window.addEventListener('storage',syncInstantHelpAccess);window.setInterval(syncInstantHelpAccess,650);
+ const roleNames={patient:{en:'Patient help',hi:'मरीज़ सहायता',bho:'मरीज़न के मदद'},doctor:{en:'Doctor help',hi:'डॉक्टर सहायता',bho:'डॉक्टरन के मदद'},admin:{en:'Admin help',hi:'एडमिन सहायता',bho:'एडमिन के मदद'}};
+ const text={
+  en:{welcome:{patient:'Hello! I can guide you around AIKDOC. Ask about finding doctors, appointments, cancellations, or your account.',doctor:'Welcome back, Doctor. I can summarize your appointments, help you review patient feedback, and take you straight to the right section for profiles, availability, or revenue.',admin:'Hello! I can guide you through AIKDOC admin features, including doctor, hospital, specialty, and registration management.'},placeholder:'Type your question…',send:'Send',note:'Local guided help only — not medical advice. Messages are not sent to an AI service.',thinking:'Let me check the available guidance…',fallback:'I can help you find the right place. I couldn’t confidently answer that from the saved website data, so try one of the options below or tell me the page/task you mean: {topics}.',topics:'appointments, accounts, profiles, or the dashboard',appt:'For appointments, open the appointments section on this page and review the available details and actions. Check the appointment status before making changes.',cancel:'Open the relevant appointment and use its cancellation option if available. Read the confirmation carefully before submitting. Some cancellations may require a reason.',finddoctor:'Use the doctor listing/search area to review specialties, clinic details, consultation options, and available slots before choosing.',account:'Use the sign-in, profile, or account controls already provided on this website. Do not share passwords, OTPs, or verification codes in chat.',payment:'Review the fee and payment status shown in the relevant appointment details. For a disputed payment or refund, contact the clinic or AIKDOC support.',medical:'I can help with AIKDOC website navigation, but I cannot diagnose, prescribe, or recommend treatment. For medical advice, contact a qualified healthcare professional. If this is an emergency, contact local emergency services.',doctor:'Use the doctor management area to review doctor profiles and registration status. Only make changes you are authorized to make.',hospital:'Use the hospital management section to review or update hospital records, checking details before saving.',specialty:'Use the specialty management section to review the available specialties and follow the existing add/edit controls.',profile:'Open your profile or settings section and use its existing edit/save controls. Review changes before saving.',availability:'Open your availability or schedule settings, if provided in this panel, and review the selected days and time slots before saving.',security:'Never enter passwords, OTPs, or private patient information into chat. This local helper does not verify identity and cannot securely retrieve private records.',followup:'I can clarify that. Which part do you want help with: where to find it, what it does, or the steps to use it?'},
+  hi:{welcome:{patient:'नमस्ते! मैं AIKDOC वेबसाइट इस्तेमाल करने में मदद कर सकता हूँ। डॉक्टर खोजने, अपॉइंटमेंट, रद्द करने या अकाउंट के बारे में पूछें।',doctor:'नमस्ते डॉक्टर। मैं अपॉइंटमेंट, प्रोफ़ाइल, क्लिनिक विवरण और डैशबोर्ड इस्तेमाल करने में मार्गदर्शन कर सकता हूँ।',admin:'नमस्ते! मैं डॉक्टर, अस्पताल, विशेषज्ञता और रजिस्ट्रेशन प्रबंधन जैसे AIKDOC एडमिन फीचर्स समझाने में मदद कर सकता हूँ।'},placeholder:'अपना सवाल लिखें…',send:'भेजें',note:'यह स्थानीय मार्गदर्शक सहायता है, चिकित्सा सलाह नहीं। संदेश किसी AI सेवा को नहीं भेजे जाते।',thinking:'उपलब्ध मार्गदर्शन देख रहा हूँ…',fallback:'मुझे अभी स्पष्ट नहीं है कि आप AIKDOC के किस फीचर के बारे में पूछ रहे हैं। {topics} के बारे में पूछें या बताएं कि आप कौन-सा पेज खोल रहे हैं।',topics:'अपॉइंटमेंट, अकाउंट, प्रोफ़ाइल या डैशबोर्ड',appt:'अपॉइंटमेंट के लिए इस पेज का अपॉइंटमेंट सेक्शन खोलें और उपलब्ध जानकारी व विकल्प देखें। कोई बदलाव करने से पहले अपॉइंटमेंट का स्टेटस जाँचें।',cancel:'संबंधित अपॉइंटमेंट खोलें और विकल्प उपलब्ध होने पर रद्द करने का विकल्प चुनें। पुष्टि करने से पहले विवरण ध्यान से पढ़ें। कारण माँगा जा सकता है।',finddoctor:'डॉक्टर चुनने से पहले डॉक्टर की सूची या खोज में विशेषज्ञता, क्लिनिक, परामर्श विकल्प और उपलब्ध समय देखें।',account:'इस वेबसाइट पर मौजूद साइन-इन, प्रोफ़ाइल या अकाउंट विकल्प इस्तेमाल करें। चैट में पासवर्ड, OTP या सत्यापन कोड न दें।',payment:'संबंधित अपॉइंटमेंट में शुल्क और भुगतान की स्थिति देखें। भुगतान या रिफंड की समस्या के लिए क्लिनिक या AIKDOC सहायता से संपर्क करें।',medical:'मैं AIKDOC वेबसाइट इस्तेमाल करने में मदद कर सकता हूँ, लेकिन बीमारी का निदान, दवा लिखना या इलाज सुझाना नहीं कर सकता। चिकित्सा सलाह के लिए योग्य स्वास्थ्य पेशेवर से संपर्क करें। आपात स्थिति में स्थानीय आपातकालीन सेवा से संपर्क करें।',doctor:'डॉक्टर प्रोफ़ाइल और रजिस्ट्रेशन स्थिति देखने के लिए डॉक्टर प्रबंधन सेक्शन खोलें। केवल अधिकृत बदलाव करें।',hospital:'अस्पताल रिकॉर्ड देखने या अपडेट करने के लिए अस्पताल प्रबंधन सेक्शन खोलें। सेव करने से पहले विवरण जाँचें।',specialty:'उपलब्ध विशेषज्ञताओं को देखने या बदलने के लिए विशेषज्ञता प्रबंधन सेक्शन और उसके मौजूदा विकल्प इस्तेमाल करें।',profile:'प्रोफ़ाइल या सेटिंग्स सेक्शन खोलें और मौजूदा एडिट/सेव विकल्प इस्तेमाल करें। सेव करने से पहले बदलाव जाँचें।',availability:'यदि इस पैनल में उपलब्धता या शेड्यूल सेटिंग है, तो उसे खोलकर दिन और समय ध्यान से जाँचें और फिर सेव करें।',security:'चैट में पासवर्ड, OTP या निजी मरीज जानकारी न लिखें। यह स्थानीय सहायक पहचान सत्यापित नहीं करता और निजी रिकॉर्ड सुरक्षित रूप से नहीं निकाल सकता।',followup:'मैं इसे और स्पष्ट कर सकता हूँ। आपको किसमें मदद चाहिए—विकल्प कहाँ मिलेगा, उसका काम क्या है, या उसे इस्तेमाल करने के चरण?'},
+  bho:{welcome:{patient:'प्रणाम! हम AIKDOC वेबसाइट चलावे में मदद कर सकत बानी। डॉक्टर खोजे, अपॉइंटमेंट, रद्द करे भा अकाउंट के बारे में पूछीं।',doctor:'प्रणाम डॉक्टर साहेब। हम अपॉइंटमेंट, प्रोफाइल, क्लिनिक के जानकारी आ डैशबोर्ड चलावे में मदद कर सकत बानी।',admin:'प्रणाम! हम डॉक्टर, अस्पताल, विशेषज्ञता आ रजिस्ट्रेशन प्रबंधन वाला AIKDOC फीचर समझावे में मदद कर सकत बानी।'},placeholder:'अपना सवाल लिखीं…',send:'भेजीं',note:'ई स्थानीय मार्गदर्शक मदद ह, मेडिकल सलाह ना। संदेश कवनो AI सेवा लगे ना भेजल जाला।',thinking:'मौजूद जानकारी देखत बानी…',fallback:'अभी साफ नइखे कि रउआ AIKDOC के कवन फीचर के बारे में पूछत बानी। {topics} के बारे में पूछीं, भा बताईं कि कवन पेज खुलल बा।',topics:'अपॉइंटमेंट, अकाउंट, प्रोफाइल भा डैशबोर्ड',appt:'अपॉइंटमेंट खातिर एह पेज के अपॉइंटमेंट सेक्शन खोलीं आ मौजूद जानकारी आ विकल्प देखीं। बदलाव करे से पहिले स्टेटस जाँच लीं।',cancel:'संबंधित अपॉइंटमेंट खोलीं आ विकल्प होखे त रद्द करे वाला विकल्प चुनीं। पुष्टि करे से पहिले जानकारी ध्यान से पढ़ीं। कारण माँगल जा सकेला।',finddoctor:'डॉक्टर चुने से पहिले डॉक्टर के सूची में विशेषज्ञता, क्लिनिक, परामर्श के तरीका आ खाली समय देख लीं।',account:'वेबसाइट पर मौजूद साइन-इन, प्रोफाइल भा अकाउंट विकल्प इस्तेमाल करीं। चैट में पासवर्ड, OTP भा कोड मत दीं।',payment:'संबंधित अपॉइंटमेंट में फीस आ भुगतान के स्थिति देखीं। भुगतान भा रिफंड के समस्या होखे त क्लिनिक भा AIKDOC सहायता से संपर्क करीं।',medical:'हम AIKDOC वेबसाइट चलावे में मदद कर सकत बानी, बाकिर बीमारी के निदान, दवाई लिखे भा इलाज बतावे के काम ना कर सकत बानी। मेडिकल सलाह खातिर योग्य स्वास्थ्य पेशेवर से बात करीं। आपात स्थिति में स्थानीय आपात सेवा से संपर्क करीं।',doctor:'डॉक्टर प्रोफाइल आ रजिस्ट्रेशन के स्थिति देखे खातिर डॉक्टर प्रबंधन सेक्शन खोलीं। खाली अधिकृत बदलाव करीं।',hospital:'अस्पताल के रिकॉर्ड देखे भा बदले खातिर अस्पताल प्रबंधन सेक्शन खोलीं। सेव करे से पहिले जानकारी जाँच लीं।',specialty:'विशेषज्ञता के सूची देखे भा बदले खातिर विशेषज्ञता प्रबंधन सेक्शन के मौजूदा विकल्प इस्तेमाल करीं।',profile:'प्रोफाइल भा सेटिंग्स सेक्शन खोलीं आ मौजूद एडिट/सेव विकल्प इस्तेमाल करीं। सेव करे से पहिले बदलाव देख लीं।',availability:'अगर एह पैनल में उपलब्धता भा शेड्यूल के सेटिंग बा, त दिन आ समय जाँच के सेव करीं।',security:'चैट में पासवर्ड, OTP भा मरीज के निजी जानकारी मत लिखीं। ई स्थानीय सहायक पहचान जाँचेला ना आ निजी रिकॉर्ड सुरक्षित तरीका से निकाल ना सकेला।',followup:'हम अउरी साफ समझा सकत बानी। रउआ का जानल चाहत बानी—विकल्प कहाँ बा, ओकर काम का बा, भा इस्तेमाल करे के तरीका?'}
+ };
+ let currentLang='en',lastIntent='';
+ function detectLang(q){if(/[\u0900-\u097F]/.test(q)){if(/रउआ|बानी|बा\b|कइसे|कहाँ|काहे|हमनी|भोजपुरी/.test(q))return 'bho';return currentLang==='bho'?'bho':'hi';}if(/\b(kaise|kahan|batao|kripya|namaste|mujhe|chahiye|appointment kaise)\b/i.test(q))return 'hi';if(/\b(rauwa|bani|ba|kaise|kaha|ka haal|bhojpuri|hamni)\b/i.test(q))return 'bho';return currentLang;}
+ function addMessage(value,who){const el=document.createElement('div');el.className='aikhelp-msg '+(who==='user'?'aikhelp-user':'aikhelp-bot');el.textContent=value;messages.appendChild(el);messages.scrollTop=messages.scrollHeight;}
+ function getIntent(q){const s=q.toLowerCase();
+  if(/emergency|urgent|symptom|pain|medicine|medication|diagnos|treatment|medical|बीमारी|दर्द|दवा|इलाज|आपात|बेमारी|दरद|दवाई|इलाज/.test(s))return 'medical';
+  if(/cancel|cancell?ation|रद्द|कैंसल|रद्द करे|रद्द करीं/.test(s))return 'cancel';
+  if(/book|appointment|schedule|अपॉइंट|मुलाकात|बुके|बुकिंग/.test(s))return 'appt';
+  if(/find doctor|doctor search|specialist|डॉक्टर खोज|डाक्टर|डॉक्टर|चिकित्सक/.test(s))return 'finddoctor';
+  if(/payment|fee|refund|pay|भुगतान|फीस|रिफंड|पैसा/.test(s))return 'payment';
+  if(/password|otp|privacy|secure|security|पासवर्ड|ओटीपी|गोपनीय|सुरक्षा/.test(s))return 'security';
+  if(/hospital|clinic|अस्पताल|क्लिनिक/.test(s))return role==='admin'?'hospital':'profile';
+  if(/specialt|विशेषज्ञता|स्पेशल/.test(s))return role==='admin'?'specialty':'finddoctor';
+  if(/doctor|registration|approve|डॉक्टर|रजिस्ट्रेशन|मंजूरी/.test(s))return role==='admin'?'doctor':'finddoctor';
+  if(/availability|available|slot|time slot|schedule|समय|उपलब्धता/.test(s))return role==='doctor'?'availability':'appt';
+  if(/profile|account|login|sign in|register|प्रोफाइल|खाता|लॉग.?इन|अकाउंट/.test(s))return 'account';
+  if(/admin|dashboard|manage|डैशबोर्ड|प्रबंधन|एडमिन/.test(s))return role==='admin'?'doctor':'profile';
+  if(/how do i|what about that|tell me more|explain|और बत|कैसे|कहाँ|फिर क्या|uske baad|aur bata/.test(s)&&lastIntent)return lastIntent;
+  return '';
  }
- form.addEventListener("submit",e=>{e.preventDefault();const q=input.value.trim();if(!q)return;addMessage(q,"user");input.value="";addMessage(answer(q),"bot")});
+ function answer(q){const intent=getIntent(q);if(intent)lastIntent=intent;const lang=detectLang(q);currentLang=lang;langSelect.value=lang;const pack=text[lang]||text.en;let key=intent||'fallback';let reply=pack[key]||text.en[key]||text.en.fallback;if(key==='fallback')reply=reply.replace('{topics}',pack.topics||text.en.topics);if(key==='doctor'&&role!=='admin')reply=pack.finddoctor;if(key==='hospital'&&role!=='admin')reply=pack.profile;return reply;}
+ function renderSuggestions(){const sets={en:['My appointments','Upcoming appointments','Completed appointments','Cancelled appointments','My profile','Availability','Reviews','Revenue'],hi:['मेरे अपॉइंटमेंट','आने वाले अपॉइंटमेंट','पूरे हुए अपॉइंटमेंट','रद्द अपॉइंटमेंट','मेरी प्रोफ़ाइल','उपलब्धता','रिव्यू','कमाई'],bho:['हमार अपॉइंटमेंट','आवे वाला अपॉइंटमेंट','पूरा भइल अपॉइंटमेंट','रद्द अपॉइंटमेंट','हमार प्रोफाइल','उपलब्धता','रिव्यू','कमाई']};const queries={en:['My appointments','Upcoming appointments','Completed appointments','Cancelled appointments','My profile','Availability','Reviews','Revenue'],hi:['मेरे अपॉइंटमेंट','आने वाले अपॉइंटमेंट','पूरे हुए अपॉइंटमेंट','रद्द अपॉइंटमेंट','मेरी प्रोफ़ाइल','उपलब्धता','रिव्यू','कमाई'],bho:['हमार अपॉइंटमेंट','आवे वाला अपॉइंटमेंट','पूरा भइल अपॉइंटमेंट','रद्द अपॉइंटमेंट','हमार प्रोफाइल','उपलब्धता','रिव्यू','कमाई']};suggestions.replaceChildren();(sets[currentLang]||sets.en).forEach((label,i)=>{const b=document.createElement('button');b.type='button';b.className='aikhelp-chip';b.textContent=label;b.addEventListener('click',()=>submitQuestion((queries[currentLang]||queries.en)[i]));suggestions.appendChild(b)});document.getElementById('aikhelpTitle').textContent='AIKDOC · '+roleNames[role][currentLang];input.placeholder=(text[currentLang]||text.en).placeholder;input.setAttribute('aria-label',input.placeholder);send.textContent=(text[currentLang]||text.en).send;document.getElementById('aikhelpNote').textContent=(text[currentLang]||text.en).note+' Choose a topic above to open its section.';}
+ function safeArray(key){try{const v=JSON.parse(localStorage.getItem(key)||'[]');return Array.isArray(v)?v:[]}catch(e){return []}}
+ function fmtDate(a){return a.date||a.appointmentDate||a.slotDate||a.createdAt||'date not listed'}
+ function statusOf(a){return String(a.status||'Confirmed').toLowerCase()}
+ function showAdminTab(id){const btn=document.querySelector('.nav-item[data-tab="'+id+'"]');if(btn)btn.click()}
+ function roleActionAnswer(q){const s=String(q||'').toLowerCase();
+  if(role==='doctor'){
+   const session=safeArray('aikdoc_doctor_session');
+   let doc=null;try{doc=JSON.parse(localStorage.getItem('aikdoc_doctor_session')||'null')}catch(e){}
+   const docs=safeArray('aikdoc_master_doctors');
+   const name=(doc&& (doc.name||doc.doctorName))||localStorage.getItem('aikdoc_active_doctor_name')||document.getElementById('docName')?.value||'';
+   const all=safeArray('aikdoc_appointments');
+   const mine=all.filter(a=>{const dn=String(a.doctorName||a.doctor||'').toLowerCase();return name?dn.includes(name.toLowerCase())||name.toLowerCase().includes(dn):false});
+   const cancelled=mine.filter(a=>statusOf(a).includes('cancel'));
+   const completed=mine.filter(a=>statusOf(a).includes('complete')||statusOf(a).includes('past'));
+   const upcoming=mine.filter(a=>!statusOf(a).includes('cancel')&&!statusOf(a).includes('complete')&&!statusOf(a).includes('past'));
+   if(/\b(upcoming|today|pending|confirmed)\b|आने वाली|आज के/.test(s)){
+    switchMainTab('appointments');return `Your appointment overview${name?' — '+name:''}\nUpcoming/active: ${upcoming.length}\nCompleted: ${completed.length}\nCancelled: ${cancelled.length}\n\n`+(upcoming.length?upcoming.slice(0,6).map((a,i)=>`${i+1}. ${a.patientName||a.name||'Patient'} · ${fmtDate(a)} ${a.time||a.slot||''} · ${a.status||'Confirmed'}${a.token?' · Token '+a.token:''}`).join('\n'):'No upcoming appointments were found in this browser’s saved data.');
+   }
+   if(/\b(completed|past|history)\b|पूरा|पुरानी/.test(s)) {switchMainTab('appointments');return `Completed appointments: ${completed.length}\n\n`+(completed.length?completed.slice(0,8).map((a,i)=>`${i+1}. ${a.patientName||'Patient'} · ${fmtDate(a)} ${a.time||''} · ${a.status||'Completed'}`).join('\n'):'No completed appointments found in the saved data.');}
+   if(/\b(cancelled|canceled|cancellation)\b|रद्द/.test(s)){switchMainTab('appointments');return `Cancelled appointments: ${cancelled.length}\n\n`+(cancelled.length?cancelled.slice(0,8).map((a,i)=>`${i+1}. ${a.patientName||'Patient'} · ${fmtDate(a)} · ${a.cancellationReason||a.cancelReason||'Reason not listed'}`).join('\n'):'No cancelled appointments found in the saved data.');}
+   if(/\b(appointment|schedule|booking|patient list)\b|अपॉइंटमेंट|मरीज/.test(s)){switchMainTab('appointments');return `Appointment summary for ${name||'the signed-in doctor'}\nUpcoming/active: ${upcoming.length}\nCompleted: ${completed.length}\nCancelled: ${cancelled.length}\n\nOpen the Appointments tab to review records and use the existing status/cancellation controls. Records shown here come from this browser’s saved data.`;}
+   if(/\b(profile|speciality|specialty|clinic|my details)\b|प्रोफाइल|क्लिनिक/.test(s)){switchMainTab('profile');const profile=docs.find(d=>name&&String(d.name||'').toLowerCase()===name.toLowerCase())||doc||{};return `Your profile${name?' — '+name:''}\nSpeciality: ${profile.speciality||profile.specialty||document.getElementById('docSpecialityInput')?.value||'not listed'}\nClinic/Hospital: ${profile.hospital||profile.clinicName||profile.clinic||'check your profile form'}\n\nI opened your Profile tab. Review your details and use the existing Save/Publish controls to update them.`;}
+   if(/\b(availability|available|slot|timing|hours)\b|उपलब्धता|समय/.test(s)){switchMainTab('profile');return 'I opened your Profile tab. Review your clinic timing, consultation days, and availability fields there, then use the existing Save/Publish control. I cannot verify live bookings beyond the records stored in this browser.';}
+   if(/\b(review|reviews|rating|ratings|feedback|patient comments|what do patients say|patient opinion)\b|रिव्यू|रेटिंग|प्रतिक्रिया|मरीज.*कह/.test(s)){switchMainTab('reviews');return 'I’ve opened Patient Reviews for you. You can check submitted ratings and feedback there. If no reviews appear, there may not be any saved reviews for your appointments yet.';}
+   if(/\b(revenue|earning|income|fee)\b|कमाई|फीस/.test(s)){switchMainTab('revenue');return 'I opened the Revenue tab. Review the totals displayed there; they are based on the website’s locally stored records.';}
+  }
+  if(role==='admin'){
+   const docs=safeArray('aikdoc_master_doctors'),hosps=safeArray('aikdoc_master_hospitals'),specs=safeArray('aikdoc_master_specialties'),appts=safeArray('aikdoc_appointments'),patients=safeArray('aikdoc_registered_patients');
+   const pending=docs.filter(d=>/pending|review|submitted|await/i.test(String(d.status||d.registrationStatus||''))||d.approved===false||d.isApproved===false);
+   const cancelled=appts.filter(a=>statusOf(a).includes('cancel')),completed=appts.filter(a=>statusOf(a).includes('complete'));
+   if(/\b(overview|dashboard|summary|statistics|stats)\b|डैशबोर्ड|सारांश/.test(s)){showAdminTab('tab-overview');return `AIKDOC platform overview\nDoctors: ${docs.length}\nHospitals/clinics: ${hosps.length}\nSpecialities: ${specs.length}\nAppointments/tokens: ${appts.length}\nRegistered patients: ${patients.length}\nPending doctor reviews (based on saved status fields): ${pending.length}\nCancelled appointments: ${cancelled.length}\nCompleted appointments: ${completed.length}\n\nI opened the Overview tab. Counts are read from this browser’s saved website data.`;}
+   if(/\b(pending|approve|registration|verification|review doctor)\b|लंबित|मंजूरी|रजिस्ट्रेशन/.test(s)){showAdminTab('tab-doctors');return `Doctor registration review\nDoctors in saved directory: ${docs.length}\nPotentially pending: ${pending.length}\n\nI opened Manage Doctors. Check each doctor’s actual account/registration status before approving or editing; pending count is inferred from locally stored status fields and may not cover every workflow.`;}
+   if(/\b(doctor|doctors|directory|ban|profile)\b|डॉक्टर/.test(s)){showAdminTab('tab-doctors');return `Doctor directory: ${docs.length} records. I opened Manage Doctors, where you can search by name, speciality, or hospital and use the existing edit/status controls.`;}
+   if(/\b(hospital|clinic)\b|अस्पताल|क्लिनिक/.test(s)){showAdminTab('tab-hospitals');return `Hospitals/clinics: ${hosps.length} saved records. I opened Hospitals / Clinics Management so you can review, add, or edit records.`;}
+   if(/\b(specialt|specialty|specialities|specialties)\b|विशेषज्ञता/.test(s)){showAdminTab('tab-specialties');return `Specialities: ${specs.length} saved records. I opened Specialty Management so you can review the list and use its existing controls.`;}
+   if(/\b(patient|patients|registered users)\b|मरीज|रोगी/.test(s)){showAdminTab('tab-patients');return `Registered patients: ${patients.length} saved records. I opened Patients Management. Handle patient details only for authorized administrative purposes.`;}
+   if(/\b(appointment|booking|token|cancelled|canceled|completed)\b|अपॉइंटमेंट|बुकिंग|टोकन/.test(s)){showAdminTab('tab-bookings');return `Appointment overview\nTotal records: ${appts.length}\nCompleted: ${completed.length}\nCancelled: ${cancelled.length}\nOther/active statuses: ${Math.max(0,appts.length-completed.length-cancelled.length)}\n\nI opened Bookings / Appointments. Use the table filters to find a patient, token, doctor, date, or status.`;}
+   if(/\b(review|rating|feedback)\b|रिव्यू|रेटिंग/.test(s)){showAdminTab('tab-reviews');return 'I opened Reviews Management so you can inspect patient feedback and ratings.';}
+   if(/\b(setting|configuration|website|banner|support)\b|सेटिंग|कॉन्फिग/.test(s)){showAdminTab('tab-settings');return 'I opened Site Settings. Review configuration carefully before saving changes.';}
+  }
+  return '';
+ }
+ function routeToRelevantPage(q){
+  const s=String(q||'').toLowerCase();
+  const rules= role==='doctor' ? [
+   {re:/review|rating|feedback|patient comment|रेटिंग|रिव्यू/,id:'reviews',label:'Reviews'},
+   {re:/appointment|booking|schedule|token|patient list|अपॉइंटमेंट|बुकिंग/,id:'appointments',label:'Appointments'},
+   {re:/revenue|earning|income|fee|payment|कमाई|फीस/,id:'revenue',label:'Revenue'},
+   {re:/availability|available|slot|timing|hours|उपलब्धता|समय/,id:'profile',label:'Profile / availability'},
+   {re:/profile|speciality|specialty|clinic|my details|प्रोफाइल|क्लिनिक/,id:'profile',label:'Profile'},
+   {re:/dashboard|overview|summary|stats|डैशबोर्ड|सारांश/,id:'dashboard',label:'Dashboard'}
+  ] : [
+   {re:/review|rating|feedback|patient comment|रेटिंग|रिव्यू/,id:'tab-reviews',label:'Reviews'},
+   {re:/appointment|booking|token|cancelled|canceled|completed|अपॉइंटमेंट|बुकिंग/,id:'tab-bookings',label:'Bookings / Appointments'},
+   {re:/patient|registered user|मरीज|रोगी/,id:'tab-patients',label:'Patients'},
+   {re:/hospital|clinic|अस्पताल|क्लिनिक/,id:'tab-hospitals',label:'Hospitals / Clinics'},
+   {re:/specialt|speciality|specialty|विशेषज्ञता/,id:'tab-specialties',label:'Specialties'},
+   {re:/registration|verification|approve|pending|रजिस्ट्रेशन|मंजूरी/,id:'tab-doctors',label:'Manage Doctors'},
+   {re:/doctor|doctors|directory|ban|डॉक्टर/,id:'tab-doctors',label:'Manage Doctors'},
+   {re:/setting|configuration|website|banner|support|सेटिंग/,id:'tab-settings',label:'Site Settings'},
+   {re:/overview|dashboard|summary|statistics|stats|डैशबोर्ड|सारांश/,id:'tab-overview',label:'Overview'}
+  ];
+  const match=rules.find(r=>r.re.test(s));
+  if(match){
+   if(role==='doctor'){
+    if(match.id==='dashboard'){
+     const el=document.querySelector('[data-tab="dashboard"],#dashboardTab,[onclick*="dashboard"]');
+     if(el){el.click();return 'I opened the Dashboard for you. You can review the information and available actions there.';}
+    }
+    if(typeof switchMainTab==='function'){switchMainTab(match.id);return `I opened ${match.label} for you. The page contains the relevant saved information and available actions.`;}
+   } else {
+    if(typeof showAdminTab==='function'){showAdminTab(match.id);return `I opened ${match.label} for you. Review the information there and use the existing controls for any changes.`;}
+   }
+  }
+  // Generic last resort: match a real navigation control by its visible label.
+  const navs=Array.from(document.querySelectorAll(role==='admin'?'.nav-item, [data-tab]': '[data-tab], .sidebar a, .sidebar button, nav a, nav button'));
+  const terms=s.split(/[^a-z0-9]+/).filter(w=>w.length>2);
+  const candidate=navs.find(el=>{const label=(el.innerText||el.textContent||el.getAttribute('aria-label')||'').toLowerCase().trim();return label&&terms.some(t=>label.includes(t));});
+  if(candidate){candidate.click();const label=(candidate.innerText||candidate.textContent||'the relevant section').trim();return `I couldn’t answer that fully from the saved data, so I opened ${label}. You can review the details and available actions there.`;}
+  return '';
+ }
+ function submitQuestion(q){q=String(q||'').trim();if(!q)return;addMessage(q,'user');input.value='';send.disabled=true;const lang=detectLang(q);currentLang=lang;renderSuggestions();const reply=roleActionAnswer(q)||routeToRelevantPage(q)||answer(q);window.setTimeout(()=>{addMessage(reply,'bot');send.disabled=false;},180);}
+ launch.addEventListener('click',()=>{panel.classList.add('open');});close.addEventListener('click',()=>panel.classList.remove('open'));form.addEventListener('submit',e=>{e.preventDefault();submitQuestion(input.value);});langSelect.addEventListener('change',()=>{currentLang=langSelect.value;renderSuggestions();});
+ currentLang='en';renderSuggestions();addMessage(text.en.welcome[role],'bot');
 })();
 </script>
+
+<script>
+/* Independent live appointment badge + session persistence guard.
+   Keeps the navigation badge in sync even if a panel renderer has an unrelated error. */
+(function () {
+  "use strict";
+  function safeParseArray(raw) {
+    try { const value = JSON.parse(raw || "[]"); return Array.isArray(value) ? value : []; }
+    catch (e) { return []; }
+  }
+  function normalize(value) {
+    return String(value || "").trim().toLowerCase()
+      .replace(/^dr\.?\s*/, "").replace(/[^a-z0-9]+/g, " ").trim().replace(/\s+/g, " ");
+  }
+  function getSession() {
+    for (const key of ["aikdoc_doctor_session", "aikdoc_doctor_session_backup"]) {
+      try {
+        const u = JSON.parse(localStorage.getItem(key) || "null");
+        if (u && typeof u === "object" && !Array.isArray(u) &&
+            (u.name || u.mobile || u.email || u.id != null)) return u;
+      } catch (e) {}
+    }
+    return null;
+  }
+  function updateBadge() {
+    const badge = document.getElementById("docApptBadge");
+    if (!badge) return;
+    const user = getSession();
+    const inputName = document.getElementById("docName")?.value || "";
+    const currentName = normalize((user && (user.name || user.doctorName)) || inputName ||
+      localStorage.getItem("aikdoc_active_doctor_name") || "");
+    const currentId = user && (user.id ?? user.doctorId ?? user.doctor_id);
+    const currentMobile = String((user && (user.mobile || user.phone)) || "").replace(/\D/g, "").slice(-10);
+    const appointments = safeParseArray(localStorage.getItem("aikdoc_appointments"));
+    const count = appointments.filter(a => {
+      if (!a || (a.status && String(a.status).toLowerCase() !== "confirmed")) return false;
+      const assignedName = normalize(a.doctorName || a.doctor || a.providerName || a.assignedDoctor || a.doctor_name);
+      const assignedId = a.doctorId ?? a.doctor_id ?? a.assignedDoctorId;
+      const assignedMobile = String(a.doctorMobile || a.doctorPhone || a.providerMobile || "").replace(/\D/g, "").slice(-10);
+      if (currentId != null && assignedId != null && String(currentId) === String(assignedId)) return true;
+      if (currentMobile && assignedMobile && currentMobile === assignedMobile) return true;
+      return !!(currentName && assignedName &&
+        (currentName === assignedName || currentName.includes(assignedName) || assignedName.includes(currentName)));
+    }).length;
+    badge.textContent = String(count);
+    badge.style.display = count ? "inline-block" : "none";
+  }
+  let lastAppointmentsRaw = localStorage.getItem("aikdoc_appointments") || "[]";
+  function refreshPanels(checkForChanges) {
+    updateBadge();
+    if (document.visibilityState === "hidden") return;
+    const latest = localStorage.getItem("aikdoc_appointments") || "[]";
+    if (checkForChanges && latest !== lastAppointmentsRaw) {
+      const previous = lastAppointmentsRaw;
+      lastAppointmentsRaw = latest;
+      try {
+        if (typeof syncDoctorAppointmentChanges === "function") syncDoctorAppointmentChanges(previous, latest);
+        else {
+          if (typeof loadDoctorAppointments === "function") loadDoctorAppointments();
+          if (typeof loadDoctorReviews === "function") loadDoctorReviews();
+        }
+      } catch (e) { console.warn("Live appointment reconciliation skipped", e); }
+    }
+  }
+  window.addEventListener("storage", function (event) {
+    if (!event.key || event.key === "aikdoc_appointments" ||
+        event.key === "aikdoc_doctor_session" ||
+        event.key === "aikdoc_doctor_session_backup" ||
+        event.key === "aikdoc_active_doctor_name") refreshPanels(true);
+  });
+  window.addEventListener("focus", () => refreshPanels(true));
+  window.addEventListener("pageshow", () => refreshPanels(true));
+  document.addEventListener("DOMContentLoaded", () => refreshPanels(true));
+  window.setInterval(() => refreshPanels(true), 500);
+  refreshPanels(true);
+})();
+</script>
+
 </body>
 </html>
+
+<script>
+// Independent refresh recovery guard. Does not clear or rewrite existing account data.
+(function () {
+  function restoreDoctorView() {
+    try {
+      const raw = localStorage.getItem("aikdoc_doctor_session") || localStorage.getItem("aikdoc_doctor_session_backup");
+      const doctor = JSON.parse(raw || "null");
+      if (!doctor || typeof doctor !== "object" || Array.isArray(doctor) ||
+          !(doctor.name || doctor.mobile || doctor.email || doctor.id != null)) return;
+      const dashboard = document.getElementById("mainDashboardSection");
+      const gate = document.getElementById("authGateSection");
+      if (!dashboard || !gate) return;
+      if (dashboard.style.display === "none" || getComputedStyle(dashboard).display === "none" || gate.style.display !== "none") {
+        if (typeof window.checkAuthSession === "function") {
+          window.checkAuthSession();
+        } else if (typeof window.showDashboard === "function") {
+          window.showDashboard(doctor);
+        }
+      }
+    } catch (e) { console.warn("Doctor refresh recovery deferred:", e); }
+  }
+  document.addEventListener("DOMContentLoaded", restoreDoctorView, { once: true });
+  window.addEventListener("pageshow", restoreDoctorView);
+  window.setTimeout(restoreDoctorView, 0);
+})();
+</script>
