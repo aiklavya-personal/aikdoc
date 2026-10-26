@@ -179,7 +179,7 @@ tr:hover td{background:#fafcff}
         <span class="nav-pill-count" id="badgePatientCount" style="background:#059669">0</span>
       </button>
       <button type="button" class="nav-item" data-tab="tab-bookings">
-        <span>📅 Booked Appointments</span>
+        <span>📅 All Bookings</span>
         <span class="nav-pill-count" id="badgeApptCount">0</span>
       </button>
       <button type="button" class="nav-item" data-tab="tab-reviews">
@@ -265,7 +265,7 @@ tr:hover td{background:#fafcff}
       <div class="content-header">
         <div>
           <h1>Doctor Directory Master</h1>
-          <p>Inspect doctor credentials, view patient reviews, edit profiles, or delete accounts.</p>
+          <p>Inspect doctor credentials, view patient reviews, edit profiles, ban or unban access, or delete accounts.</p>
         </div>
         <button class="btn-primary" type="button" onclick="openDoctorModal()">+ Add New Doctor</button>
       </div>
@@ -284,7 +284,7 @@ tr:hover td{background:#fafcff}
         <div class="table-responsive">
           <table id="doctorsMasterTable">
             <thead>
-              <tr><th>Doctor</th><th>Speciality</th><th>Hospital / Venue</th><th>Fee (₹)</th><th>Patient Group</th><th>Timings</th><th style="text-align:right">Actions</th></tr>
+              <tr><th>Doctor</th><th>Speciality</th><th>Hospital / Venue</th><th>Fee (₹)</th><th>Patient Group</th><th>Timings</th><th>Account Status</th><th style="text-align:right">Actions</th></tr>
             </thead>
             <tbody></tbody>
           </table>
@@ -416,13 +416,19 @@ tr:hover td{background:#fafcff}
         <div class="panel-toolbar">
           <div class="search-input-wrap">
             <span>🔍</span>
-            <input type="text" id="bookingSearchInput" placeholder="Search patient, phone, doctor, token...">
+            <input type="text" id="bookingSearchInput" placeholder="Search by Token ID, patient, phone or doctor...">
           </div>
           <div style="display:flex;gap:8px">
-            <select id="bookingFilterDoctor" style="padding:7px 10px;border:1.5px solid var(--line);border-radius:8px;font-size:12.5px">
+            <select id="bookingFilterPeriod" aria-label="Filter appointments by time" style="padding:7px 10px;border:1.5px solid var(--line);border-radius:8px;font-size:12.5px">
+              <option value="">All Appointments</option>
+              <option value="upcoming">Upcoming</option>
+              <option value="past">Past</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+            <select id="bookingFilterDoctor" aria-label="Filter by doctor" style="padding:7px 10px;border:1.5px solid var(--line);border-radius:8px;font-size:12.5px">
               <option value="">All Doctors</option>
             </select>
-            <select id="bookingFilterStatus" style="padding:7px 10px;border:1.5px solid var(--line);border-radius:8px;font-size:12.5px">
+            <select id="bookingFilterStatus" aria-label="Filter by appointment status" style="padding:7px 10px;border:1.5px solid var(--line);border-radius:8px;font-size:12.5px">
               <option value="">All Statuses</option>
               <option value="Confirmed">Confirmed</option>
               <option value="Completed">Completed</option>
@@ -581,6 +587,28 @@ tr:hover td{background:#fafcff}
           </div>
           <button class="btn-action delete" type="button" onclick="factoryReset()">Reset to Factory Defaults</button>
         </div>
+      </div>
+
+      <div class="panel-card" style="max-width:900px;margin-top:20px">
+        <div style="margin-bottom:16px">
+          <h2 style="margin:0 0 6px;color:var(--navy);font-size:18px">WhatsApp Support Message Template</h2>
+          <p style="margin:0;color:var(--muted);font-size:12.5px">Edit the message patients see pre-filled when they click “Chat on WhatsApp”. Use the placeholders below to insert their details and appointment lists.</p>
+        </div>
+        <div class="form-field full">
+          <label for="cfgWhatsAppSupportTemplate">Message template</label>
+          <textarea id="cfgWhatsAppSupportTemplate" rows="14" style="font-family:ui-monospace,SFMono-Regular,Consolas,monospace;line-height:1.55" placeholder="Enter the WhatsApp message template..."></textarea>
+          <small style="display:block;color:var(--muted);font-size:11px;margin-top:6px">Available placeholders: {patientName}, {patientPhone}, {upcomingAppointments}, {pastAppointments}, {cancelledAppointments}. Keep the placeholder spelling exactly as shown.</small>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
+          <button class="btn-primary" type="button" onclick="saveWhatsAppSupportTemplate()">💾 Save WhatsApp Message</button>
+          <button class="btn-action" type="button" onclick="previewWhatsAppSupportTemplate()">👁 Preview</button>
+          <button class="btn-action" type="button" onclick="resetWhatsAppSupportTemplate()">↺ Restore Default</button>
+        </div>
+        <div id="whatsAppTemplatePreviewWrap" style="display:none;margin-top:16px">
+          <strong style="display:block;margin-bottom:8px;color:var(--navy)">Preview (sample patient data)</strong>
+          <pre id="whatsAppTemplatePreview" style="white-space:pre-wrap;overflow-wrap:anywhere;background:#f8fbfe;border:1px solid var(--line);border-radius:10px;padding:14px;font:12px/1.6 ui-monospace,SFMono-Regular,Consolas,monospace;margin:0"></pre>
+        </div>
+        <p style="margin:12px 0 0;color:var(--muted);font-size:11px">Note: This setting is stored in this browser’s localStorage. The main website must be opened on the same origin and browser to read it. WhatsApp will open with a draft; it will not send automatically.</p>
       </div>
     </section>
 
@@ -818,6 +846,7 @@ function checkAdminAuth() {
     if (layout) layout.style.display = "grid";
     renderAll();
     loadSiteConfig();
+    loadWhatsAppSupportTemplate();
   } else {
     if (gate) gate.style.display = "flex";
     if (layout) layout.style.display = "none";
@@ -892,93 +921,48 @@ function saveAppointments(appts) {
 }
 
 // Registered Patients Auto-Discovery with Anti-Resurrection List
-// Registered Patients Auto-Discovery
 function getRegisteredPatients() {
-  let patients = JSON.parse(
-    localStorage.getItem("aikdoc_registered_patients") || "[]"
-  );
-
-  let deletedPhones = JSON.parse(
-    localStorage.getItem("aikdoc_deleted_patient_phones") || "[]"
-  );
-
-  // Normalize Indian mobile numbers for consistent matching.
-  function normalizePhone(phone) {
-    const digits = String(phone || "").replace(/\D/g, "");
-    return digits.length > 10 ? digits.slice(-10) : digits;
-  }
+  let patients = JSON.parse(localStorage.getItem("aikdoc_registered_patients") || "[]");
+  const deletedPhones = JSON.parse(localStorage.getItem("aikdoc_deleted_patient_phones") || "[]");
+  
+  patients = patients.filter(p => !deletedPhones.includes(String(p.phone).trim()));
 
   const appts = getAppointments();
-  const activeSession = JSON.parse(
-    localStorage.getItem("aikdoc_patient_session") || "null"
-  );
+  let updated = false;
 
-  // A new appointment should register its patient.
   appts.forEach(a => {
-    const phone = normalizePhone(a.phone);
-
-    if (!phone || phone.length !== 10) return;
-
-    // A new booking re-registers this patient.
-    deletedPhones = deletedPhones.filter(
-      p => normalizePhone(p) !== phone
-    );
-
-    const existing = patients.find(
-      p => normalizePhone(p.phone) === phone
-    );
-
-    if (existing) {
-      existing.name = a.patientName || existing.name || "Patient";
-    } else {
+    const pPhone = String(a.phone || '').trim();
+    if (pPhone && !deletedPhones.includes(pPhone) && !patients.some(p => String(p.phone).trim() === pPhone)) {
       patients.push({
         name: a.patientName || "Patient",
-        phone: phone,
+        phone: pPhone,
         verifiedAt: a.createdAt || a.date || "Recent",
         lastActive: a.date || "Recent",
         authMethod: "Booked Appointment"
       });
+      updated = true;
     }
   });
 
-  // Include a currently authenticated patient.
+  const activeSession = JSON.parse(localStorage.getItem("aikdoc_patient_session") || "null");
   if (activeSession && activeSession.phone) {
-    const phone = normalizePhone(activeSession.phone);
-
-    if (phone && phone.length === 10) {
-      deletedPhones = deletedPhones.filter(
-        p => normalizePhone(p) !== phone
-      );
-
-      const existing = patients.find(
-        p => normalizePhone(p.phone) === phone
-      );
-
-      if (!existing) {
-        patients.unshift({
-          name: activeSession.name || "Patient",
-          phone: phone,
-          verifiedAt: activeSession.loginTime || "Today",
-          lastActive: "Active Session Now",
-          authMethod: activeSession.authMethod || "WhatsApp Verification"
-        });
-      }
+    const sPhone = String(activeSession.phone).trim();
+    if (!deletedPhones.includes(sPhone) && !patients.some(p => String(p.phone).trim() === sPhone)) {
+      patients.unshift({
+        name: activeSession.name || "Patient",
+        phone: sPhone,
+        verifiedAt: activeSession.loginTime || "Today",
+        lastActive: "Active Session Now",
+        authMethod: activeSession.authMethod || "WhatsApp Verification"
+      });
+      updated = true;
     }
   }
 
-  // Store the updated patient list and deletion list.
-  localStorage.setItem(
-    "aikdoc_registered_patients",
-    JSON.stringify(patients)
-  );
-
-  localStorage.setItem(
-    "aikdoc_deleted_patient_phones",
-    JSON.stringify(deletedPhones)
-  );
-
+  localStorage.setItem("aikdoc_registered_patients", JSON.stringify(patients));
   return patients;
 }
+
 // PERMANENTLY DELETE PATIENT ACCOUNT
 window.deletePatientAccount = function(phone) {
   const safePhone = String(phone).trim();
@@ -1073,6 +1057,21 @@ function renderOverviewTable(appts) {
   `).join("");
 }
 
+function toggleDoctorBan(doctorId) {
+  const docs = getMasterDoctors();
+  const doctor = docs.find(d => String(d.id) === String(doctorId));
+  if (!doctor) { showToast("Doctor profile not found."); return; }
+  const currentlyBanned = doctor.banned === true || doctor.status === "banned";
+  const action = currentlyBanned ? "unban" : "ban";
+  const confirmed = confirm(`Are you sure you want to ${action} ${doctor.name}?`);
+  if (!confirmed) return;
+  doctor.banned = !currentlyBanned;
+  doctor.status = doctor.banned ? "banned" : "active";
+  doctor.banUpdatedAt = Date.now();
+  saveMasterDoctors(docs);
+  showToast(doctor.banned ? `${doctor.name} has been banned.` : `${doctor.name} has been unbanned.`);
+}
+
 function renderDoctorsTable(docs) {
   const query = document.getElementById("doctorSearchInput").value.trim().toLowerCase();
   const filterSpec = document.getElementById("doctorFilterSpec").value;
@@ -1085,7 +1084,7 @@ function renderDoctorsTable(docs) {
 
   const tbody = document.querySelector("#doctorsMasterTable tbody");
   if (filtered.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--muted)">No doctor profiles found.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--muted)">No doctor profiles found.</td></tr>`;
     return;
   }
 
@@ -1108,8 +1107,10 @@ function renderDoctorsTable(docs) {
       <td><strong style="color:var(--teal)">₹${d.fee}</strong></td>
       <td><span class="tag-pill tag-confirmed">${d.patientGroup || 'Adult'}</span></td>
       <td style="font-size:12px;color:var(--muted)">${d.timings || 'Mon–Sat'}</td>
+      <td><span class="tag-pill ${d.banned || d.status === 'banned' ? 'tag-cancelled' : 'tag-confirmed'}">${d.banned || d.status === 'banned' ? 'Banned' : 'Active'}</span></td>
       <td style="text-align:right">
-        <div class="action-group" style="justify-content:flex-end">
+        <div class="action-group" style="justify-content:flex-end;flex-wrap:wrap">
+          <button class="btn-action ${d.banned || d.status === 'banned' ? 'edit' : 'delete'}" type="button" onclick="toggleDoctorBan(${d.id})">${d.banned || d.status === 'banned' ? '✓ Unban' : '⛔ Ban'}</button>
           <button class="btn-action reviews" type="button" onclick="viewDoctorReviews(${d.id})">⭐ View Reviews</button>
           <button class="btn-action edit" type="button" onclick="editDoctor(${d.id})">✏️ Edit</button>
           <button class="btn-action delete" type="button" onclick="deleteDoctorPermanent(${d.id})">🗑️ Delete</button>
@@ -1297,6 +1298,7 @@ function renderBookingsTable(appts, docs) {
   const query = document.getElementById("bookingSearchInput").value.trim().toLowerCase();
   const filterDoc = document.getElementById("bookingFilterDoctor").value;
   const filterStatus = document.getElementById("bookingFilterStatus").value;
+  const filterPeriod = document.getElementById("bookingFilterPeriod").value;
 
   const total = appts.length;
   const confirmed = appts.filter(a => (!a.status || a.status === "Confirmed")).length;
@@ -1316,11 +1318,30 @@ function renderBookingsTable(appts, docs) {
   docFilterSelect.innerHTML = `<option value="">All Doctors</option>` + uniqueDocNames.map(n => `<option value="${n}">${n}</option>`).join("");
   if (curDocVal) docFilterSelect.value = curDocVal;
 
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
   const filtered = appts.filter(a => {
-    const matchQ = !query || a.patientName.toLowerCase().includes(query) || a.phone.includes(query) || a.token.toLowerCase().includes(query) || a.doctorName.toLowerCase().includes(query);
-    const matchD = !filterDoc || a.doctorName.toLowerCase().includes(filterDoc.toLowerCase());
-    const matchS = !filterStatus || (a.status || 'Confirmed') === filterStatus;
-    return matchQ && matchD && matchS;
+    const patientName = String(a.patientName || "").toLowerCase();
+    const phone = String(a.phone || "").toLowerCase();
+    const token = String(a.token || "").toLowerCase();
+    const doctorName = String(a.doctorName || "").toLowerCase();
+    const status = String(a.status || "Confirmed");
+    const matchQ = !query || patientName.includes(query) || phone.includes(query) || token.includes(query) || doctorName.includes(query);
+    const matchD = !filterDoc || doctorName.includes(filterDoc.toLowerCase());
+    const matchS = !filterStatus || status === filterStatus;
+
+    // Booking dates are saved as display strings. Native parsing handles the common formats;
+    // unknown dates are kept under All Appointments but excluded from Upcoming/Past filters.
+    const appointmentDate = a.date ? new Date(a.date) : new Date(NaN);
+    appointmentDate.setHours(0, 0, 0, 0);
+    const isCancelled = status.toLowerCase() === "cancelled";
+    const isPast = status.toLowerCase() === "completed" || (!Number.isNaN(appointmentDate.getTime()) && appointmentDate < today);
+    const isUpcoming = !isCancelled && !isPast && !Number.isNaN(appointmentDate.getTime()) && appointmentDate >= today;
+    const matchPeriod = !filterPeriod ||
+      (filterPeriod === "cancelled" && isCancelled) ||
+      (filterPeriod === "past" && !isCancelled && isPast) ||
+      (filterPeriod === "upcoming" && isUpcoming);
+    return matchQ && matchD && matchS && matchPeriod;
   });
 
   const tbody = document.querySelector("#allBookingsTable tbody");
@@ -1346,6 +1367,7 @@ function renderBookingsTable(appts, docs) {
 }
 
 document.getElementById("bookingSearchInput").addEventListener("input", () => renderBookingsTable(getAppointments(), getMasterDoctors()));
+document.getElementById("bookingFilterPeriod").addEventListener("change", () => renderBookingsTable(getAppointments(), getMasterDoctors()));
 document.getElementById("bookingFilterDoctor").addEventListener("change", () => renderBookingsTable(getAppointments(), getMasterDoctors()));
 document.getElementById("bookingFilterStatus").addEventListener("change", () => renderBookingsTable(getAppointments(), getMasterDoctors()));
 
@@ -1809,6 +1831,77 @@ function loadSiteConfig() {
   if (cfg.phone) document.getElementById("cfgPhone").value = cfg.phone;
   if (cfg.privacyPolicy) document.getElementById("cfgPrivacyPolicy").value = cfg.privacyPolicy;
   if (cfg.medicalDisclaimer) document.getElementById("cfgMedicalDisclaimer").value = cfg.medicalDisclaimer;
+}
+
+const AIKDOC_DEFAULT_WHATSAPP_SUPPORT_TEMPLATE = `Hi AIKDOC Support, I need help with my account/appointments.
+
+PATIENT DETAILS
+Name: {patientName}
+Phone: {patientPhone}
+
+UPCOMING APPOINTMENTS
+{upcomingAppointments}
+
+PAST APPOINTMENTS
+{pastAppointments}
+
+CANCELLED APPOINTMENTS
+{cancelledAppointments}
+
+Please assist me.`;
+
+function loadWhatsAppSupportTemplate() {
+  const field = document.getElementById("cfgWhatsAppSupportTemplate");
+  if (!field) return;
+  const saved = localStorage.getItem("aikdoc_whatsapp_support_template");
+  field.value = saved || AIKDOC_DEFAULT_WHATSAPP_SUPPORT_TEMPLATE;
+}
+
+function saveWhatsAppSupportTemplate() {
+  const field = document.getElementById("cfgWhatsAppSupportTemplate");
+  if (!field) return;
+  const template = field.value.trim();
+  if (!template) {
+    showToast("Please enter a WhatsApp message template before saving.");
+    field.focus();
+    return;
+  }
+  localStorage.setItem("aikdoc_whatsapp_support_template", template);
+  localStorage.setItem("aikdoc_last_sync", Date.now().toString());
+  showToast("WhatsApp support message template saved.");
+  previewWhatsAppSupportTemplate();
+}
+
+function renderWhatsAppSupportTemplate(template, values) {
+  return String(template || AIKDOC_DEFAULT_WHATSAPP_SUPPORT_TEMPLATE).replace(
+    /\{(patientName|patientPhone|upcomingAppointments|pastAppointments|cancelledAppointments)\}/g,
+    (match, key) => values[key] == null ? "" : String(values[key])
+  );
+}
+
+function previewWhatsAppSupportTemplate() {
+  const field = document.getElementById("cfgWhatsAppSupportTemplate");
+  const wrap = document.getElementById("whatsAppTemplatePreviewWrap");
+  const preview = document.getElementById("whatsAppTemplatePreview");
+  if (!field || !wrap || !preview) return;
+  preview.textContent = renderWhatsAppSupportTemplate(field.value, {
+    patientName: "Aarav Kumar",
+    patientPhone: "+91 98765 43210",
+    upcomingAppointments: "• Dr. Example | Example Hospital | 30 Oct 2026 at 10:30 AM | Status: Confirmed | Token: A123",
+    pastAppointments: "• Dr. Example | Example Hospital | 12 Oct 2026 | Status: Completed",
+    cancelledAppointments: "• Dr. Example | Example Hospital | 18 Oct 2026 | Status: Cancelled"
+  });
+  wrap.style.display = "block";
+}
+
+function resetWhatsAppSupportTemplate() {
+  if (!confirm("Restore the default WhatsApp support message template?")) return;
+  const field = document.getElementById("cfgWhatsAppSupportTemplate");
+  if (field) field.value = AIKDOC_DEFAULT_WHATSAPP_SUPPORT_TEMPLATE;
+  localStorage.removeItem("aikdoc_whatsapp_support_template");
+  localStorage.setItem("aikdoc_last_sync", Date.now().toString());
+  showToast("Default WhatsApp support template restored.");
+  previewWhatsAppSupportTemplate();
 }
 
 function factoryReset() {
