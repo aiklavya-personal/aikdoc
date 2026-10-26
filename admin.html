@@ -119,6 +119,31 @@ tr:hover td{background:#fafcff}
   .sidebar{height:auto;position:static}
   .metrics-grid{grid-template-columns:repeat(2,1fr)}
 }
+
+/* Compact, consistent admin controls and calmer table density */
+.main-content{padding:24px clamp(16px,2.3vw,32px)}
+.panel-card{padding:18px;border-radius:16px}
+.content-header{margin-bottom:18px}
+.content-header h1{font-size:clamp(20px,2vw,24px);letter-spacing:-.35px}
+.metrics-grid{gap:11px}
+.metric-box{padding:14px;border-radius:14px}
+.panel-toolbar{align-items:center}
+.search-input-wrap{min-width:min(280px,100%);max-width:100%}
+.table-responsive{border:1px solid var(--line);border-radius:12px;background:#fff}
+table{font-size:12px;min-width:900px}
+th{padding:10px 11px;font-size:10px;letter-spacing:.35px;white-space:nowrap}
+td{padding:10px 11px;line-height:1.45}
+tr:hover td{background:#f7faff}
+.action-group{gap:5px;max-width:300px}
+.btn-action{padding:5px 7px;font-size:11px;line-height:1.25;border-radius:7px;white-space:nowrap;min-height:27px}
+.btn-primary{padding:8px 12px;font-size:12px;border-radius:9px;white-space:nowrap}
+.tag-pill{font-size:10px;padding:3px 7px;border-radius:999px;line-height:1.3}
+.doctor-visibility-cell{min-width:175px;max-width:225px;font-size:11px;line-height:1.5}
+.doctor-visibility-cell .visibility-details{overflow-wrap:anywhere;margin-top:5px;color:var(--muted)}
+.doctor-visibility-cell .password-protection{font-size:10px;color:#68788f;margin-top:5px;display:inline-flex;align-items:center;gap:4px;background:#f3f6fb;padding:3px 6px;border-radius:6px}
+@media(max-width:980px){.main-content{padding:18px 14px}.panel-card{padding:14px}.content-header{align-items:flex-start}.action-group{max-width:245px}}
+@media(max-width:600px){.metrics-grid{grid-template-columns:1fr 1fr}.content-header h1{font-size:20px}.content-header p{line-height:1.5}.btn-primary{white-space:normal}}
+
 </style>
 </head>
 <body>
@@ -167,7 +192,7 @@ tr:hover td{background:#fafcff}
         <span class="nav-pill-count" id="badgeDoctorCount">0</span>
       </button>
       <button type="button" class="nav-item" data-tab="tab-hospitals">
-        <span>🏥 Manage Hospitals</span>
+        <span>🏥 Manage Hospital / Clinic</span>
         <span class="nav-pill-count" id="badgeHospCount">0</span>
       </button>
       <button type="button" class="nav-item" data-tab="tab-specialties">
@@ -179,7 +204,7 @@ tr:hover td{background:#fafcff}
         <span class="nav-pill-count" id="badgePatientCount" style="background:#059669">0</span>
       </button>
       <button type="button" class="nav-item" data-tab="tab-bookings">
-        <span>📅 All Bookings</span>
+        <span>📅 Booked Appointments</span>
         <span class="nav-pill-count" id="badgeApptCount">0</span>
       </button>
       <button type="button" class="nav-item" data-tab="tab-reviews">
@@ -284,7 +309,7 @@ tr:hover td{background:#fafcff}
         <div class="table-responsive">
           <table id="doctorsMasterTable">
             <thead>
-              <tr><th>Doctor</th><th>Speciality</th><th>Hospital / Venue</th><th>Fee (₹)</th><th>Patient Group</th><th>Timings</th><th>Account Status</th><th style="text-align:right">Actions</th></tr>
+              <tr><th>Doctor</th><th>Speciality</th><th>Hospital / Venue</th><th>Fee (₹)</th><th>Patient Group</th><th>Timings</th><th>Account Status</th><th>Login ID Visibility</th><th style="text-align:right">Actions</th></tr>
             </thead>
             <tbody></tbody>
           </table>
@@ -296,17 +321,35 @@ tr:hover td{background:#fafcff}
     <section id="tab-hospitals" class="admin-tab" style="display:none">
       <div class="content-header">
         <div>
-          <h1>Hospitals & Medical Centres Master</h1>
-          <p>Add medical facilities, upload building photos, set district locations, bed capacities, and helplines.</p>
+          <h1>Hospitals / Clinics Management</h1>
+          <p>Manage hospitals and doctor-owned clinics, photos, locations, contact details, and public listings.</p>
         </div>
-        <button class="btn-primary" type="button" onclick="openHospitalModal()">+ Add New Hospital</button>
+        <button class="btn-primary" type="button" onclick="openHospitalModal()">+ Add Hospital / Clinic</button>
       </div>
 
       <div class="panel-card">
+        <div class="hospital-filter-toolbar" style="display:flex;gap:12px;flex-wrap:wrap;align-items:end;margin-bottom:18px;padding:14px;background:#f8fbfe;border:1px solid var(--line);border-radius:12px">
+          <div style="display:flex;flex-direction:column;gap:6px;min-width:220px;flex:1">
+            <label for="adminHospitalCityFilter" style="font-size:11px;font-weight:850;color:var(--muted);text-transform:uppercase;letter-spacing:.4px">Filter by City</label>
+            <select id="adminHospitalCityFilter" style="width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:9px;background:#fff;color:var(--ink);font-size:13px">
+              <option value="all">All Cities</option>
+            </select>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px;min-width:220px;flex:1">
+            <label for="adminHospitalTypeFilter" style="font-size:11px;font-weight:850;color:var(--muted);text-transform:uppercase;letter-spacing:.4px">Filter by Type</label>
+            <select id="adminHospitalTypeFilter" style="width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:9px;background:#fff;color:var(--ink);font-size:13px">
+              <option value="all">All Hospitals / Clinics</option>
+              <option value="hospital">Hospitals only</option>
+              <option value="clinic">Clinics only</option>
+            </select>
+          </div>
+          <button class="btn-action" type="button" onclick="resetHospitalFilters()" style="padding:10px 14px">Reset filters</button>
+        </div>
+        <div id="adminHospitalFilterCount" style="font-size:12px;color:var(--muted);margin:-4px 0 12px"></div>
         <div class="table-responsive">
           <table id="hospitalsMasterTable">
             <thead>
-              <tr><th>Hospital</th><th>District</th><th>Bed Capacity</th><th>Helpline</th><th>Street Address</th><th style="text-align:right">Actions</th></tr>
+              <tr><th>Hospital / Clinic</th><th>District</th><th>Beds / Type</th><th>Helpline</th><th>Street Address</th><th style="text-align:right">Actions</th></tr>
             </thead>
             <tbody></tbody>
           </table>
@@ -739,14 +782,14 @@ tr:hover td{background:#fafcff}
 <div class="modal-backdrop" id="hospitalModal">
   <div class="modal">
     <div class="modal-header">
-      <h2 id="hospitalModalTitle">Add New Hospital</h2>
+      <h2 id="hospitalModalTitle">Add Hospital / Clinic</h2>
       <button class="close" type="button" onclick="closeModals()">×</button>
     </div>
     <form id="hospitalModalForm">
       <input type="hidden" id="editHospId">
 
       <div class="form-field full">
-        <label>Hospital Photos (add as many as you like, max 8)</label>
+        <label>Hospital / Clinic Photos (up to 8)</label>
         <div class="upload-modal-preview-box" style="flex-direction:column;align-items:stretch">
           <input type="file" id="modalHospPhotoFile" accept="image/*" multiple style="font-size:12.5px">
           <small style="color:var(--muted);font-size:11px">Select one or many images. The first photo is the cover. Click a photo to make it the cover, or ✕ to remove it.</small>
@@ -795,7 +838,7 @@ tr:hover td{background:#fafcff}
           <textarea id="mHospAbout" rows="2"></textarea>
         </div>
       </div>
-      <button class="btn-primary" type="submit" style="width:100%;margin-top:14px;padding:12px">Save Hospital Information</button>
+      <button class="btn-primary" type="submit" style="width:100%;margin-top:14px;padding:12px">Save Hospital / Clinic Information</button>
     </form>
   </div>
 </div>
@@ -1030,6 +1073,7 @@ function renderAll() {
 
   renderOverviewTable(appts);
   renderDoctorsTable(docs);
+  populateHospitalFilters(hosps);
   renderHospitalsTable(hosps);
   renderSpecialtiesTable(specs);
   renderPatientsTable(patients, appts);
@@ -1072,6 +1116,10 @@ function toggleDoctorBan(doctorId) {
   showToast(doctor.banned ? `${doctor.name} has been banned.` : `${doctor.name} has been unbanned.`);
 }
 
+function escapeHTML(value) {
+  return String(value).replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;", "'":"&#39;"}[ch]));
+}
+
 function renderDoctorsTable(docs) {
   const query = document.getElementById("doctorSearchInput").value.trim().toLowerCase();
   const filterSpec = document.getElementById("doctorFilterSpec").value;
@@ -1084,7 +1132,7 @@ function renderDoctorsTable(docs) {
 
   const tbody = document.querySelector("#doctorsMasterTable tbody");
   if (filtered.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--muted)">No doctor profiles found.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:24px;color:var(--muted)">No doctor profiles found.</td></tr>`;
     return;
   }
 
@@ -1108,12 +1156,13 @@ function renderDoctorsTable(docs) {
       <td><span class="tag-pill tag-confirmed">${d.patientGroup || 'Adult'}</span></td>
       <td style="font-size:12px;color:var(--muted)">${d.timings || 'Mon–Sat'}</td>
       <td><span class="tag-pill ${d.banned || d.status === 'banned' ? 'tag-cancelled' : 'tag-confirmed'}">${d.banned || d.status === 'banned' ? 'Banned' : 'Active'}</span></td>
+      <td class="doctor-visibility-cell">${d.adminCanViewLogin === true ? `<span class="tag-pill tag-confirmed">✓ Shared with admin</span><div class="visibility-details">Mobile: ${escapeHTML(String(d.mobile || 'Not provided'))}<br>Email: ${escapeHTML(String(d.email || 'Not provided'))}<br>Password: <strong>${escapeHTML(String((JSON.parse(localStorage.getItem('aikdoc_doctor_accounts') || '[]').find(a => (d.id != null && String(a.id) === String(d.id)) || (d.mobile && a.mobile === d.mobile) || (d.email && a.email && a.email.toLowerCase() === d.email.toLowerCase()) || (d.doctorId != null && String(a.id) === String(d.doctorId)) ) || {}).password || 'Not available'))}</strong></div>` : `<span class="tag-pill tag-cancelled">🔒 Login credentials hidden</span><div class="visibility-details">Doctor has chosen to keep their login credentials private.</div>`}</td>
       <td style="text-align:right">
         <div class="action-group" style="justify-content:flex-end;flex-wrap:wrap">
-          <button class="btn-action ${d.banned || d.status === 'banned' ? 'edit' : 'delete'}" type="button" onclick="toggleDoctorBan(${d.id})">${d.banned || d.status === 'banned' ? '✓ Unban' : '⛔ Ban'}</button>
-          <button class="btn-action reviews" type="button" onclick="viewDoctorReviews(${d.id})">⭐ View Reviews</button>
-          <button class="btn-action edit" type="button" onclick="editDoctor(${d.id})">✏️ Edit</button>
-          <button class="btn-action delete" type="button" onclick="deleteDoctorPermanent(${d.id})">🗑️ Delete</button>
+          <button class="btn-action ${d.banned || d.status === 'banned' ? 'edit' : 'delete'}" title="${d.banned || d.status === 'banned' ? 'Restore doctor access' : 'Ban doctor access'}" type="button" onclick="toggleDoctorBan(${d.id})">${d.banned || d.status === 'banned' ? '✓ Unban' : 'Ban'}</button>
+          <button class="btn-action reviews" title="View patient reviews" type="button" onclick="viewDoctorReviews(${d.id})">Reviews</button>
+          <button class="btn-action edit" title="Edit doctor profile" type="button" onclick="editDoctor(${d.id})">Edit</button>
+          <button class="btn-action delete" title="Delete doctor account" type="button" onclick="deleteDoctorPermanent(${d.id})">Delete</button>
         </div>
       </td>
     </tr>
@@ -1138,9 +1187,46 @@ function renderSpecialtiesTable(specs) {
   `).join("");
 }
 
+function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;", "'":"&#39;"}[ch]));
+}
+
+function populateHospitalFilters(hosps) {
+  const citySelect = document.getElementById("adminHospitalCityFilter");
+  const currentCity = citySelect.value || "all";
+  const cities = [...new Set(hosps.map(h => String(h.district || h.city || "").trim()).filter(Boolean))]
+    .sort((a, b) => a.localeCompare(b));
+  citySelect.innerHTML = '<option value="all">All Cities</option>' + cities.map(city =>
+    `<option value="${escapeHtml(city)}">${escapeHtml(city)}</option>`
+  ).join("");
+  citySelect.value = cities.includes(currentCity) ? currentCity : "all";
+}
+
+function resetHospitalFilters() {
+  document.getElementById("adminHospitalCityFilter").value = "all";
+  document.getElementById("adminHospitalTypeFilter").value = "all";
+  renderHospitalsTable(getMasterHospitals());
+}
+
+document.getElementById("adminHospitalCityFilter").addEventListener("change", () => renderHospitalsTable(getMasterHospitals()));
+document.getElementById("adminHospitalTypeFilter").addEventListener("change", () => renderHospitalsTable(getMasterHospitals()));
+
 function renderHospitalsTable(hosps) {
+  const city = document.getElementById("adminHospitalCityFilter")?.value || "all";
+  const type = document.getElementById("adminHospitalTypeFilter")?.value || "all";
+  const filtered = hosps.filter(h => {
+    const hCity = String(h.district || h.city || "").trim();
+    const hType = String(h.type || "hospital").toLowerCase() === "clinic" ? "clinic" : "hospital";
+    return (city === "all" || hCity === city) && (type === "all" || hType === type);
+  });
+  const countLabel = document.getElementById("adminHospitalFilterCount");
+  if (countLabel) countLabel.textContent = `Showing ${filtered.length} of ${hosps.length} hospitals / clinics`;
   const tbody = document.querySelector("#hospitalsMasterTable tbody");
-  tbody.innerHTML = hosps.map(h => {
+  if (!filtered.length) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:28px;color:var(--muted)">No hospitals or clinics match these filters.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = filtered.map(h => {
     const count = (h.photos && h.photos.length) ? h.photos.length : 1;
     return `
     <tr>
@@ -1149,12 +1235,12 @@ function renderHospitalsTable(hosps) {
           <img class="table-img" src="${h.photo}" onerror="this.src='https://images.unsplash.com/photo-1587351021759-3e566b6af7cc?auto=format&fit=crop&w=700&q=80'">
           <div>
             <div class="entity-title">${h.name}</div>
-            <div class="entity-sub">📍 ${h.district}, Bihar · 🖼️ ${count} photo${count === 1 ? '' : 's'}</div>
+            <div class="entity-sub">${h.type === "clinic" ? "🩺 Doctor-owned clinic" : "🏥 Hospital / clinic"} · 📍 ${h.district}, Bihar · 🖼️ ${count} photo${count === 1 ? '' : 's'}</div>
           </div>
         </div>
       </td>
       <td><strong>${h.district}</strong></td>
-      <td>${h.beds || '100+ Beds'}</td>
+      <td>${h.type === 'clinic' ? 'Clinic' : (h.beds || '100+ Beds')}</td>
       <td><strong style="color:var(--blue)">${h.phone || '85271 27888'}</strong></td>
       <td style="font-size:12px;color:var(--muted);max-width:240px">${h.address}</td>
       <td style="text-align:right">
@@ -1683,7 +1769,7 @@ document.getElementById("modalHospPhotoFile").addEventListener("change", async e
 function openHospitalModal(hosp = null) {
   document.getElementById("hospitalModalForm").reset();
   document.getElementById("editHospId").value = hosp ? hosp.id : "";
-  document.getElementById("hospitalModalTitle").textContent = hosp ? "Edit Hospital Information" : "Add New Hospital";
+  document.getElementById("hospitalModalTitle").textContent = hosp ? "Edit Hospital / Clinic Information" : "Add New Hospital";
 
   modalHospPhotos = hosp ? ((hosp.photos && hosp.photos.length) ? hosp.photos.slice() : (hosp.photo ? [hosp.photo] : [])) : [];
   renderHospPhotoGrid();
@@ -1730,10 +1816,10 @@ document.getElementById("hospitalModalForm").addEventListener("submit", e => {
   if (editId) {
     const idx = hosps.findIndex(h => h.id === Number(editId));
     if (idx >= 0) hosps[idx] = Object.assign(hosps[idx], hospData);
-    showToast(`Hospital "${hospData.name}" updated.`);
+    showToast(`Hospital / clinic "${hospData.name}" updated.`);
   } else {
     hosps.push(hospData);
-    showToast(`New hospital "${hospData.name}" added.`);
+    showToast(`New hospital / clinic "${hospData.name}" added.`);
   }
 
   saveMasterHospitals(hosps);
@@ -1746,10 +1832,10 @@ window.editHospital = function(id) {
 };
 
 window.deleteHospital = function(id) {
-  if (confirm("Remove hospital and its affiliations from the network?")) {
+  if (confirm("Remove this hospital / clinic and its affiliations from the network?")) {
     let hosps = getMasterHospitals().filter(h => h.id !== id);
     saveMasterHospitals(hosps);
-    showToast("Hospital removed.");
+    showToast("Hospital / clinic removed.");
   }
 };
 
