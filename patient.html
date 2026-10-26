@@ -673,6 +673,13 @@ body.theme-dark select.chip{background:#172236;color:#f1f5f9}
   .pay-method-grid{grid-template-columns:1fr 1fr 1fr}
 }
 </style>
+
+  <style>
+    .auth-divider{display:flex;align-items:center;gap:12px;color:var(--muted);font-size:11px;font-weight:800;letter-spacing:.12em;margin:16px 0}
+    .auth-divider:before,.auth-divider:after{content:"";height:1px;background:var(--line);flex:1}
+    .email-auth-card{margin-top:12px;padding:14px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+    .email-auth-card input{width:100%;box-sizing:border-box}
+  </style>
 </head>
 <body>
 
@@ -690,7 +697,7 @@ body.theme-dark select.chip{background:#172236;color:#f1f5f9}
         <span>🏠</span> <span data-i18n="navHome">Home</span>
       </a>
       <a class="nav-link-item" id="navHospitals" href="#page-hospitals" onclick="setPage('hospitals'); return false;">
-        <span>🏥</span> <span data-i18n="navHospitals">Hospitals</span>
+        <span>🏥</span> <span data-i18n="navHospitals">Hospitals / Clinics</span>
       </a>
       <a class="nav-link-item" id="navSpecialties" href="#page-specialties" onclick="setPage('specialties'); return false;">
         <span>🩺</span> <span data-i18n="navSpecialities">Specialities</span>
@@ -752,7 +759,7 @@ body.theme-dark select.chip{background:#172236;color:#f1f5f9}
         <span style="font-size:18px">🏠</span> <span data-i18n="navHome">Home</span>
       </a>
       <a class="drawer-link" href="#page-hospitals" onclick="setPage('hospitals'); closeMobileDrawer(); return false;">
-        <span style="font-size:18px">🏥</span> <span data-i18n="navHospitals">Book by Hospital</span>
+        <span style="font-size:18px">🏥</span> <span data-i18n="navHospitals">Book by Hospital / Clinic</span>
       </a>
       <a class="drawer-link" href="#page-specialties" onclick="setPage('specialties'); closeMobileDrawer(); return false;">
         <span style="font-size:18px">🩺</span> <span data-i18n="navSpecialities">All Specialities</span>
@@ -792,7 +799,7 @@ body.theme-dark select.chip{background:#172236;color:#f1f5f9}
     <div>
       <div class="eyebrow"><span class="dot"></span> <span data-i18n="eyebrow">YOUR HEALTH, CLOSER TO HOME</span></div>
       <h1 id="heroTitleEl">Good care starts with <span>the right doctor & hospital.</span></h1>
-      <p class="lead" id="heroSubtitleEl">Find top hospitals and doctors across Bihar, inspect hospital facilities, and book appointment slots with confirmed tokens.</p>
+      <p class="lead" id="heroSubtitleEl">Find hospitals, clinics, and doctors across Bihar, explore facilities, and book appointment slots with confirmed tokens.</p>
 
       <form class="searchbox" id="searchForm" onsubmit="handleHeroSearch(event)">
         <div class="field">
@@ -845,10 +852,10 @@ body.theme-dark select.chip{background:#172236;color:#f1f5f9}
       <div class="art-card">
         <div class="art-head"><div class="doctor-avatar">🏥</div><div><strong>Bihar Healthcare Hub</strong><small>Simple. Clear. Convenient.</small></div><span class="available">VERIFIED</span></div>
         <hr class="art-divider">
-        <div class="mini-row"><span>1. Choose Hospital</span><strong>Photos, ICU, Timings</strong></div>
+        <div class="mini-row"><span>1. Choose Hospital / Clinic</span><strong>Photos, ICU, Timings</strong></div>
         <div class="mini-row"><span>2. Tap a Doctor's Slot</span><strong>Morning or evening</strong></div>
         <div class="mini-row"><span>3. Book Instantly</span><strong>Name & mobile number</strong></div>
-        <div class="mini-book">Instant Hospital & Doctor Booking</div>
+        <div class="mini-book">Instant Hospital / Clinic & Doctor Booking</div>
       </div>
       <div class="float-pill bottom">✓ Designed for Bihar</div>
     </div>
@@ -928,12 +935,12 @@ body.theme-dark select.chip{background:#172236;color:#f1f5f9}
 <section class="section" id="hospitals">
   <div class="section-head">
     <div>
-      <h2 data-i18n="bookByHosp">Book by hospital</h2>
-      <p class="sub" data-i18n="bookByHospSub">Inspect hospital photos, verified facilities, locations, and doctors listed at each hospital.</p>
+      <h2 data-i18n="bookByHosp">Book by hospital / clinic</h2>
+      <p class="sub" data-i18n="bookByHospSub">Explore hospital and clinic photos, locations, facilities, and doctors listed at each location.</p>
     </div>
   </div>
 
-  <!-- 3. City Filter for Explore Hospitals -->
+  <!-- City and facility-type filters -->
   <div class="hospital-filter-bar" style="display:flex;align-items:center;gap:10px;margin-bottom:18px;flex-wrap:wrap">
     <label for="hospCityFilter" style="font-size:11.5px;font-weight:800;color:var(--muted);text-transform:uppercase">📍 <span data-i18n="filterCity">Filter by City:</span></label>
     <select id="hospCityFilter" onchange="filterHospitalsByCity(this.value)" class="chip" style="padding:7px 12px;font-weight:700;border:1.5px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink)">
@@ -945,6 +952,12 @@ body.theme-dark select.chip{background:#172236;color:#f1f5f9}
       <option value="Bhagalpur">Bhagalpur</option>
       <option value="Purnia">Purnia</option>
       <option value="Begusarai">Begusarai</option>
+    </select>
+    <label for="hospTypeFilter" style="font-size:11.5px;font-weight:800;color:var(--muted);text-transform:uppercase">🏥 <span data-i18n="filterType">Filter by Type:</span></label>
+    <select id="hospTypeFilter" onchange="filterHospitalsByType(this.value)" class="chip" style="padding:7px 12px;font-weight:700;border:1.5px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink)">
+      <option value="all">All Hospitals / Clinics</option>
+      <option value="hospital">Hospitals only</option>
+      <option value="clinic">Clinics only</option>
     </select>
   </div>
 
@@ -1011,7 +1024,7 @@ body.theme-dark select.chip{background:#172236;color:#f1f5f9}
       <span class="step-badge">STEP 1</span>
       <div class="how-icon">🔍</div>
       <h3>Find Doctor or Hospital</h3>
-      <p>Search across 38 districts in Bihar by speciality, doctor name, or browse verified local hospitals with full facility details.</p>
+      <p>Search across 38 districts in Bihar by speciality, doctor name, or browse verified hospitals and clinics with location and facility details.</p>
       <div class="how-card-footer">
         <span class="how-pill">✓ Verified Directory</span>
       </div>
@@ -1246,6 +1259,22 @@ body.theme-dark select.chip{background:#172236;color:#f1f5f9}
           <span>💬 Open WhatsApp to Send Message →</span>
         </button>
       </form>
+
+      <div class="auth-divider" aria-hidden="true"><span>OR</span></div>
+      <div class="email-auth-card">
+        <div style="font-weight:800;font-size:14px;margin-bottom:4px">✉️ Sign in with Email</div>
+        <p style="font-size:12px;color:var(--muted);margin:0 0 12px;line-height:1.5">No password needed. We’ll email you a one-time verification code.</p>
+        <form id="emailOtpRequestForm" onsubmit="requestEmailOTP(event)">
+          <div class="form-field"><label for="authEmailName">Full name <span style="font-weight:400;color:var(--muted)">(new accounts)</span></label><input id="authEmailName" type="text" autocomplete="name" placeholder="e.g. Ramesh Kumar" maxlength="100"></div>
+          <div class="form-field"><label for="authEmailAddress">Email address *</label><input id="authEmailAddress" type="email" autocomplete="email" required maxlength="254" placeholder="you@example.com"></div>
+          <button id="sendEmailOtpButton" class="primary" type="submit" style="width:100%;padding:12px">Send Email OTP →</button>
+        </form>
+        <form id="emailOtpVerifyForm" onsubmit="verifyEmailOTP(event)" style="display:none;margin-top:12px">
+          <div class="form-field"><label for="authEmailOtp">Verification code *</label><input id="authEmailOtp" type="text" inputmode="numeric" autocomplete="one-time-code" required pattern="[0-9]{4,8}" minlength="4" maxlength="8" placeholder="Enter the code from your email" style="text-align:center;letter-spacing:5px;font-size:20px"></div>
+          <button id="verifyEmailOtpButton" class="primary" type="submit" style="width:100%;padding:12px">Verify Email & Sign In ✓</button>
+          <button type="button" onclick="requestEmailOTP(event, true)" style="width:100%;padding:10px;margin-top:8px;background:transparent;border:1px solid var(--line);border-radius:10px;color:var(--ink);cursor:pointer">Resend code</button>
+        </form>
+      </div>
     </div>
 
     <div id="authWaitingStep2" style="display:none">
@@ -1710,6 +1739,7 @@ let allSpecPageGroup = "all";
 let mode = "All";
 let district = "", selectedSpeciality = "", docNameQuery = "", selectedPatientType = "All", selectedHospital = "";
 let selectedHospitalCity = "";
+let selectedHospitalType = "all";
 let hospitalPhotoIndices = {};
 
 let selectedDoctor = null;
@@ -1729,40 +1759,40 @@ let pendingAuthName = null;
 // ======================================================
 const TRANSLATIONS = {
   en: {
-    navHome: "Home", navHospitals: "Hospitals", navSpecialities: "Specialities", navDoctors: "Find Doctors", navContact: "Contact Us",
+    navHome: "Home", navHospitals: "Hospitals / Clinics", navSpecialities: "Specialities", navDoctors: "Find Doctors", navContact: "Contact Us",
     signInWa: "Sign In via WhatsApp", myBookings: "Appointments", backHome: "Back to AIKDOC home",
     eyebrow: "YOUR HEALTH, CLOSER TO HOME", lblLocation: "Location / District", lblAge: "Patient Age", lblSpeciality: "Speciality", lblDoctor: "Doctor Name", btnSearch: "Find doctors →",
     trust1: "Instant slot booking", trust2: "Adult & paediatric specialists", trust3: "Verified Bihar doctors",
     headSpecialities: "Browse by speciality", subSpecialities: "Choose patient group below to view relevant medical care and verified doctors.", exploreAllSpec: "Explore all specialities",
     whoIsThisFor: "Who is this consultation for?", selectPatientGroup: "Select patient age group to view matching specialities",
     adultCare: "Adult Care", childCare: "Paediatric Care", allSpecTitle: "Explore all medical specialities", allSpecSub: "Search or select from our full directory of medical, surgical, and child health disciplines.",
-    bookByHosp: "Book by hospital", bookByHospSub: "Inspect hospital photos, verified facilities, locations, and doctors listed at each hospital.", filterCity: "Filter by City:",
+    bookByHosp: "Book by hospital / clinic", bookByHospSub: "Explore hospital and clinic photos, locations, facilities, and doctors listed at each location.", filterCity: "Filter by City:", filterType: "Filter by Type:",
     exploreDoctors: "Explore doctor profiles", bannerHead: "Healthcare should feel easier.", bannerSub: "We're building a simpler way for people across Bihar to discover local doctors, check hospital facilities, and book verified appointment slots with zero hassle.",
     chatWhatsApp: "Chat on WhatsApp", callHelpline: "Call Helpline", contactTitle: "We're here to assist you 7 days a week.", contactSub: "Need assistance booking an appointment, finding a specialist, or reaching a partner hospital? Reach our dedicated healthcare desk.",
     waLoginTitle: "Patient WhatsApp Login", waLoginSub: "Sign in to privately access your upcoming doctor tokens, consultation receipts, and medical history."
   },
   hi: {
-    navHome: "होम", navHospitals: "अस्पताल", navSpecialities: "विशेषज्ञताएं", navDoctors: "डॉक्टर खोजें", navContact: "संपर्क करें",
+    navHome: "होम", navHospitals: "अस्पताल / क्लिनिक", navSpecialities: "विशेषज्ञताएं", navDoctors: "डॉक्टर खोजें", navContact: "संपर्क करें",
     signInWa: "व्हाट्सएप लॉगिन", myBookings: "अपॉइंटमेंट", backHome: "होम पेज पर वापस जाएं",
     eyebrow: "आपका स्वास्थ्य, आपके पास", lblLocation: "स्थान / जिला", lblAge: "मरीज की उम्र", lblSpeciality: "विशेषज्ञता", lblDoctor: "डॉक्टर का नाम", btnSearch: "डॉक्टर खोजें →",
     trust1: "तुरंत स्लॉट बुकिंग", trust2: "वयस्क और बाल विशेषज्ञ", trust3: "सत्यापित बिहार डॉक्टर",
     headSpecialities: "विशेषज्ञता अनुसार खोजें", subSpecialities: "सही डॉक्टर खोजने के लिए मरीज का आयु वर्ग चुनें।", exploreAllSpec: "सभी विशेषज्ञताएं देखें",
     whoIsThisFor: "यह परामर्श किसके लिए है?", selectPatientGroup: "मरीज का आयु वर्ग चुनकर उपयुक्त विशेषज्ञ देखें",
     adultCare: "वयस्क स्वास्थ्य", childCare: "बाल चिकित्सा", allSpecTitle: "सभी चिकित्सा विशेषज्ञताएं", allSpecSub: "बिहार के सभी अनुभवी विशेषज्ञों की सूची में से चुनें।",
-    bookByHosp: "अस्पताल द्वारा बुक करें", bookByHospSub: "अस्पताल की तस्वीरें, आईसीयू सुविधाएं और डॉक्टरों की सूची देखें।", filterCity: "शहर चुनें:",
+    bookByHosp: "अस्पताल / क्लिनिक से बुक करें", bookByHospSub: "अस्पताल की तस्वीरें, आईसीयू सुविधाएं और डॉक्टरों की सूची देखें।", filterCity: "शहर चुनें:", filterType: "प्रकार चुनें:",
     exploreDoctors: "डॉक्टर प्रोफाइल देखें", bannerHead: "स्वास्थ्य सेवा अब हुई और भी आसान।", bannerSub: "बिहार भर के मरीजों के लिए विश्वसनीय डॉक्टर खोजने और अस्पताल स्लॉट बुक करने का सबसे सरल माध्यम।",
     chatWhatsApp: "व्हाट्सएप पर बात करें", callHelpline: "हेल्पलाइन पर कॉल करें", contactTitle: "हम आपकी सहायता के लिए सदैव उपलब्ध हैं।", contactSub: "अपॉइंटमेंट बुक करने या अस्पताल से जुड़ने में सहायता के लिए संपर्क करें।",
     waLoginTitle: "मरीज व्हाट्सएप लॉगिन", waLoginSub: "अपनी अपॉइंटमेंट और रसीद देखने के लिए साइन इन करें।"
   },
   bho: {
-    navHome: "घर", navHospitals: "अस्पताल", navSpecialities: "विभाग", navDoctors: "डॉक्टर लोग", navContact: "संपर्क",
+    navHome: "घर", navHospitals: "अस्पताल / क्लिनिक", navSpecialities: "विभाग", navDoctors: "डॉक्टर लोग", navContact: "संपर्क",
     signInWa: "व्हाट्सएप लॉगिन", myBookings: "बुकिंग", backHome: "होम पन्ना पर लौटीं",
     eyebrow: "रउआ स्वास्थ्य, रउआ घरे के लगे", lblLocation: "शहर / जिला", lblAge: "मरीज के उमिर", lblSpeciality: "विभाग / रोग", lblDoctor: "डॉक्टर के नाम", btnSearch: "डॉक्टर खोजीं →",
     trust1: "तुरंत स्लॉट बुकिंग", trust2: "बड़ा आ बच्चा लोगन के डॉक्टर", trust3: "जाँचल बिहार के डॉक्टर",
     headSpecialities: "बीमारी अनुसार खोजीं", subSpecialities: "सही डॉक्टर पावे खातिर मरीज के उमिर चुनीं।", exploreAllSpec: "सभ विभाग देखीं",
     whoIsThisFor: "ई सलाह केकरा खातिर बा?", selectPatientGroup: "उमिर चुन के सही डॉक्टर से मिले के समय बुक करीं",
     adultCare: "सयान लोग के इलाज", childCare: "लईका लोग के इलाज", allSpecTitle: "सभ मेडिकल विभाग", allSpecSub: "बिहार के बेहतरीन डॉक्टर लोगन के पूरा लिस्ट देखीं।",
-    bookByHosp: "अस्पताल से बुकिंग करीं", bookByHospSub: "अस्पताल के फोटो, बेड, आईसीयू आ डॉक्टर देखीं।", filterCity: "शहर छांटीं:",
+    bookByHosp: "अस्पताल / क्लिनिक से बुकिंग करीं", bookByHospSub: "अस्पताल के फोटो, बेड, आईसीयू आ डॉक्टर देखीं।", filterCity: "शहर छांटीं:", filterType: "प्रकार छांटीं:",
     exploreDoctors: "डॉक्टर लोगन के प्रोफाइल", bannerHead: "इलाज करावे के काम अब भईल आसान।", bannerSub: "पूरा बिहार में बढ़िया डॉक्टर आ अस्पताल खोजे के सभसे आसान तरीका।",
     chatWhatsApp: "व्हाट्सएप पर बतियाईं", callHelpline: "हेल्पलाइन नंबर मिलाईं", contactTitle: "हमनी से तुरंत संपर्क करीं।", contactSub: "अपॉइंटमेंट बुकिंग खातिर हमनी से तुरंत संपर्क करीं।",
     waLoginTitle: "व्हाट्सएप से जुड़ीं", waLoginSub: "अपन पुरान आ नया बुकिंग देखे खातिर लॉगिन करीं।"
@@ -1835,11 +1865,11 @@ function checkPatientSession() {
   const authPill = document.getElementById("patientAuthNavBtn");
 
   if (authPill) {
-    if (session && session.phone) {
+    if (session && (session.phone || session.email)) {
       authPill.className = "patient-session-pill";
       authPill.onclick = null;
       authPill.innerHTML = `
-        <span>👤 <b>${session.name || 'Patient'}</b> (${session.phone.slice(-4)})</span>
+        <span>👤 <b>${String(session.name || 'Patient').replace(/[&<>\"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]))}</b>${session.phone ? ` (${session.phone.slice(-4)})` : (session.email ? ` (${String(session.email).replace(/[&<>\"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]))})` : '')}</span>
         <span style="color:#b91c1c;margin-left:4px;cursor:pointer;text-decoration:underline" onclick="patientLogout(event)">Logout</span>
       `;
 
@@ -1856,11 +1886,94 @@ function checkPatientSession() {
   updateAppointmentBadge();
 }
 
+// Passwordless email OTP flow. These endpoints must be implemented by your backend
+// and connected to your chosen email OTP provider. Never generate/verify OTPs in browser code.
+let pendingEmailOtpAddress = "";
+
+async function requestEmailOTP(event, resend = false) {
+  if (event && typeof event.preventDefault === "function") event.preventDefault();
+  const name = (document.getElementById("authEmailName").value || "").trim();
+  const email = (document.getElementById("authEmailAddress").value || "").trim().toLowerCase();
+  const sendButton = document.getElementById("sendEmailOtpButton");
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    showToast("Please enter a valid email address."); return;
+  }
+  try {
+    if (sendButton) { sendButton.disabled = true; sendButton.textContent = "Sending code…"; }
+    const response = await fetch("/api/auth/email/send-otp", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, name, purpose: "patient-sign-in" })
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok || result.success !== true) {
+      showToast(result.message || "Email OTP service is not configured yet. Connect your backend and email OTP provider.");
+      return;
+    }
+    pendingEmailOtpAddress = email;
+    document.getElementById("emailOtpVerifyForm").style.display = "block";
+    document.getElementById("authEmailOtp").focus();
+    showToast(resend ? "A new verification code has been sent." : "Verification code sent. Check your email.");
+  } catch (err) {
+    console.error("Email OTP request error:", err);
+    showToast("Could not send a code. The email OTP backend/provider must be configured first.");
+  } finally {
+    if (sendButton) { sendButton.disabled = false; sendButton.textContent = "Send Email OTP →"; }
+  }
+}
+
+async function verifyEmailOTP(event) {
+  event.preventDefault();
+  const email = pendingEmailOtpAddress || (document.getElementById("authEmailAddress").value || "").trim().toLowerCase();
+  const name = (document.getElementById("authEmailName").value || "").trim();
+  const otp = (document.getElementById("authEmailOtp").value || "").trim();
+  const verifyButton = document.getElementById("verifyEmailOtpButton");
+  if (!email || !/^[0-9]{4,8}$/.test(otp)) { showToast("Enter the verification code sent to your email."); return; }
+  try {
+    if (verifyButton) { verifyButton.disabled = true; verifyButton.textContent = "Verifying…"; }
+    const response = await fetch("/api/auth/email/verify-otp", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, otp, name, purpose: "patient-sign-in" })
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok || result.verified !== true) {
+      showToast(result.message || "The code could not be verified. Check it and try again."); return;
+    }
+    const verifiedUser = result.user || {};
+    const session = {
+      name: verifiedUser.name || name || email.split("@")[0],
+      email: verifiedUser.email || email,
+      authMethod: "Email OTP",
+      loginTime: new Date().toLocaleTimeString(),
+      // In production, prefer a secure, HttpOnly, SameSite session cookie set by the backend.
+      sessionToken: result.sessionToken || undefined
+    };
+    safeSetJSON("aikdoc_patient_session", session);
+    let patients = safeGetJSON("aikdoc_registered_patients", []);
+    const index = patients.findIndex(p => p.email && p.email.toLowerCase() === email);
+    const record = { name: session.name, email, authMethod: "Email OTP", lastActive: "Just now" };
+    if (index >= 0) patients[index] = Object.assign(patients[index], record); else patients.unshift(record);
+    safeSetJSON("aikdoc_registered_patients", patients);
+    pendingEmailOtpAddress = "";
+    document.getElementById("authEmailOtp").value = "";
+    closeAuthModal();
+    checkPatientSession();
+    showToast(`Welcome, ${session.name}! Your email is verified.`);
+  } catch (err) {
+    console.error("Email OTP verification error:", err);
+    showToast("Could not verify the code. Please check that the backend and OTP provider are configured.");
+  } finally {
+    if (verifyButton) { verifyButton.disabled = false; verifyButton.textContent = "Verify Email & Sign In ✓"; }
+  }
+}
+
 function openWhatsAppAuthModal() {
   const m = document.getElementById("whatsAppAuthModal");
   if (m) m.classList.add("show");
   document.getElementById("authFormStep1").style.display = "block";
   document.getElementById("authWaitingStep2").style.display = "none";
+  const verifyForm = document.getElementById("emailOtpVerifyForm");
+  if (verifyForm) verifyForm.style.display = "none";
+  pendingEmailOtpAddress = "";
 }
 
 function closeAuthModal() {
@@ -2037,22 +2150,19 @@ function buildPatientAppointmentWhatsAppSummary(session) {
     return `• ${parts.join(" | ")}`;
   };
 
-  const listText = list => list.length ? list.map(describe).join("\n") : "• None";
-  const defaultTemplate = `Hi AIKDOC Support, I need help with my account/appointments.\n\nPATIENT DETAILS\nName: {patientName}\nPhone: {patientPhone}\n\nUPCOMING APPOINTMENTS\n{upcomingAppointments}\n\nPAST APPOINTMENTS\n{pastAppointments}\n\nCANCELLED APPOINTMENTS\n{cancelledAppointments}\n\nPlease assist me.`;
-  const savedTemplate = localStorage.getItem("aikdoc_whatsapp_support_template");
-  const template = savedTemplate && savedTemplate.trim() ? savedTemplate : defaultTemplate;
-  const values = {
-    patientName: session.name || "Patient",
-    patientPhone: `+91 ${phone}`,
-    upcomingAppointments: listText(groups.upcoming),
-    pastAppointments: listText(groups.past),
-    cancelledAppointments: listText(groups.cancelled)
-  };
-
-  return template.replace(
-    /\{(patientName|patientPhone|upcomingAppointments|pastAppointments|cancelledAppointments)\}/g,
-    (match, key) => values[key] == null ? "" : String(values[key])
-  );
+  const section = (title, list) => `\n${title} (${list.length}):\n${list.length ? list.map(describe).join("\n") : "• None"}`;
+  return [
+    "Hi AIKDOC Support, I need help with my account/appointments.",
+    "",
+    "PATIENT DETAILS",
+    `Name: ${session.name || "Patient"}`,
+    `Phone: +91 ${phone}`,
+    section("UPCOMING APPOINTMENTS", groups.upcoming),
+    section("PAST APPOINTMENTS", groups.past),
+    section("CANCELLED APPOINTMENTS", groups.cancelled),
+    "",
+    "Please assist me."
+  ].join("\n");
 }
 
 function openPatientSupportWhatsApp() {
@@ -2344,6 +2454,18 @@ function filterHospitalsByCity(city) {
   renderHospitals();
 }
 
+function filterHospitalsByType(type) {
+  selectedHospitalType = type || "all";
+  renderHospitals();
+}
+
+function getHospitalListingType(item) {
+  // Own-clinic listings are linked to the doctor's ID; also accept explicit type fields from admin data.
+  const explicit = String(item.type || item.category || item.facilityType || item.listingType || "").toLowerCase();
+  if (item.ownClinicDoctorId != null || item.isOwnClinic === true || explicit.includes("clinic")) return "clinic";
+  return "hospital";
+}
+
 function nextHospPhoto(hospId, event) {
   if (event) event.stopPropagation();
   const h = hospitals.find(item => item.id === hospId);
@@ -2364,16 +2486,21 @@ function renderHospitals(){
 
   let list = hospitals;
   if (selectedHospitalCity) {
-    list = list.filter(h => (h.district || "").toLowerCase() === selectedHospitalCity.toLowerCase());
+    list = list.filter(h => (h.district || h.city || "").toLowerCase() === selectedHospitalCity.toLowerCase());
+  }
+  if (selectedHospitalType !== "all") {
+    list = list.filter(h => getHospitalListingType(h) === selectedHospitalType);
   }
 
   if (list.length === 0) {
-    hGrid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:34px;color:var(--muted);border:1.5px dashed var(--line);border-radius:14px">No verified hospitals found in ${selectedHospitalCity}. Try choosing "All Bihar Cities".</div>`;
+    const typeLabel = selectedHospitalType === "clinic" ? "clinics" : selectedHospitalType === "hospital" ? "hospitals" : "hospitals or clinics";
+    const cityLabel = selectedHospitalCity ? ` in ${selectedHospitalCity}` : "";
+    hGrid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:34px;color:var(--muted);border:1.5px dashed var(--line);border-radius:14px">No ${typeLabel} found${cityLabel}. Try changing the filters.</div>`;
     return;
   }
 
   hGrid.innerHTML = list.map(h => {
-    const docCount = doctors.filter(d => d.hospital === h.name).length;
+    const docCount = doctors.filter(d => d.hospital === h.name || String(d.id) === String(h.ownClinicDoctorId)).length;
     const photoList = (h.photos && h.photos.length) ? h.photos : [h.photo];
     const curIdx = hospitalPhotoIndices[h.id] || 0;
 
@@ -2390,13 +2517,13 @@ function renderHospitals(){
         </div>
         <div class="hospital-content">
           <h3>${h.name}</h3>
-          <p class="hospital-location">📍 ${h.district}, Bihar</p>
+          <p class="hospital-location">${h.type === "clinic" ? "🩺 Clinic" : "🏥 Hospital"} · 📍 ${h.district}, Bihar</p>
           <div class="hospital-tags">
             <span class="hospital-tag">🛏️ ${h.beds || '100+ Beds'}</span>
             <span class="hospital-tag">👨‍⚕️ ${docCount} Specialists</span>
           </div>
           <div class="hospital-actions">
-            <button class="btn-view-details" type="button" onclick="openHospitalDetailsModal('${h.name}')">Hospital Details</button>
+            <button class="btn-view-details" type="button" onclick="openHospitalDetailsModal('${h.name}')">Hospital / Clinic Details</button>
             <button class="primary" type="button" onclick="filterByHospital('${h.name}')">View Doctors →</button>
           </div>
         </div>
