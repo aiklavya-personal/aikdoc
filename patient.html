@@ -3632,5 +3632,21 @@ if(location.hash && location.hash.startsWith("#page-") && location.hash !== "#pa
   };
 })();
 </script>
+  <!-- AIKDOC: Supabase connection -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  const AIKDOC_SUPABASE_URL =
+    "https://xcxtxjwphpcfarcpuppd.supabase.co";
+
+  const AIKDOC_SUPABASE_PUBLISHABLE_KEY =
+    "sb_publishable_x7T_PjFJVWpgnknKXDTKLQ_cZxT-VS_";
+
+  window.aikdocSupabase = window.supabase.createClient(
+    AIKDOC_SUPABASE_URL,
+    AIKDOC_SUPABASE_PUBLISHABLE_KEY
+  );
+
+  console.log("AIKDOC Supabase client initialized.");
+</script>
 </body>
 </html>
