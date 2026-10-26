@@ -1,0 +1,1843 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AIKDOC — Super Admin Control Panel</title>
+<style>
+:root{--blue:#1769e0;--blue-dark:#0e55bf;--navy:#0d233e;--sidebar:#08172b;--teal:#10a99a;--ink:#17263c;--muted:#63738a;--line:#e2ebf6;--bg:#f4f7fc;--white:#fff;--success:#10b981;--warn:#f59e0b;--danger:#e02424}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--ink);background:var(--bg)}button,input,select,textarea{font:inherit}button{cursor:pointer}
+
+/* Login Gate Styles */
+#adminLoginGate{min-height:100vh;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 80% 20%,#10a99a22 0,transparent 40%),linear-gradient(135deg,#08172b,#0d233e);padding:20px}
+.admin-login-card{width:min(100%,420px);background:#fff;border-radius:24px;padding:36px;box-shadow:0 25px 60px rgba(0,0,0,0.35);text-align:center}
+.admin-login-logo{width:56px;height:56px;border-radius:16px;background:linear-gradient(145deg,#1769e0,#10a99a);color:#fff;font-size:28px;display:grid;place-items:center;margin:0 auto 14px}
+
+/* Admin Layout Grid */
+.admin-layout{display:none;grid-template-columns:260px 1fr;min-height:100vh}
+
+/* Sidebar Navigation */
+.sidebar{background:var(--sidebar);color:#d5e1f2;padding:22px 16px;display:flex;flex-direction:column;gap:18px;position:sticky;top:0;height:100vh;overflow-y:auto;border-right:1px solid #142842}
+.brand{display:flex;align-items:center;gap:10px;font-weight:900;font-size:19px;letter-spacing:-.5px;color:#fff;text-decoration:none;padding:6px 10px}
+.logo{display:grid;place-items:center;width:34px;height:34px;border-radius:10px;background:linear-gradient(145deg,#1769e0,#10a99a);color:white;font-size:20px}
+.admin-badge{background:#e02424;color:#fff;font-size:9.5px;font-weight:850;padding:2px 6px;border-radius:4px;letter-spacing:.6px}
+
+.nav-section-title{font-size:10px;font-weight:800;color:#6b85a6;text-transform:uppercase;letter-spacing:.8px;padding:12px 10px 4px}
+.nav-menu{display:flex;flex-direction:column;gap:4px}
+.nav-item{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-radius:10px;color:#a8c0df;font-size:13px;font-weight:750;text-decoration:none;transition:.15s;border:0;background:transparent;width:100%;text-align:left}
+.nav-item:hover{background:#11243d;color:#fff}
+.nav-item.active{background:var(--blue);color:#fff;box-shadow:0 4px 14px rgba(23,105,224,.3)}
+.nav-pill-count{background:rgba(255,255,255,.18);font-size:11px;padding:2px 7px;border-radius:999px;font-weight:800}
+
+.sidebar-bottom{margin-top:auto;padding-top:16px;border-top:1px solid #142842;display:flex;flex-direction:column;gap:8px}
+.external-link{color:#76a9ea;font-size:12px;text-decoration:none;display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-radius:8px}
+.external-link:hover{background:#11243d;color:#fff}
+
+/* Main Content Area */
+.main-content{padding:26px 32px;overflow-y:auto}
+.content-header{display:flex;justify-content:space-between;align-items:center;gap:18px;margin-bottom:24px;flex-wrap:wrap}
+.content-header h1{font-size:24px;font-weight:850;color:var(--navy);margin:0 0 4px}
+.content-header p{margin:0;color:var(--muted);font-size:13px}
+
+/* Metrics Grid */
+.metrics-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:24px}
+.metric-box{background:#fff;border:1.5px solid var(--line);border-radius:16px;padding:16px;box-shadow:0 3px 10px rgba(18,52,91,.02)}
+.metric-box small{display:block;font-size:10.5px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px}
+.metric-box strong{font-size:22px;font-weight:900;color:var(--navy)}
+
+/* Panels & Tables */
+.panel-card{background:#fff;border:1.5px solid var(--line);border-radius:18px;padding:22px;box-shadow:0 4px 18px rgba(18,52,91,.03);margin-bottom:24px}
+.panel-toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+.search-input-wrap{display:flex;align-items:center;gap:8px;background:#f8fafc;border:1.5px solid var(--line);border-radius:10px;padding:7px 12px;min-width:280px}
+.search-input-wrap input{border:0;outline:0;background:transparent;font-size:13px;width:100%;font-weight:600}
+
+.table-responsive{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px;text-align:left}
+th{background:#f8fbfe;padding:12px 14px;font-size:11px;font-weight:850;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;border-bottom:1.5px solid var(--line)}
+td{padding:13px 14px;border-bottom:1px solid #edf2f9;vertical-align:middle}
+tr:hover td{background:#fafcff}
+
+.table-img{width:42px;height:42px;border-radius:10px;object-fit:cover;background:#e9f2fd;border:1px solid var(--line);flex-shrink:0}
+.entity-cell{display:flex;align-items:center;gap:12px}
+.entity-title{font-weight:800;color:var(--navy);font-size:13.5px}
+.entity-sub{font-size:11.5px;color:var(--muted)}
+
+.tag-pill{display:inline-block;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:800}
+.tag-confirmed{background:#eaf2ff;color:var(--blue);border:1px solid #c7ddfc}
+.tag-completed{background:#ecfdf5;color:#059669;border:1px solid #a7f3d0}
+.tag-cancelled{background:#fef2f2;color:#b91c1c;border:1px solid #fecaca}
+
+.action-group{display:flex;gap:6px;align-items:center}
+.btn-action{border:1px solid var(--line);background:#fff;border-radius:7px;padding:5px 9px;font-size:12px;font-weight:750;transition:.15s}
+.btn-action:hover{background:#f1f5f9;border-color:#cbd5e1}
+.btn-action.delete{color:var(--danger);border-color:#fecaca}
+.btn-action.delete:hover{background:#fee2e2}
+.btn-action.edit{color:var(--blue);border-color:#bfdbfe}
+.btn-action.edit:hover{background:#eff6ff}
+.btn-action.reviews{color:#b45309;background:#fffbeb;border-color:#fde68a}
+.btn-action.reviews:hover{background:#fef3c7;border-color:#f59e0b}
+.btn-action.view{color:#059669;background:#ecfdf5;border-color:#a7f3d0}
+.btn-action.view:hover{background:#d1fae5}
+
+.btn-primary{background:var(--blue);color:#fff;border:0;border-radius:10px;padding:9px 15px;font-size:12.5px;font-weight:800;display:inline-flex;align-items:center;gap:6px;transition:.15s}
+.btn-primary:hover{background:var(--blue-dark);transform:translateY(-1px)}
+
+/* Modals */
+.modal-backdrop{position:fixed;inset:0;background:rgba(12,33,57,.65);backdrop-filter:blur(3px);z-index:100;display:none;align-items:center;justify-content:center;padding:18px}
+.modal-backdrop.show{display:flex}
+.modal{background:#fff;width:min(100%,640px);border-radius:22px;padding:24px;max-height:90vh;overflow-y:auto;box-shadow:0 25px 60px rgba(10,30,55,.3)}
+.modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.modal-header h2{font-size:19px;font-weight:850;color:var(--navy);margin:0}
+.close{border:0;background:#f1f5f9;border-radius:8px;width:32px;height:32px;font-size:20px;display:grid;place-items:center}
+
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.form-field{display:flex;flex-direction:column;gap:5px;margin-bottom:10px}
+.form-field.full{grid-column:1/-1}
+.form-field label{font-size:11px;font-weight:800;text-transform:uppercase;color:var(--muted);letter-spacing:.4px}
+.form-field input,.form-field select,.form-field textarea{border:1.5px solid var(--line);border-radius:9px;padding:9px 11px;font-size:13px;outline-color:var(--blue);background:#fff}
+
+.upload-modal-preview-box{display:flex;align-items:center;gap:14px;background:#f8fbfe;border:1.5px dashed #cbdbee;border-radius:14px;padding:12px 14px}
+.upload-modal-preview-img{width:64px;height:64px;border-radius:12px;object-fit:cover;border:2px solid #fff;box-shadow:0 4px 10px rgba(0,0,0,.08);background:#e2edfb;flex-shrink:0}
+
+/* Multi-photo hospital uploader */
+.hosp-photo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:10px;margin-top:8px}
+.hosp-photo-item{position:relative;aspect-ratio:1;border-radius:12px;overflow:hidden;border:2px solid #fff;box-shadow:0 3px 8px rgba(0,0,0,.12);background:#e2edfb;cursor:pointer}
+.hosp-photo-item img{width:100%;height:100%;object-fit:cover;display:block}
+.hosp-photo-remove{position:absolute;top:4px;right:4px;width:22px;height:22px;border:0;border-radius:50%;background:rgba(224,36,36,.92);color:#fff;font-size:14px;line-height:1;display:grid;place-items:center;padding:0}
+.hosp-photo-cover{position:absolute;bottom:4px;left:4px;background:rgba(18,52,91,.88);color:#fff;font-size:9px;font-weight:800;padding:2px 5px;border-radius:4px}
+
+/* Subtabs for Modal */
+.p-appt-tabs{display:flex;gap:8px;border-bottom:1.5px solid var(--line);padding-bottom:10px;margin:12px 0 16px}
+.p-tab-btn{border:1.5px solid var(--line);background:#fff;color:var(--muted);font-weight:750;padding:6px 12px;border-radius:8px;font-size:12.5px}
+.p-tab-btn.active{background:var(--blue);color:#fff;border-color:var(--blue)}
+
+.toast{position:fixed;bottom:22px;right:24px;background:#0d233e;color:#fff;padding:12px 20px;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.25);display:none;z-index:200;font-size:13px;font-weight:700}
+.toast.show{display:block}
+
+@media(max-width:980px){
+  .admin-layout{grid-template-columns:1fr}
+  .sidebar{height:auto;position:static}
+  .metrics-grid{grid-template-columns:repeat(2,1fr)}
+}
+</style>
+</head>
+<body>
+
+<!-- 0. ADMIN LOGIN GATE -->
+<div id="adminLoginGate">
+  <div class="admin-login-card">
+    <div class="admin-login-logo">✚</div>
+    <h2 style="margin:0 0 6px;color:var(--navy);font-size:22px;font-weight:850">AIKDOC Super Admin</h2>
+    <p style="margin:0 0 24px;color:var(--muted);font-size:13px">Please sign in with administrative credentials to access the panel.</p>
+    
+    <form id="adminAuthForm" onsubmit="handleAdminLogin(event)" style="text-align:left">
+      <div class="form-field" style="margin-bottom:14px">
+        <label for="adminEmailInput" style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase">Email Address *</label>
+        <input type="email" id="adminEmailInput" required placeholder="admin@aikdoc.com" style="width:100%;border:1.5px solid var(--line);border-radius:10px;padding:11px;font-size:13.5px;outline-color:var(--blue)">
+      </div>
+      
+      <div class="form-field" style="margin-bottom:18px">
+        <label for="adminPasswordInput" style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase">Password *</label>
+        <input type="password" id="adminPasswordInput" required placeholder="Enter password" style="width:100%;border:1.5px solid var(--line);border-radius:10px;padding:11px;font-size:13.5px;outline-color:var(--blue)">
+      </div>
+      
+      <button class="btn-primary" type="submit" style="width:100%;padding:13px;font-size:14px;justify-content:center;box-shadow:0 6px 16px rgba(23,105,224,.25)">
+        Sign In to Control Panel →
+      </button>
+    </form>
+  </div>
+</div>
+
+<!-- MAIN ADMIN WORKSPACE -->
+<div class="admin-layout" id="adminMainLayout">
+  <!-- SIDEBAR NAVIGATION -->
+  <aside class="sidebar">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <a class="brand" href="#"><span class="logo">✚</span><span>AIKDOC</span></a>
+      <span class="admin-badge">SUPER ADMIN</span>
+    </div>
+
+    <div class="nav-section-title">Directory Management</div>
+    <div class="nav-menu">
+      <button type="button" class="nav-item active" data-tab="tab-overview">
+        <span>📊 System Overview</span>
+      </button>
+      <button type="button" class="nav-item" data-tab="tab-doctors">
+        <span>👨‍⚕️ Manage Doctors</span>
+        <span class="nav-pill-count" id="badgeDoctorCount">0</span>
+      </button>
+      <button type="button" class="nav-item" data-tab="tab-hospitals">
+        <span>🏥 Manage Hospitals</span>
+        <span class="nav-pill-count" id="badgeHospCount">0</span>
+      </button>
+      <button type="button" class="nav-item" data-tab="tab-specialties">
+        <span>🩺 Manage Specialities</span>
+        <span class="nav-pill-count" id="badgeSpecCount">0</span>
+      </button>
+      <button type="button" class="nav-item" data-tab="tab-patients">
+        <span>👥 Registered Patients</span>
+        <span class="nav-pill-count" id="badgePatientCount" style="background:#059669">0</span>
+      </button>
+      <button type="button" class="nav-item" data-tab="tab-bookings">
+        <span>📅 Booked Appointments</span>
+        <span class="nav-pill-count" id="badgeApptCount">0</span>
+      </button>
+      <button type="button" class="nav-item" data-tab="tab-reviews">
+        <span>⭐ Patient Reviews</span>
+        <span class="nav-pill-count" id="badgeReviewCount" style="background:#f59e0b">0</span>
+      </button>
+    </div>
+
+    <div class="nav-section-title">Platform & Content</div>
+    <div class="nav-menu">
+      <button type="button" class="nav-item" data-tab="tab-settings">
+        <span>⚙️ Website & Banners</span>
+      </button>
+    </div>
+
+    <div class="sidebar-bottom">
+      <a class="external-link" href="patient.html" target="_blank">
+        <span>🌐 Patient Discovery Site</span><span>↗</span>
+      </a>
+      <a class="external-link" href="doctor.html" target="_blank">
+        <span>👨‍⚕️ Doctor Practice Portal</span><span>↗</span>
+      </a>
+      <button class="btn-action delete" type="button" onclick="handleAdminLogout()" style="margin-top:8px;padding:9px;border-radius:9px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:6px;width:100%">
+        🚪 Logout Admin
+      </button>
+    </div>
+  </aside>
+
+  <!-- MAIN WORKSPACE -->
+  <main class="main-content">
+    
+    <!-- 1. SYSTEM OVERVIEW TAB -->
+    <section id="tab-overview" class="admin-tab">
+      <div class="content-header">
+        <div>
+          <h1>Platform Operations Overview</h1>
+          <p>Real-time analytics and statistics driving AIKDOC healthcare network.</p>
+        </div>
+        <div style="display:flex;gap:10px">
+          <button class="btn-primary" type="button" onclick="openDoctorModal()">+ Add Doctor</button>
+          <button class="btn-primary" style="background:#0e7257" type="button" onclick="openHospitalModal()">+ Add Hospital</button>
+        </div>
+      </div>
+
+      <div class="metrics-grid">
+        <div class="metric-box">
+          <small>Active Doctors</small>
+          <strong id="statDoctors">0</strong>
+        </div>
+        <div class="metric-box">
+          <small>Partner Hospitals</small>
+          <strong id="statHospitals" style="color:var(--teal)">0</strong>
+        </div>
+        <div class="metric-box">
+          <small>Specialities</small>
+          <strong id="statSpecialties" style="color:var(--blue)">0</strong>
+        </div>
+        <div class="metric-box">
+          <small>Total Tokens</small>
+          <strong id="statAppointments">0</strong>
+        </div>
+        <div class="metric-box">
+          <small>Patient Reviews</small>
+          <strong id="statReviews" style="color:#d97706">0</strong>
+        </div>
+      </div>
+
+      <div class="panel-card">
+        <h3 style="margin:0 0 12px;font-size:16px;color:var(--navy)">Recent Patient Bookings</h3>
+        <div class="table-responsive">
+          <table id="overviewApptsTable">
+            <thead>
+              <tr><th>Token</th><th>Patient Details</th><th>Doctor</th><th>Hospital</th><th>Slot</th><th>Status</th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. MANAGE DOCTORS TAB -->
+    <section id="tab-doctors" class="admin-tab" style="display:none">
+      <div class="content-header">
+        <div>
+          <h1>Doctor Directory Master</h1>
+          <p>Inspect doctor credentials, view patient reviews, edit profiles, or delete accounts.</p>
+        </div>
+        <button class="btn-primary" type="button" onclick="openDoctorModal()">+ Add New Doctor</button>
+      </div>
+
+      <div class="panel-card">
+        <div class="panel-toolbar">
+          <div class="search-input-wrap">
+            <span>🔍</span>
+            <input type="text" id="doctorSearchInput" placeholder="Search by doctor name, speciality, hospital...">
+          </div>
+          <select id="doctorFilterSpec" style="padding:7px 10px;border:1.5px solid var(--line);border-radius:8px;font-size:12.5px">
+            <option value="">All Specialities</option>
+          </select>
+        </div>
+
+        <div class="table-responsive">
+          <table id="doctorsMasterTable">
+            <thead>
+              <tr><th>Doctor</th><th>Speciality</th><th>Hospital / Venue</th><th>Fee (₹)</th><th>Patient Group</th><th>Timings</th><th style="text-align:right">Actions</th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. MANAGE HOSPITALS TAB -->
+    <section id="tab-hospitals" class="admin-tab" style="display:none">
+      <div class="content-header">
+        <div>
+          <h1>Hospitals & Medical Centres Master</h1>
+          <p>Add medical facilities, upload building photos, set district locations, bed capacities, and helplines.</p>
+        </div>
+        <button class="btn-primary" type="button" onclick="openHospitalModal()">+ Add New Hospital</button>
+      </div>
+
+      <div class="panel-card">
+        <div class="table-responsive">
+          <table id="hospitalsMasterTable">
+            <thead>
+              <tr><th>Hospital</th><th>District</th><th>Bed Capacity</th><th>Helpline</th><th>Street Address</th><th style="text-align:right">Actions</th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. MANAGE SPECIALITIES TAB -->
+    <section id="tab-specialties" class="admin-tab" style="display:none">
+      <div class="content-header">
+        <div>
+          <h1>Medical Specialities Master</h1>
+          <p>Configure clinical specialities, icons, and age-group filters available across the platform.</p>
+        </div>
+        <button class="btn-primary" type="button" onclick="openSpecialtyModal()">+ Add Speciality</button>
+      </div>
+
+      <div class="panel-card">
+        <div class="table-responsive">
+          <table id="specialtiesMasterTable">
+            <thead>
+              <tr><th>Icon</th><th>Speciality Name</th><th>Slug Tag</th><th>Patient Group</th><th style="text-align:right">Actions</th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. REGISTERED PATIENTS TAB -->
+    <section id="tab-patients" class="admin-tab" style="display:none">
+      <div class="content-header">
+        <div>
+          <h1>Registered Patients & Users</h1>
+          <p>Monitor patient accounts signed in via WhatsApp, inspect appointments, or delete accounts permanently.</p>
+        </div>
+      </div>
+
+      <div class="metrics-grid">
+        <div class="metric-box">
+          <small>Total Patients</small>
+          <strong id="statPatientTotal" style="color:var(--navy)">0</strong>
+        </div>
+        <div class="metric-box">
+          <small>WhatsApp Verified</small>
+          <strong id="statPatientWa" style="color:var(--teal)">0</strong>
+        </div>
+        <div class="metric-box">
+          <small>Patients With Bookings</small>
+          <strong id="statPatientActive" style="color:var(--blue)">0</strong>
+        </div>
+      </div>
+
+      <div class="panel-card">
+        <div class="panel-toolbar">
+          <div class="search-input-wrap">
+            <span>🔍</span>
+            <input type="text" id="patientSearchInput" placeholder="Search patient by name or phone...">
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table id="patientsMasterTable">
+            <thead>
+              <tr><th>Patient Name</th><th>Mobile Number</th><th>Verification Method</th><th>Registered / First Seen</th><th>Total Bookings</th><th style="text-align:right">Actions</th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- 6. ALL PATIENT BOOKINGS TAB -->
+    <section id="tab-bookings" class="admin-tab" style="display:none">
+      <div class="content-header">
+        <div>
+          <h1>Patient Booked Appointments & Analytics</h1>
+          <p>Live schedule of appointments reserved across all doctors and hospitals.</p>
+        </div>
+        <button class="btn-action delete" style="padding:8px 12px" type="button" onclick="clearAllAppointments()">🗑️ Clear All Bookings</button>
+      </div>
+
+      <div class="metrics-grid">
+        <div class="metric-box">
+          <small>Total Bookings</small>
+          <strong id="statApptTotal">0</strong>
+        </div>
+        <div class="metric-box">
+          <small>Confirmed</small>
+          <strong id="statApptConfirmed" style="color:var(--blue)">0</strong>
+        </div>
+        <div class="metric-box">
+          <small>Completed Visits</small>
+          <strong id="statApptCompleted" style="color:var(--teal)">0</strong>
+        </div>
+        <div class="metric-box">
+          <small>Cancelled</small>
+          <strong id="statApptCancelled" style="color:var(--danger)">0</strong>
+        </div>
+        <div class="metric-box">
+          <small>Consultation Value</small>
+          <strong id="statApptVolume" style="color:var(--navy)">₹0</strong>
+        </div>
+      </div>
+
+      <div class="panel-card">
+        <div class="panel-toolbar">
+          <div class="search-input-wrap">
+            <span>🔍</span>
+            <input type="text" id="bookingSearchInput" placeholder="Search patient, phone, doctor, token...">
+          </div>
+          <div style="display:flex;gap:8px">
+            <select id="bookingFilterDoctor" style="padding:7px 10px;border:1.5px solid var(--line);border-radius:8px;font-size:12.5px">
+              <option value="">All Doctors</option>
+            </select>
+            <select id="bookingFilterStatus" style="padding:7px 10px;border:1.5px solid var(--line);border-radius:8px;font-size:12.5px">
+              <option value="">All Statuses</option>
+              <option value="Confirmed">Confirmed</option>
+              <option value="Completed">Completed</option>
+              <option value="Cancelled">Cancelled</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table id="allBookingsTable">
+            <thead>
+              <tr><th>Token</th><th>Patient</th><th>Doctor & Speciality</th><th>Hospital / Venue</th><th>Date & Time</th><th>Fee & Channel</th><th>Status</th><th style="text-align:right">Action</th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- 7. DOCTOR REVIEWS MODERATION TAB -->
+    <section id="tab-reviews" class="admin-tab" style="display:none">
+      <div class="content-header">
+        <div>
+          <h1>Doctor Patient Reviews & Ratings Moderation</h1>
+          <p>Inspect all patient reviews and remove inappropriate or mistaken feedback across the platform.</p>
+        </div>
+      </div>
+
+      <div class="metrics-grid">
+        <div class="metric-box">
+          <small>Total Reviews</small>
+          <strong id="statRevCount">0</strong>
+        </div>
+        <div class="metric-box">
+          <small>Average Rating</small>
+          <strong id="statRevAvg" style="color:#d97706">5.0 ★</strong>
+        </div>
+        <div class="metric-box">
+          <small>5-Star Reviews</small>
+          <strong id="statRev5Star" style="color:var(--teal)">0</strong>
+        </div>
+        <div class="metric-box">
+          <small>Low Ratings (1-2★)</small>
+          <strong id="statRevLow" style="color:var(--danger)">0</strong>
+        </div>
+      </div>
+
+      <div class="panel-card">
+        <div class="table-responsive">
+          <table id="reviewsMasterTable">
+            <thead>
+              <tr><th>Doctor</th><th>Patient</th><th>Rating</th><th>Review Quote</th><th>Token & Date</th><th style="text-align:right">Action</th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- 8. WEBSITE SETTINGS -->
+    <section id="tab-settings" class="admin-tab" style="display:none">
+      <div class="content-header">
+        <div>
+          <h1>Website Content, OTP Configuration & Banners</h1>
+          <p>Customize banner headlines, set the default WhatsApp verification OTP code, and manage legal policies.</p>
+        </div>
+      </div>
+
+      <div class="panel-card" style="max-width:800px">
+        <form id="siteSettingsForm">
+          <div class="form-grid">
+            
+            <div class="form-field full" style="border-bottom:1.5px solid var(--line);padding-bottom:10px;margin-bottom:12px">
+              <strong style="color:var(--navy);font-size:14px">1. WhatsApp Verification & OTP Settings</strong>
+            </div>
+
+            <div class="form-field">
+              <label for="cfgDefaultOtp">Default WhatsApp Verification OTP Code *</label>
+              <input type="text" id="cfgDefaultOtp" value="4829" maxlength="6" style="font-size:18px;font-weight:900;letter-spacing:3px;color:var(--blue);font-family:monospace">
+              <small style="color:var(--muted);font-size:11px;margin-top:2px">Patients entering this code on the website will be authenticated immediately.</small>
+            </div>
+
+            <div class="form-field">
+              <label for="cfgWhatsapp">WhatsApp Business Number (with 91 country code) *</label>
+              <input type="text" id="cfgWhatsapp" value="918527127888">
+              <small style="color:var(--muted);font-size:11px;margin-top:2px">Phone receiving verification deep-links.</small>
+            </div>
+
+            <div class="form-field full" style="border-bottom:1.5px solid var(--line);padding-bottom:10px;margin-bottom:12px;margin-top:10px">
+              <strong style="color:var(--navy);font-size:14px">2. Homepage Banner Section (Call / WhatsApp Box)</strong>
+            </div>
+            
+            <div class="form-field full">
+              <label for="cfgBannerTitle">Home Banner Main Heading *</label>
+              <input type="text" id="cfgBannerTitle" value="Healthcare should feel easier.">
+            </div>
+
+            <div class="form-field full">
+              <label for="cfgBannerSubtitle">Home Banner Description / Subtitle *</label>
+              <textarea id="cfgBannerSubtitle" rows="2">We're building a simpler way for people across Bihar to discover local doctors, check hospital facilities, and book verified appointment slots with zero hassle.</textarea>
+            </div>
+
+            <div class="form-field full" style="border-bottom:1.5px solid var(--line);padding-bottom:10px;margin-bottom:12px;margin-top:10px">
+              <strong style="color:var(--navy);font-size:14px">3. Homepage Hero Header</strong>
+            </div>
+
+            <div class="form-field full">
+              <label for="cfgHeroTitle">Hero Main Title (HTML supported) *</label>
+              <input type="text" id="cfgHeroTitle" value="Good care starts with <span>the right doctor & hospital.</span>">
+            </div>
+
+            <div class="form-field full">
+              <label for="cfgHeroSubtitle">Hero Subtitle *</label>
+              <textarea id="cfgHeroSubtitle" rows="2">Find top hospitals and doctors across Bihar, inspect hospital facilities, and book appointment slots with confirmed tokens.</textarea>
+            </div>
+
+            <div class="form-field full" style="border-bottom:1.5px solid var(--line);padding-bottom:10px;margin-bottom:12px;margin-top:10px">
+              <strong style="color:var(--navy);font-size:14px">4. Support & Emergency Helplines</strong>
+            </div>
+
+            <div class="form-field">
+              <label for="cfgPhone">Support Phone Helpline *</label>
+              <input type="text" id="cfgPhone" value="85271 27888">
+            </div>
+
+            <div class="form-field full" style="border-bottom:1.5px solid var(--line);padding-bottom:10px;margin-bottom:12px;margin-top:10px">
+              <strong style="color:var(--navy);font-size:14px">5. Legal Documents (Shown in Patient Modals)</strong>
+            </div>
+
+            <div class="form-field full">
+              <label for="cfgPrivacyPolicy">Privacy Policy Text *</label>
+              <textarea id="cfgPrivacyPolicy" rows="4">AIKDOC Healthcare ("we", "our", or "us") is dedicated to protecting patient personal information across Bihar.
+
+1. Information We Collect: Patient names, contact numbers, and appointment slot preferences required for generating consultation tokens.
+2. Data Security: All medical appointment records and verification requests are stored with digital encryption standards.
+3. No Third-Party Sharing: We never sell or distribute patient medical consultation records to outside advertising networks.</textarea>
+            </div>
+
+            <div class="form-field full">
+              <label for="cfgMedicalDisclaimer">Medical Disclaimer Text *</label>
+              <textarea id="cfgMedicalDisclaimer" rows="4">AIKDOC is a verified doctor discovery and appointment scheduling network.
+
+1. Non-Emergency Notice: This platform does not provide acute trauma or emergency treatment. In life-threatening emergencies, immediately dial 102 (Ambulance) or 112 (National Emergency).
+2. Professional Medical Discretion: Doctor credentials, clinical advice, and consultations are independently managed by certified practitioners.</textarea>
+            </div>
+          </div>
+
+          <button class="btn-primary" type="submit" style="margin-top:16px;padding:12px 22px;font-size:13.5px">💾 Save All Website Settings & OTP</button>
+        </form>
+
+        <hr style="margin:28px 0;border:0;border-top:1.5px solid var(--line)">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
+          <div>
+            <strong style="color:var(--danger);font-size:13.5px;display:block">Emergency Factory Reset</strong>
+            <span style="font-size:12px;color:var(--muted)">Wipe custom records and restore sample doctors, hospitals, and specialities.</span>
+          </div>
+          <button class="btn-action delete" type="button" onclick="factoryReset()">Reset to Factory Defaults</button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- MODAL: VIEW SPECIFIC PATIENT APPOINTMENTS -->
+<div class="modal-backdrop" id="patientApptsModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="patientApptsModalTitle">Patient Appointments</h2>
+      <button class="close" type="button" onclick="closeModals()">×</button>
+    </div>
+    
+    <div id="patientApptsModalHeader" style="background:#f8fbfe;border:1.5px solid var(--line);border-radius:14px;padding:14px;margin-bottom:16px"></div>
+
+    <div class="p-appt-tabs">
+      <button type="button" class="p-tab-btn active" data-admin-ptab="Upcoming">Upcoming</button>
+      <button type="button" class="p-tab-btn" data-admin-ptab="Completed">Past / Completed</button>
+      <button type="button" class="p-tab-btn" data-admin-ptab="Cancelled">Cancelled</button>
+    </div>
+
+    <div id="patientApptsModalList" style="max-height:50vh;overflow-y:auto"></div>
+  </div>
+</div>
+
+<!-- MODAL: VIEW SPECIFIC DOCTOR REVIEWS -->
+<div class="modal-backdrop" id="doctorReviewsModal">
+  <div class="modal" style="width:min(100%,580px)">
+    <div class="modal-header">
+      <h2 id="docReviewsModalTitle">Doctor Reviews</h2>
+      <button class="close" type="button" onclick="closeModals()">×</button>
+    </div>
+    <div id="docReviewsModalContent"></div>
+  </div>
+</div>
+
+<!-- MODALS: ADD / EDIT DOCTOR -->
+<div class="modal-backdrop" id="doctorModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="doctorModalTitle">Add New Doctor</h2>
+      <button class="close" type="button" onclick="closeModals()">×</button>
+    </div>
+    <form id="doctorModalForm">
+      <input type="hidden" id="editDoctorId">
+      
+      <div class="form-field full">
+        <label>Doctor Portrait Photo (Upload / Edit)</label>
+        <div class="upload-modal-preview-box">
+          <img class="upload-modal-preview-img" id="modalDocPreviewImg" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2394a3b8'%3E%3Cpath d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/%3E%3C/svg%3E" alt="Preview">
+          <div>
+            <input type="file" id="modalDocPhotoFile" accept="image/*" style="font-size:12.5px;margin-bottom:4px">
+            <small style="display:block;color:var(--muted);font-size:11px">Select JPG, PNG or WEBP from your computer (Max 3MB)</small>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-grid">
+        <div class="form-field full">
+          <label for="mDocName">Doctor Full Name *</label>
+          <input type="text" id="mDocName" required placeholder="e.g. Dr. Rajesh Sharma">
+        </div>
+        <div class="form-field">
+          <label for="mDocSpec">Speciality *</label>
+          <input list="adminSpecDatalist" id="mDocSpec" required placeholder="Select or type speciality...">
+          <datalist id="adminSpecDatalist"></datalist>
+        </div>
+        <div class="form-field">
+          <label for="mDocGroup">Patient Age Group</label>
+          <select id="mDocGroup">
+            <option value="Adult">Adult Care (18+ yrs)</option>
+            <option value="Paediatric">Paediatric (0-18 yrs)</option>
+            <option value="All">All Ages</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label for="mDocQual">Qualifications *</label>
+          <input type="text" id="mDocQual" required placeholder="e.g. MBBS, MD (Medicine)">
+        </div>
+        <div class="form-field">
+          <label for="mDocFee">Consultation Fee (₹) *</label>
+          <input type="number" id="mDocFee" required min="50" max="5000" value="500">
+        </div>
+        <div class="form-field">
+          <label for="mDocExp">Experience</label>
+          <input type="text" id="mDocExp" placeholder="e.g. 10 years">
+        </div>
+        <div class="form-field">
+          <label for="mDocDistrict">District / City *</label>
+          <select id="mDocDistrict">
+            <option value="Patna">Patna</option>
+            <option value="Muzaffarpur">Muzaffarpur</option>
+            <option value="Gaya">Gaya</option>
+            <option value="Darbhanga">Darbhanga</option>
+            <option value="Bhagalpur">Bhagalpur</option>
+            <option value="Purnia">Purnia</option>
+            <option value="Begusarai">Begusarai</option>
+          </select>
+        </div>
+        <div class="form-field full">
+          <label for="mDocHospital">Hospital Affiliation *</label>
+          <select id="mDocHospital" required></select>
+        </div>
+        <div class="form-field full">
+          <label for="mDocAddress">Clinic Address</label>
+          <input type="text" id="mDocAddress" placeholder="e.g. Bailey Road, Near Pillar 64, Patna">
+        </div>
+        <div class="form-field full">
+          <label for="mDocTimings">OPD Timings</label>
+          <input type="text" id="mDocTimings" placeholder="e.g. Mon–Sat · 10:00 AM–2:00 PM">
+        </div>
+        <div class="form-field full">
+          <label for="mDocSlots">Quick Slots (comma-separated)</label>
+          <input type="text" id="mDocSlots" placeholder="09:30 AM, 11:00 AM, 04:30 PM">
+        </div>
+        <div class="form-field full">
+          <label for="mDocAbout">Professional Biography</label>
+          <textarea id="mDocAbout" rows="2"></textarea>
+        </div>
+      </div>
+      <button class="btn-primary" type="submit" style="width:100%;margin-top:14px;padding:12px">Save Doctor Profile</button>
+    </form>
+  </div>
+</div>
+
+<!-- MODALS: ADD / EDIT HOSPITAL -->
+<div class="modal-backdrop" id="hospitalModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="hospitalModalTitle">Add New Hospital</h2>
+      <button class="close" type="button" onclick="closeModals()">×</button>
+    </div>
+    <form id="hospitalModalForm">
+      <input type="hidden" id="editHospId">
+
+      <div class="form-field full">
+        <label>Hospital Photos (add as many as you like, max 8)</label>
+        <div class="upload-modal-preview-box" style="flex-direction:column;align-items:stretch">
+          <input type="file" id="modalHospPhotoFile" accept="image/*" multiple style="font-size:12.5px">
+          <small style="color:var(--muted);font-size:11px">Select one or many images. The first photo is the cover. Click a photo to make it the cover, or ✕ to remove it.</small>
+          <div class="hosp-photo-grid" id="hospPhotoGrid"></div>
+        </div>
+      </div>
+
+      <div class="form-grid">
+        <div class="form-field full">
+          <label for="mHospName">Hospital / Medical Centre Name *</label>
+          <input type="text" id="mHospName" required placeholder="e.g. AIKDOC Central Hospital">
+        </div>
+        <div class="form-field">
+          <label for="mHospDistrict">District *</label>
+          <select id="mHospDistrict">
+            <option value="Patna">Patna</option>
+            <option value="Muzaffarpur">Muzaffarpur</option>
+            <option value="Gaya">Gaya</option>
+            <option value="Darbhanga">Darbhanga</option>
+            <option value="Bhagalpur">Bhagalpur</option>
+            <option value="Purnia">Purnia</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label for="mHospBeds">Beds Capacity</label>
+          <input type="text" id="mHospBeds" placeholder="e.g. 250+ Beds">
+        </div>
+        <div class="form-field">
+          <label for="mHospPhone">Helpline Number *</label>
+          <input type="text" id="mHospPhone" required placeholder="e.g. 85271 27888">
+        </div>
+        <div class="form-field">
+          <label for="mHospEmergency">Emergency Notice</label>
+          <input type="text" id="mHospEmergency" placeholder="e.g. 24x7 Emergency & Trauma">
+        </div>
+        <div class="form-field full">
+          <label for="mHospAddress">Full Street Address *</label>
+          <input type="text" id="mHospAddress" required placeholder="e.g. Bailey Road, Raja Bazar, Patna, Bihar">
+        </div>
+        <div class="form-field full">
+          <label for="mHospFacilities">Amenities (comma-separated)</label>
+          <input type="text" id="mHospFacilities" placeholder="24x7 Emergency, ICU, In-house Pharmacy, Ambulance">
+        </div>
+        <div class="form-field full">
+          <label for="mHospAbout">About Hospital</label>
+          <textarea id="mHospAbout" rows="2"></textarea>
+        </div>
+      </div>
+      <button class="btn-primary" type="submit" style="width:100%;margin-top:14px;padding:12px">Save Hospital Information</button>
+    </form>
+  </div>
+</div>
+
+<!-- MODALS: ADD SPECIALITY -->
+<div class="modal-backdrop" id="specialtyModal">
+  <div class="modal" style="width:min(100%,460px)">
+    <div class="modal-header">
+      <h2>Add New Speciality</h2>
+      <button class="close" type="button" onclick="closeModals()">×</button>
+    </div>
+    <form id="specialtyModalForm">
+      <div class="form-field">
+        <label for="mSpecName">Speciality Name *</label>
+        <input type="text" id="mSpecName" required placeholder="e.g. Cardiology">
+      </div>
+      <div class="form-field">
+        <label for="mSpecIcon">Emoji Icon *</label>
+        <input type="text" id="mSpecIcon" required value="🩺">
+      </div>
+      <div class="form-field">
+        <label for="mSpecTag">Filter Tag Slug *</label>
+        <input type="text" id="mSpecTag" required placeholder="e.g. Cardiology">
+      </div>
+      <div class="form-field">
+        <label for="mSpecGroup">Patient Group</label>
+        <select id="mSpecGroup">
+          <option value="adult">Adult Health</option>
+          <option value="paediatric">Paediatric & Child Care</option>
+        </select>
+      </div>
+      <button class="btn-primary" type="submit" style="width:100%;margin-top:14px;padding:12px">Save Speciality</button>
+    </form>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// 1. ADMIN AUTHENTICATION GATE (admin@aikdoc.com / aikdoc@admin)
+function checkAdminAuth() {
+  const isAuth = sessionStorage.getItem("aikdoc_admin_auth") === "true";
+  const gate = document.getElementById("adminLoginGate");
+  const layout = document.getElementById("adminMainLayout");
+  
+  if (isAuth) {
+    if (gate) gate.style.display = "none";
+    if (layout) layout.style.display = "grid";
+    renderAll();
+    loadSiteConfig();
+  } else {
+    if (gate) gate.style.display = "flex";
+    if (layout) layout.style.display = "none";
+  }
+}
+
+function handleAdminLogin(e) {
+  if (e) e.preventDefault();
+  const email = document.getElementById("adminEmailInput").value.trim().toLowerCase();
+  const pass = document.getElementById("adminPasswordInput").value;
+  
+  if (email === "admin@aikdoc.com" && pass === "aikdoc@admin") {
+    sessionStorage.setItem("aikdoc_admin_auth", "true");
+    showToast("✅ Login successful. Welcome, Super Admin.");
+    checkAdminAuth();
+  } else {
+    showToast("❌ Invalid email or password. Please try again.");
+  }
+}
+
+function handleAdminLogout() {
+  sessionStorage.removeItem("aikdoc_admin_auth");
+  showToast("Logged out of Super Admin.");
+  checkAdminAuth();
+}
+
+// 2. DATA STORES & MASTER APPOINTMENTS
+const DEFAULT_AVATAR = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2394a3b8'%3E%3Cpath d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/%3E%3C/svg%3E";
+let activeReviewDocId = null;
+let activePatientPhoneForModal = null;
+let activeAdminPatientTab = "Upcoming";
+
+function getMasterDoctors() {
+  return JSON.parse(localStorage.getItem("aikdoc_master_doctors") || "[]");
+}
+function saveMasterDoctors(docs) {
+  localStorage.setItem("aikdoc_master_doctors", JSON.stringify(docs));
+  localStorage.setItem("aikdoc_last_sync", Date.now().toString());
+  renderAll();
+}
+
+function getMasterHospitals() {
+  return JSON.parse(localStorage.getItem("aikdoc_master_hospitals") || "[]");
+}
+function saveMasterHospitals(hosps) {
+  try {
+    localStorage.setItem("aikdoc_master_hospitals", JSON.stringify(hosps));
+  } catch (err) {
+    showToast("⚠️ Browser storage is full. Use fewer or smaller photos.");
+    return;
+  }
+  localStorage.setItem("aikdoc_last_sync", Date.now().toString());
+  renderAll();
+}
+
+function getMasterSpecialties() {
+  return JSON.parse(localStorage.getItem("aikdoc_master_specialties") || "[]");
+}
+function saveMasterSpecialties(specs) {
+  localStorage.setItem("aikdoc_master_specialties", JSON.stringify(specs));
+  localStorage.setItem("aikdoc_last_sync", Date.now().toString());
+  renderAll();
+}
+
+function getAppointments() {
+  return JSON.parse(localStorage.getItem("aikdoc_appointments") || "[]");
+}
+function saveAppointments(appts) {
+  localStorage.setItem("aikdoc_appointments", JSON.stringify(appts));
+  localStorage.setItem("aikdoc_last_sync", Date.now().toString());
+  renderAll();
+}
+
+// Registered Patients Auto-Discovery with Anti-Resurrection List
+// Registered Patients Auto-Discovery
+function getRegisteredPatients() {
+  let patients = JSON.parse(
+    localStorage.getItem("aikdoc_registered_patients") || "[]"
+  );
+
+  let deletedPhones = JSON.parse(
+    localStorage.getItem("aikdoc_deleted_patient_phones") || "[]"
+  );
+
+  // Normalize Indian mobile numbers for consistent matching.
+  function normalizePhone(phone) {
+    const digits = String(phone || "").replace(/\D/g, "");
+    return digits.length > 10 ? digits.slice(-10) : digits;
+  }
+
+  const appts = getAppointments();
+  const activeSession = JSON.parse(
+    localStorage.getItem("aikdoc_patient_session") || "null"
+  );
+
+  // A new appointment should register its patient.
+  appts.forEach(a => {
+    const phone = normalizePhone(a.phone);
+
+    if (!phone || phone.length !== 10) return;
+
+    // A new booking re-registers this patient.
+    deletedPhones = deletedPhones.filter(
+      p => normalizePhone(p) !== phone
+    );
+
+    const existing = patients.find(
+      p => normalizePhone(p.phone) === phone
+    );
+
+    if (existing) {
+      existing.name = a.patientName || existing.name || "Patient";
+    } else {
+      patients.push({
+        name: a.patientName || "Patient",
+        phone: phone,
+        verifiedAt: a.createdAt || a.date || "Recent",
+        lastActive: a.date || "Recent",
+        authMethod: "Booked Appointment"
+      });
+    }
+  });
+
+  // Include a currently authenticated patient.
+  if (activeSession && activeSession.phone) {
+    const phone = normalizePhone(activeSession.phone);
+
+    if (phone && phone.length === 10) {
+      deletedPhones = deletedPhones.filter(
+        p => normalizePhone(p) !== phone
+      );
+
+      const existing = patients.find(
+        p => normalizePhone(p.phone) === phone
+      );
+
+      if (!existing) {
+        patients.unshift({
+          name: activeSession.name || "Patient",
+          phone: phone,
+          verifiedAt: activeSession.loginTime || "Today",
+          lastActive: "Active Session Now",
+          authMethod: activeSession.authMethod || "WhatsApp Verification"
+        });
+      }
+    }
+  }
+
+  // Store the updated patient list and deletion list.
+  localStorage.setItem(
+    "aikdoc_registered_patients",
+    JSON.stringify(patients)
+  );
+
+  localStorage.setItem(
+    "aikdoc_deleted_patient_phones",
+    JSON.stringify(deletedPhones)
+  );
+
+  return patients;
+}
+// PERMANENTLY DELETE PATIENT ACCOUNT
+window.deletePatientAccount = function(phone) {
+  const safePhone = String(phone).trim();
+  if (confirm(`PERMANENTLY DELETE patient account for +91 ${safePhone}?\n\nThis will remove their profile, clear their active sessions, and remove their registered account.`)) {
+    let deletedPhones = JSON.parse(localStorage.getItem("aikdoc_deleted_patient_phones") || "[]");
+    if (!deletedPhones.includes(safePhone)) {
+      deletedPhones.push(safePhone);
+      localStorage.setItem("aikdoc_deleted_patient_phones", JSON.stringify(deletedPhones));
+    }
+
+    let patients = JSON.parse(localStorage.getItem("aikdoc_registered_patients") || "[]");
+    patients = patients.filter(p => String(p.phone).trim() !== safePhone);
+    localStorage.setItem("aikdoc_registered_patients", JSON.stringify(patients));
+
+    let appts = JSON.parse(localStorage.getItem("aikdoc_appointments") || "[]");
+    appts = appts.filter(a => String(a.phone).trim() !== safePhone);
+    localStorage.setItem("aikdoc_appointments", JSON.stringify(appts));
+
+    const activeSession = JSON.parse(localStorage.getItem("aikdoc_patient_session") || "null");
+    if (activeSession && String(activeSession.phone).trim() === safePhone) {
+      localStorage.removeItem("aikdoc_patient_session");
+      localStorage.removeItem("aikdoc_active_patient_phone");
+    }
+
+    localStorage.setItem("aikdoc_patient_deleted", JSON.stringify({ phone: safePhone, time: Date.now() }));
+    localStorage.setItem("aikdoc_last_sync", Date.now().toString());
+
+    renderAll();
+    showToast(`✓ Patient +91 ${safePhone} permanently deleted.`);
+  }
+};
+
+// Navigation Tabs
+document.querySelectorAll(".nav-item[data-tab]").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".nav-item").forEach(b => b.classList.remove("active"));
+    document.querySelectorAll(".admin-tab").forEach(t => t.style.display = "none");
+    btn.classList.add("active");
+    document.getElementById(btn.dataset.tab).style.display = "block";
+  });
+});
+
+// 3. MASTER RENDER ENGINE
+function renderAll() {
+  const docs = getMasterDoctors();
+  const hosps = getMasterHospitals();
+  const specs = getMasterSpecialties();
+  const appts = getAppointments();
+  const patients = getRegisteredPatients();
+
+  document.getElementById("badgeDoctorCount").textContent = docs.length;
+  document.getElementById("badgeHospCount").textContent = hosps.length;
+  document.getElementById("badgeSpecCount").textContent = specs.length;
+  document.getElementById("badgePatientCount").textContent = patients.length;
+  document.getElementById("badgeApptCount").textContent = appts.length;
+
+  const reviews = appts.filter(a => a.review && a.review.rating);
+  document.getElementById("badgeReviewCount").textContent = reviews.length;
+
+  document.getElementById("statDoctors").textContent = docs.length;
+  document.getElementById("statHospitals").textContent = hosps.length;
+  document.getElementById("statSpecialties").textContent = specs.length;
+  document.getElementById("statAppointments").textContent = appts.length;
+  document.getElementById("statReviews").textContent = reviews.length;
+
+  renderOverviewTable(appts);
+  renderDoctorsTable(docs);
+  renderHospitalsTable(hosps);
+  renderSpecialtiesTable(specs);
+  renderPatientsTable(patients, appts);
+  renderBookingsTable(appts, docs);
+  renderReviewsTable(appts);
+  populateSelectDropdowns(hosps, specs);
+}
+
+function renderOverviewTable(appts) {
+  const tbody = document.querySelector("#overviewApptsTable tbody");
+  if (appts.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--muted)">No patient appointments reserved yet.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = appts.slice(0, 6).map(a => `
+    <tr>
+      <td><code style="color:var(--blue);font-weight:800">${a.token}</code></td>
+      <td><strong>${a.patientName}</strong><br><small style="color:var(--muted)">${a.phone}</small></td>
+      <td><strong>${a.doctorName}</strong><br><small style="color:var(--muted)">${a.speciality}</small></td>
+      <td>${a.hospital}</td>
+      <td>${a.date} at ${a.time}</td>
+      <td><span class="tag-pill ${a.status === 'Completed' ? 'tag-completed' : a.status === 'Cancelled' ? 'tag-cancelled' : 'tag-confirmed'}">${a.status || 'Confirmed'}</span></td>
+    </tr>
+  `).join("");
+}
+
+function renderDoctorsTable(docs) {
+  const query = document.getElementById("doctorSearchInput").value.trim().toLowerCase();
+  const filterSpec = document.getElementById("doctorFilterSpec").value;
+
+  const filtered = docs.filter(d => {
+    const matchQ = !query || d.name.toLowerCase().includes(query) || d.speciality.toLowerCase().includes(query) || (d.hospital && d.hospital.toLowerCase().includes(query));
+    const matchS = !filterSpec || d.speciality === filterSpec;
+    return matchQ && matchS;
+  });
+
+  const tbody = document.querySelector("#doctorsMasterTable tbody");
+  if (filtered.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--muted)">No doctor profiles found.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(d => `
+    <tr>
+      <td>
+        <div class="entity-cell">
+          <img class="table-img" src="${d.photo || DEFAULT_AVATAR}" onerror="this.src='${DEFAULT_AVATAR}'">
+          <div>
+            <div class="entity-title">${d.name}</div>
+            <div class="entity-sub">${d.qualification || 'MBBS'} · ${d.experience || '8 yrs'}</div>
+          </div>
+        </div>
+      </td>
+      <td><strong>${d.speciality}</strong></td>
+      <td>
+        <div style="font-weight:700;color:var(--navy)">${d.hospital}</div>
+        <div class="entity-sub">📍 ${d.district || 'Bihar'}</div>
+      </td>
+      <td><strong style="color:var(--teal)">₹${d.fee}</strong></td>
+      <td><span class="tag-pill tag-confirmed">${d.patientGroup || 'Adult'}</span></td>
+      <td style="font-size:12px;color:var(--muted)">${d.timings || 'Mon–Sat'}</td>
+      <td style="text-align:right">
+        <div class="action-group" style="justify-content:flex-end">
+          <button class="btn-action reviews" type="button" onclick="viewDoctorReviews(${d.id})">⭐ View Reviews</button>
+          <button class="btn-action edit" type="button" onclick="editDoctor(${d.id})">✏️ Edit</button>
+          <button class="btn-action delete" type="button" onclick="deleteDoctorPermanent(${d.id})">🗑️ Delete</button>
+        </div>
+      </td>
+    </tr>
+  `).join("");
+}
+
+document.getElementById("doctorSearchInput").addEventListener("input", () => renderDoctorsTable(getMasterDoctors()));
+document.getElementById("doctorFilterSpec").addEventListener("change", () => renderDoctorsTable(getMasterDoctors()));
+
+function renderSpecialtiesTable(specs) {
+  const tbody = document.querySelector("#specialtiesMasterTable tbody");
+  tbody.innerHTML = specs.map((s, idx) => `
+    <tr>
+      <td style="font-size:22px">${s.icon || '🩺'}</td>
+      <td><strong style="color:var(--navy);font-size:14px">${s.name}</strong></td>
+      <td><code>${s.tag || s.name}</code></td>
+      <td>${s.group === 'paediatric' ? 'Paediatric & Child Care' : 'Adult Health'}</td>
+      <td style="text-align:right">
+        <button class="btn-action delete" type="button" onclick="deleteSpecialty(${idx})">🗑️ Remove</button>
+      </td>
+    </tr>
+  `).join("");
+}
+
+function renderHospitalsTable(hosps) {
+  const tbody = document.querySelector("#hospitalsMasterTable tbody");
+  tbody.innerHTML = hosps.map(h => {
+    const count = (h.photos && h.photos.length) ? h.photos.length : 1;
+    return `
+    <tr>
+      <td>
+        <div class="entity-cell">
+          <img class="table-img" src="${h.photo}" onerror="this.src='https://images.unsplash.com/photo-1587351021759-3e566b6af7cc?auto=format&fit=crop&w=700&q=80'">
+          <div>
+            <div class="entity-title">${h.name}</div>
+            <div class="entity-sub">📍 ${h.district}, Bihar · 🖼️ ${count} photo${count === 1 ? '' : 's'}</div>
+          </div>
+        </div>
+      </td>
+      <td><strong>${h.district}</strong></td>
+      <td>${h.beds || '100+ Beds'}</td>
+      <td><strong style="color:var(--blue)">${h.phone || '85271 27888'}</strong></td>
+      <td style="font-size:12px;color:var(--muted);max-width:240px">${h.address}</td>
+      <td style="text-align:right">
+        <div class="action-group" style="justify-content:flex-end">
+          <button class="btn-action edit" type="button" onclick="editHospital(${h.id})">✏️ Edit</button>
+          <button class="btn-action delete" type="button" onclick="deleteHospital(${h.id})">🗑️ Delete</button>
+        </div>
+      </td>
+    </tr>
+  `;}).join("");
+}
+
+function renderPatientsTable(patients, appts) {
+  const query = document.getElementById("patientSearchInput").value.trim().toLowerCase();
+
+  const total = patients.length;
+  const waVerified = patients.filter(p => (p.authMethod || "").toLowerCase().includes("whatsapp")).length;
+  const withBookings = patients.filter(p => appts.some(a => String(a.phone).trim() === String(p.phone).trim())).length;
+
+  document.getElementById("statPatientTotal").textContent = total;
+  document.getElementById("statPatientWa").textContent = waVerified;
+  document.getElementById("statPatientActive").textContent = withBookings;
+
+  const filtered = patients.filter(p => {
+    return !query || (p.name && p.name.toLowerCase().includes(query)) || p.phone.includes(query);
+  });
+
+  const tbody = document.querySelector("#patientsMasterTable tbody");
+  if (filtered.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:26px;color:var(--muted)">No registered patient accounts found.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(p => {
+    const pApptsCount = appts.filter(a => String(a.phone).trim() === String(p.phone).trim()).length;
+    const safeName = (p.name || 'Patient').replace(/'/g, "\\'");
+    return `
+      <tr>
+        <td>
+          <div style="font-weight:800;color:var(--navy);font-size:13.5px">👤 ${p.name || 'Patient'}</div>
+        </td>
+        <td><strong style="color:var(--blue)">+91 ${p.phone}</strong></td>
+        <td><span class="tag-pill tag-completed">✓ ${p.authMethod || 'WhatsApp Verified'}</span></td>
+        <td style="font-size:12px;color:var(--muted)">${p.verifiedAt || 'Recent'}</td>
+        <td><span class="nav-pill-count" style="background:#eaf2ff;color:var(--blue);font-size:12px;padding:3px 9px">${pApptsCount} Booking${pApptsCount === 1 ? '' : 's'}</span></td>
+        <td style="text-align:right">
+          <div class="action-group" style="justify-content:flex-end">
+            <button class="btn-action view" type="button" onclick="viewPatientAppointments('${p.phone}', '${safeName}')">📋 View Appointments</button>
+            <button class="btn-action delete" type="button" onclick="deletePatientAccount('${p.phone}')">🗑️ Delete</button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join("");
+}
+
+document.getElementById("patientSearchInput").addEventListener("input", () => renderPatientsTable(getRegisteredPatients(), getAppointments()));
+
+// VIEW PATIENT APPOINTMENTS MODAL
+window.viewPatientAppointments = function(phone, patientName) {
+  activePatientPhoneForModal = String(phone).trim();
+  activeAdminPatientTab = "Upcoming";
+
+  document.getElementById("patientApptsModalTitle").textContent = `Appointments — ${patientName}`;
+  document.getElementById("patientApptsModalHeader").innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <strong style="font-size:15px;color:var(--navy);display:block">👤 ${patientName}</strong>
+        <span style="font-size:12.5px;color:var(--muted)">Mobile: <b>+91 ${phone}</b></span>
+      </div>
+      <span class="tag-pill tag-confirmed">Active Patient Record</span>
+    </div>
+  `;
+
+  document.querySelectorAll("[data-admin-ptab]").forEach(b => b.classList.toggle("active", b.dataset.adminPtab === "Upcoming"));
+  renderPatientModalList();
+  document.getElementById("patientApptsModal").classList.add("show");
+};
+
+document.querySelectorAll("[data-admin-ptab]").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll("[data-admin-ptab]").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    activeAdminPatientTab = btn.dataset.adminPtab;
+    renderPatientModalList();
+  });
+});
+
+function renderPatientModalList() {
+  const appts = getAppointments().filter(a => String(a.phone).trim() === activePatientPhoneForModal);
+  const container = document.getElementById("patientApptsModalList");
+
+  const upcoming = appts.filter(a => (!a.status || a.status === "Confirmed"));
+  const completed = appts.filter(a => a.status === "Completed");
+  const cancelled = appts.filter(a => a.status === "Cancelled");
+
+  let list = activeAdminPatientTab === "Upcoming" ? upcoming : activeAdminPatientTab === "Completed" ? completed : cancelled;
+
+  if (list.length === 0) {
+    container.innerHTML = `
+      <div style="text-align:center;padding:32px 14px;color:var(--muted)">
+        <div style="font-size:32px;margin-bottom:6px">📅</div>
+        <strong>No ${activeAdminPatientTab.toLowerCase()} appointments found for this patient.</strong>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = list.map(a => `
+    <div style="border:1.5px solid var(--line);border-radius:12px;padding:14px;margin-bottom:10px;background:#fff">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div>
+          <strong style="color:var(--navy);font-size:14px">${a.doctorName}</strong>
+          <div style="font-size:12px;color:var(--muted)">${a.speciality} · ${a.hospital}</div>
+        </div>
+        <span class="tag-pill ${a.status === 'Completed' ? 'tag-completed' : a.status === 'Cancelled' ? 'tag-cancelled' : 'tag-confirmed'}">
+          ${a.status || 'Confirmed'} ${a.cancelledBy ? `(${a.cancelledBy})` : ''}
+        </span>
+      </div>
+      <div style="font-size:12px;background:#f8fbfe;padding:8px 10px;border-radius:8px;margin:8px 0;line-height:1.6">
+        <div>🗓 <strong>${a.date} at ${a.time}</strong> (${a.mode})</div>
+        <div>🏷 Token: <code style="color:var(--blue);font-weight:800">${a.token}</code> · Fee: <strong>₹${a.fee}</strong> (${a.paymentStatus})</div>
+      </div>
+      <div style="display:flex;justify-content:flex-end">
+        <button class="btn-action delete" type="button" onclick="deleteBookingFromPatientModal('${a.token}')">Delete Appointment</button>
+      </div>
+    </div>
+  `).join("");
+}
+
+window.deleteBookingFromPatientModal = function(token) {
+  if (confirm(`Delete appointment record ${token}?`)) {
+    let appts = getAppointments().filter(a => a.token !== token);
+    saveAppointments(appts);
+    renderPatientModalList();
+    showToast("Appointment deleted.");
+  }
+};
+
+function renderBookingsTable(appts, docs) {
+  const query = document.getElementById("bookingSearchInput").value.trim().toLowerCase();
+  const filterDoc = document.getElementById("bookingFilterDoctor").value;
+  const filterStatus = document.getElementById("bookingFilterStatus").value;
+
+  const total = appts.length;
+  const confirmed = appts.filter(a => (!a.status || a.status === "Confirmed")).length;
+  const completed = appts.filter(a => a.status === "Completed").length;
+  const cancelled = appts.filter(a => a.status === "Cancelled").length;
+  const volume = appts.filter(a => a.status !== "Cancelled").reduce((sum, a) => sum + (Number(a.fee) || 0), 0);
+
+  document.getElementById("statApptTotal").textContent = total;
+  document.getElementById("statApptConfirmed").textContent = confirmed;
+  document.getElementById("statApptCompleted").textContent = completed;
+  document.getElementById("statApptCancelled").textContent = cancelled;
+  document.getElementById("statApptVolume").textContent = `₹${volume.toLocaleString()}`;
+
+  const docFilterSelect = document.getElementById("bookingFilterDoctor");
+  const uniqueDocNames = [...new Set(docs.map(d => d.name))];
+  const curDocVal = docFilterSelect.value;
+  docFilterSelect.innerHTML = `<option value="">All Doctors</option>` + uniqueDocNames.map(n => `<option value="${n}">${n}</option>`).join("");
+  if (curDocVal) docFilterSelect.value = curDocVal;
+
+  const filtered = appts.filter(a => {
+    const matchQ = !query || a.patientName.toLowerCase().includes(query) || a.phone.includes(query) || a.token.toLowerCase().includes(query) || a.doctorName.toLowerCase().includes(query);
+    const matchD = !filterDoc || a.doctorName.toLowerCase().includes(filterDoc.toLowerCase());
+    const matchS = !filterStatus || (a.status || 'Confirmed') === filterStatus;
+    return matchQ && matchD && matchS;
+  });
+
+  const tbody = document.querySelector("#allBookingsTable tbody");
+  if (filtered.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:26px;color:var(--muted)">No bookings match criteria.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(a => `
+    <tr>
+      <td><code style="color:var(--blue);font-weight:850">${a.token}</code></td>
+      <td><strong>${a.patientName}</strong><br><small style="color:var(--muted)">Ph: ${a.phone}</small></td>
+      <td><strong>${a.doctorName}</strong><br><small style="color:var(--muted)">${a.speciality}</small></td>
+      <td style="font-size:12.5px">${a.hospital}</td>
+      <td>${a.date} at ${a.time}<br><small style="color:var(--muted)">${a.mode}</small></td>
+      <td><strong>₹${a.fee}</strong><br><small style="color:var(--muted)">${a.paymentMethod || 'Online / UPI'}</small></td>
+      <td><span class="tag-pill ${a.status === 'Completed' ? 'tag-completed' : a.status === 'Cancelled' ? 'tag-cancelled' : 'tag-confirmed'}">${a.status || 'Confirmed'} ${a.cancelledBy ? `(${a.cancelledBy})` : ''}</span></td>
+      <td style="text-align:right">
+        <button class="btn-action delete" type="button" onclick="deleteBooking('${a.token}')">Delete</button>
+      </td>
+    </tr>
+  `).join("");
+}
+
+document.getElementById("bookingSearchInput").addEventListener("input", () => renderBookingsTable(getAppointments(), getMasterDoctors()));
+document.getElementById("bookingFilterDoctor").addEventListener("change", () => renderBookingsTable(getAppointments(), getMasterDoctors()));
+document.getElementById("bookingFilterStatus").addEventListener("change", () => renderBookingsTable(getAppointments(), getMasterDoctors()));
+
+function renderReviewsTable(appts) {
+  const reviews = appts.filter(a => a.review && a.review.rating);
+
+  const total = reviews.length;
+  let sum = 0, fiveStar = 0, lowStar = 0;
+  reviews.forEach(r => {
+    const s = Number(r.review.rating) || 5;
+    sum += s;
+    if (s === 5) fiveStar++;
+    if (s <= 2) lowStar++;
+  });
+  const avg = total > 0 ? (sum / total).toFixed(1) : "5.0";
+
+  document.getElementById("statRevCount").textContent = total;
+  document.getElementById("statRevAvg").textContent = `${avg} ★`;
+  document.getElementById("statRev5Star").textContent = fiveStar;
+  document.getElementById("statRevLow").textContent = lowStar;
+
+  const tbody = document.querySelector("#reviewsMasterTable tbody");
+  if (reviews.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:26px;color:var(--muted)">No patient reviews submitted yet.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = reviews.map(a => {
+    const r = a.review;
+    return `
+      <tr>
+        <td><strong>${a.doctorName}</strong><br><small style="color:var(--muted)">${a.speciality}</small></td>
+        <td><strong>${a.patientName}</strong><br><small style="color:var(--muted)">${a.phone}</small></td>
+        <td style="color:#f59e0b;font-weight:800;font-size:14px">${'★'.repeat(r.rating || 5)}${'☆'.repeat(5 - (r.rating || 5))} (${r.rating}★)</td>
+        <td style="font-size:13px;max-width:320px;line-height:1.5">"${r.comment || 'Helpful consultation.'}"</td>
+        <td><code style="color:var(--blue)">${a.token}</code><br><small style="color:var(--muted)">${r.date || a.date}</small></td>
+        <td style="text-align:right">
+          <button class="btn-action delete" type="button" onclick="deleteReview('${a.token}')">🗑️ Remove Review</button>
+        </td>
+      </tr>
+    `;
+  }).join("");
+}
+
+window.deleteReview = function(token) {
+  if (confirm(`Remove this patient review for appointment token ${token}? This will remove it from the doctor's profile and ratings score immediately.`)) {
+    let appts = getAppointments();
+    const target = appts.find(a => a.token === token);
+    if (target && target.review) {
+      delete target.review;
+      target.patientDismissedReview = true;
+      saveAppointments(appts);
+      showToast("Review deleted and doctor rating recalculated.");
+    }
+  }
+};
+
+window.viewDoctorReviews = function(id) {
+  activeReviewDocId = id;
+  const doc = getMasterDoctors().find(d => d.id === id);
+  if (!doc) return;
+
+  document.getElementById("docReviewsModalTitle").textContent = `Reviews — ${doc.name}`;
+
+  const appts = getAppointments();
+  const docReviews = appts.filter(a => a.review && a.review.rating && (
+    (a.doctorName && a.doctorName.toLowerCase().includes(doc.name.toLowerCase())) ||
+    (doc.name && doc.name.toLowerCase().includes(a.doctorName.toLowerCase()))
+  ));
+
+  const total = docReviews.length;
+  let sum = 0;
+  docReviews.forEach(r => sum += (Number(r.review.rating) || 5));
+  const avg = total > 0 ? (sum / total).toFixed(1) : "5.0";
+
+  const container = document.getElementById("docReviewsModalContent");
+  container.innerHTML = `
+    <div style="background:#fafcff;border:1.5px solid var(--line);border-radius:14px;padding:16px;display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div>
+        <strong style="font-size:15px;color:var(--navy);display:block">${doc.name}</strong>
+        <span style="font-size:12px;color:var(--muted)">${doc.speciality} · ${doc.hospital}</span>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:20px;font-weight:900;color:#d97706">★ ${avg}</div>
+        <small style="color:var(--muted);font-weight:700">${total} verified patient review${total === 1 ? '' : 's'}</small>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:10px;max-height:55vh;overflow-y:auto">
+      ${total === 0 ? `
+        <div style="text-align:center;padding:32px 14px;color:var(--muted);border:1px dashed var(--line);border-radius:12px">
+          <div style="font-size:32px;margin-bottom:6px">⭐</div>
+          <strong>No patient reviews submitted for ${doc.name} yet.</strong>
+        </div>
+      ` : docReviews.map(a => `
+        <div style="border:1.5px solid var(--line);border-radius:12px;padding:14px;background:#fff">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div>
+              <strong style="color:var(--navy);font-size:13.5px">${a.patientName}</strong>
+              <div style="font-size:11.5px;color:var(--muted)">Phone: ${a.phone} · Token: <code>${a.token}</code></div>
+            </div>
+            <span style="color:#f59e0b;font-weight:800;font-size:13px">${'★'.repeat(a.review.rating || 5)}${'☆'.repeat(5 - (a.review.rating || 5))}</span>
+          </div>
+          <p style="margin:8px 0;font-size:13px;color:var(--ink);line-height:1.5;background:#f8fbfe;padding:10px;border-radius:8px">
+            "${a.review.comment || 'No written comment provided.'}"
+          </p>
+          <div style="display:flex;justify-content:space-between;align-items:center;font-size:11.5px;color:var(--muted)">
+            <span>Date: ${a.review.date || a.date}</span>
+            <button class="btn-action delete" type="button" onclick="deleteReviewFromModal('${a.token}')">🗑️ Remove Review</button>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+
+  document.getElementById("doctorReviewsModal").classList.add("show");
+};
+
+window.deleteReviewFromModal = function(token) {
+  if (confirm(`Remove this review? Doctor rating will update immediately.`)) {
+    let appts = getAppointments();
+    const target = appts.find(a => a.token === token);
+    if (target && target.review) {
+      delete target.review;
+      target.patientDismissedReview = true;
+      saveAppointments(appts);
+      showToast("Review removed.");
+      if (activeReviewDocId) viewDoctorReviews(activeReviewDocId);
+    }
+  }
+};
+
+function populateSelectDropdowns(hosps, specs) {
+  const hospSelect = document.getElementById("mDocHospital");
+  hospSelect.innerHTML = hosps.map(h => `<option value="${h.name}">${h.name} (${h.district})</option>`).join("");
+
+  const uniqueSpecs = [...new Set(specs.map(s => s.tag || s.name))];
+  document.getElementById("adminSpecDatalist").innerHTML = uniqueSpecs.map(s => `<option value="${s}">`).join("");
+  document.getElementById("doctorFilterSpec").innerHTML = `<option value="">All Specialities</option>` + uniqueSpecs.map(s => `<option value="${s}">${s}</option>`).join("");
+}
+
+// 4. PHOTO UPLOAD & CRUD: DOCTOR
+let modalDocPhotoBase64 = DEFAULT_AVATAR;
+
+document.getElementById("modalDocPhotoFile").addEventListener("change", e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    modalDocPhotoBase64 = ev.target.result;
+    document.getElementById("modalDocPreviewImg").src = modalDocPhotoBase64;
+  };
+  reader.readAsDataURL(file);
+});
+
+function openDoctorModal(doc = null) {
+  document.getElementById("doctorModalForm").reset();
+  document.getElementById("editDoctorId").value = doc ? doc.id : "";
+  document.getElementById("doctorModalTitle").textContent = doc ? "Edit Doctor Profile" : "Add New Doctor";
+  
+  modalDocPhotoBase64 = doc && doc.photo ? doc.photo : DEFAULT_AVATAR;
+  document.getElementById("modalDocPreviewImg").src = modalDocPhotoBase64;
+
+  if (doc) {
+    document.getElementById("mDocName").value = doc.name;
+    document.getElementById("mDocSpec").value = doc.speciality;
+    document.getElementById("mDocGroup").value = doc.patientGroup || "Adult";
+    document.getElementById("mDocQual").value = doc.qualification || "MBBS";
+    document.getElementById("mDocFee").value = doc.fee || 500;
+    document.getElementById("mDocExp").value = doc.experience || "10 years";
+    document.getElementById("mDocDistrict").value = doc.district || "Patna";
+    document.getElementById("mDocHospital").value = doc.hospital || getMasterHospitals()[0]?.name;
+    document.getElementById("mDocAddress").value = doc.address || "Bailey Road, Patna";
+    document.getElementById("mDocTimings").value = doc.timings || "Mon–Sat · 10:00 AM–2:00 PM";
+    document.getElementById("mDocSlots").value = (doc.quickSlots || []).join(", ");
+    document.getElementById("mDocAbout").value = doc.about || "";
+  } else {
+    document.getElementById("mDocFee").value = 500;
+    document.getElementById("mDocSlots").value = "09:30 AM, 11:00 AM, 04:30 PM";
+  }
+
+  document.getElementById("doctorModal").classList.add("show");
+}
+
+document.getElementById("doctorModalForm").addEventListener("submit", e => {
+  e.preventDefault();
+  const editId = document.getElementById("editDoctorId").value;
+  let docs = getMasterDoctors();
+  const slots = document.getElementById("mDocSlots").value.split(",").map(s => s.trim()).filter(Boolean);
+
+  const docData = {
+    id: editId ? Number(editId) : Date.now(),
+    name: document.getElementById("mDocName").value.trim(),
+    speciality: document.getElementById("mDocSpec").value.trim(),
+    patientGroup: document.getElementById("mDocGroup").value,
+    qualification: document.getElementById("mDocQual").value.trim(),
+    fee: Number(document.getElementById("mDocFee").value),
+    experience: document.getElementById("mDocExp").value.trim() || "8 years",
+    district: document.getElementById("mDocDistrict").value,
+    hospital: document.getElementById("mDocHospital").value,
+    address: document.getElementById("mDocAddress").value.trim() || "Main Road, Bihar",
+    timings: document.getElementById("mDocTimings").value.trim() || "Mon–Sat · 10:00 AM–2:00 PM",
+    quickSlots: slots.length ? slots : ["09:30 AM", "11:00 AM", "04:30 PM"],
+    about: document.getElementById("mDocAbout").value.trim() || "Verified clinical practitioner on AIKDOC.",
+    photo: modalDocPhotoBase64,
+    modes: ["Clinic visit", "Online consultation"],
+    rating: "5.0 ★"
+  };
+
+  if (editId) {
+    const idx = docs.findIndex(d => d.id === Number(editId));
+    if (idx >= 0) docs[idx] = Object.assign(docs[idx], docData);
+    showToast(`Doctor "${docData.name}" updated successfully.`);
+  } else {
+    docs.unshift(docData);
+    showToast(`New doctor "${docData.name}" added to platform.`);
+  }
+
+  saveMasterDoctors(docs);
+  closeModals();
+});
+
+window.editDoctor = function(id) {
+  const doc = getMasterDoctors().find(d => d.id === id);
+  if (doc) openDoctorModal(doc);
+};
+
+window.deleteDoctorPermanent = function(id) {
+  let docs = getMasterDoctors();
+  const target = docs.find(d => d.id === id);
+  if (!target) return;
+
+  if (confirm(`PERMANENTLY DELETE ${target.name}? This will remove them from the patient discovery directory and terminate their portal session.`)) {
+    docs = docs.filter(d => d.id !== id);
+    localStorage.setItem("aikdoc_master_doctors", JSON.stringify(docs));
+
+    let accounts = JSON.parse(localStorage.getItem("aikdoc_doctor_accounts") || "[]");
+    accounts = accounts.filter(a => a.name !== target.name && (!target.mobile || a.mobile !== target.mobile));
+    localStorage.setItem("aikdoc_doctor_accounts", JSON.stringify(accounts));
+
+    localStorage.setItem("aikdoc_doctor_deleted", JSON.stringify({ name: target.name, id: id, time: Date.now() }));
+    localStorage.setItem("aikdoc_last_sync", Date.now().toString());
+
+    renderAll();
+    showToast(`Doctor ${target.name} permanently removed.`);
+  }
+};
+
+// 5. MULTI-PHOTO UPLOAD & CRUD: HOSPITAL
+const HOSP_DEFAULT_PHOTO = "https://images.unsplash.com/photo-1587351021759-3e566b6af7cc?auto=format&fit=crop&w=700&q=80";
+let modalHospPhotos = [];
+
+// Resize + compress so many photos fit in browser storage
+function compressImage(file, maxW = 900, quality = 0.75) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = ev => {
+      const img = new Image();
+      img.onerror = reject;
+      img.onload = () => {
+        const scale = Math.min(1, maxW / img.width);
+        const c = document.createElement("canvas");
+        c.width = Math.round(img.width * scale);
+        c.height = Math.round(img.height * scale);
+        c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+        resolve(c.toDataURL("image/jpeg", quality));
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function renderHospPhotoGrid() {
+  const grid = document.getElementById("hospPhotoGrid");
+  if (!grid) return;
+  if (!modalHospPhotos.length) {
+    grid.innerHTML = `<div style="grid-column:1/-1;font-size:12px;color:var(--muted)">No photos added yet. A default hospital photo will be used.</div>`;
+    return;
+  }
+  grid.innerHTML = modalHospPhotos.map((src, i) => `
+    <div class="hosp-photo-item" title="Click to set as cover" onclick="setHospCover(${i})">
+      <img src="${src}" alt="Photo ${i + 1}">
+      <button type="button" class="hosp-photo-remove" onclick="event.stopPropagation(); removeHospPhoto(${i})">✕</button>
+      ${i === 0 ? '<span class="hosp-photo-cover">COVER</span>' : ''}
+    </div>
+  `).join("");
+}
+
+window.removeHospPhoto = function(i) {
+  modalHospPhotos.splice(i, 1);
+  renderHospPhotoGrid();
+};
+window.setHospCover = function(i) {
+  if (i === 0) return;
+  const [p] = modalHospPhotos.splice(i, 1);
+  modalHospPhotos.unshift(p);
+  renderHospPhotoGrid();
+};
+
+document.getElementById("modalHospPhotoFile").addEventListener("change", async e => {
+  const files = Array.from(e.target.files);
+  for (const f of files) {
+    if (modalHospPhotos.length >= 8) { showToast("Maximum 8 photos per hospital."); break; }
+    try { modalHospPhotos.push(await compressImage(f)); }
+    catch (err) { showToast("Could not read " + f.name); }
+  }
+  e.target.value = "";
+  renderHospPhotoGrid();
+});
+
+function openHospitalModal(hosp = null) {
+  document.getElementById("hospitalModalForm").reset();
+  document.getElementById("editHospId").value = hosp ? hosp.id : "";
+  document.getElementById("hospitalModalTitle").textContent = hosp ? "Edit Hospital Information" : "Add New Hospital";
+
+  modalHospPhotos = hosp ? ((hosp.photos && hosp.photos.length) ? hosp.photos.slice() : (hosp.photo ? [hosp.photo] : [])) : [];
+  renderHospPhotoGrid();
+
+  if (hosp) {
+    document.getElementById("mHospName").value = hosp.name;
+    document.getElementById("mHospDistrict").value = hosp.district;
+    document.getElementById("mHospBeds").value = hosp.beds || "";
+    document.getElementById("mHospPhone").value = hosp.phone || "";
+    document.getElementById("mHospEmergency").value = hosp.emergency || "";
+    document.getElementById("mHospAddress").value = hosp.address || "";
+    document.getElementById("mHospFacilities").value = (hosp.facilities || []).join(", ");
+    document.getElementById("mHospAbout").value = hosp.about || "";
+  } else {
+    document.getElementById("mHospPhone").value = "85271 27888";
+    document.getElementById("mHospBeds").value = "200+ Beds";
+    document.getElementById("mHospEmergency").value = "24x7 Emergency Services";
+    document.getElementById("mHospFacilities").value = "24x7 Emergency, ICU, In-house Pharmacy, Diagnostics";
+  }
+
+  document.getElementById("hospitalModal").classList.add("show");
+}
+
+document.getElementById("hospitalModalForm").addEventListener("submit", e => {
+  e.preventDefault();
+  const editId = document.getElementById("editHospId").value;
+  let hosps = getMasterHospitals();
+  const facArr = document.getElementById("mHospFacilities").value.split(",").map(f => f.trim()).filter(Boolean);
+
+  const hospData = {
+    id: editId ? Number(editId) : Date.now(),
+    name: document.getElementById("mHospName").value.trim(),
+    district: document.getElementById("mHospDistrict").value,
+    beds: document.getElementById("mHospBeds").value.trim() || "150+ Beds",
+    phone: document.getElementById("mHospPhone").value.trim(),
+    emergency: document.getElementById("mHospEmergency").value.trim() || "24x7 Emergency",
+    address: document.getElementById("mHospAddress").value.trim(),
+    facilities: facArr.length ? facArr : ["24x7 Emergency", "ICU", "Pharmacy"],
+    photo: modalHospPhotos[0] || HOSP_DEFAULT_PHOTO,
+    photos: modalHospPhotos.length ? modalHospPhotos.slice() : [HOSP_DEFAULT_PHOTO],
+    about: document.getElementById("mHospAbout").value.trim() || "Verified tertiary medical centre in Bihar."
+  };
+
+  if (editId) {
+    const idx = hosps.findIndex(h => h.id === Number(editId));
+    if (idx >= 0) hosps[idx] = Object.assign(hosps[idx], hospData);
+    showToast(`Hospital "${hospData.name}" updated.`);
+  } else {
+    hosps.push(hospData);
+    showToast(`New hospital "${hospData.name}" added.`);
+  }
+
+  saveMasterHospitals(hosps);
+  closeModals();
+});
+
+window.editHospital = function(id) {
+  const hosp = getMasterHospitals().find(h => h.id === id);
+  if (hosp) openHospitalModal(hosp);
+};
+
+window.deleteHospital = function(id) {
+  if (confirm("Remove hospital and its affiliations from the network?")) {
+    let hosps = getMasterHospitals().filter(h => h.id !== id);
+    saveMasterHospitals(hosps);
+    showToast("Hospital removed.");
+  }
+};
+
+// 6. CRUD: SPECIALITY
+window.openSpecialtyModal = () => {
+  document.getElementById("specialtyModalForm").reset();
+  document.getElementById("specialtyModal").classList.add("show");
+};
+
+document.getElementById("specialtyModalForm").addEventListener("submit", e => {
+  e.preventDefault();
+  const specs = getMasterSpecialties();
+  specs.unshift({
+    name: document.getElementById("mSpecName").value.trim(),
+    icon: document.getElementById("mSpecIcon").value.trim(),
+    tag: document.getElementById("mSpecName").value.trim(),
+    group: document.getElementById("mSpecGroup").value
+  });
+  saveMasterSpecialties(specs);
+  closeModals();
+  showToast("Speciality added.");
+});
+
+window.deleteSpecialty = function(idx) {
+  if (confirm("Delete this speciality?")) {
+    let specs = getMasterSpecialties();
+    specs.splice(idx, 1);
+    saveMasterSpecialties(specs);
+    showToast("Speciality removed.");
+  }
+};
+
+// 7. APPOINTMENTS MANAGEMENT
+window.deleteBooking = function(token) {
+  if (confirm(`Delete appointment record ${token}?`)) {
+    let appts = getAppointments().filter(a => a.token !== token);
+    saveAppointments(appts);
+    showToast("Appointment record deleted.");
+  }
+};
+
+window.clearAllAppointments = function() {
+  if (confirm("CLEAR ALL BOOKINGS across the entire platform?")) {
+    localStorage.removeItem("aikdoc_appointments");
+    localStorage.setItem("aikdoc_last_sync", Date.now().toString());
+    renderAll();
+    showToast("All bookings cleared.");
+  }
+};
+
+// 8. WEBSITE SETTINGS, BANNERS & OTP CONFIGURATION
+document.getElementById("siteSettingsForm").addEventListener("submit", e => {
+  e.preventDefault();
+  const config = {
+    defaultOtp: document.getElementById("cfgDefaultOtp").value.trim() || "4829",
+    whatsapp: document.getElementById("cfgWhatsapp").value.trim() || "918527127888",
+    bannerText: document.getElementById("cfgBannerTitle").value.trim(),
+    bannerSubtitle: document.getElementById("cfgBannerSubtitle").value.trim(),
+    heroTitle: document.getElementById("cfgHeroTitle").value.trim(),
+    heroSubtitle: document.getElementById("cfgHeroSubtitle").value.trim(),
+    phone: document.getElementById("cfgPhone").value.trim() || "85271 27888",
+    privacyPolicy: document.getElementById("cfgPrivacyPolicy").value.trim(),
+    medicalDisclaimer: document.getElementById("cfgMedicalDisclaimer").value.trim()
+  };
+
+  localStorage.setItem("aikdoc_site_config", JSON.stringify(config));
+  localStorage.setItem("aikdoc_last_sync", Date.now().toString());
+  showToast("Website content, default OTP & banners saved successfully!");
+});
+
+function loadSiteConfig() {
+  const cfg = JSON.parse(localStorage.getItem("aikdoc_site_config") || "{}");
+  if (cfg.defaultOtp) document.getElementById("cfgDefaultOtp").value = cfg.defaultOtp;
+  if (cfg.whatsapp) document.getElementById("cfgWhatsapp").value = cfg.whatsapp;
+  if (cfg.bannerText) document.getElementById("cfgBannerTitle").value = cfg.bannerText;
+  if (cfg.bannerSubtitle) document.getElementById("cfgBannerSubtitle").value = cfg.bannerSubtitle;
+  if (cfg.heroTitle) document.getElementById("cfgHeroTitle").value = cfg.heroTitle;
+  if (cfg.heroSubtitle) document.getElementById("cfgHeroSubtitle").value = cfg.heroSubtitle;
+  if (cfg.phone) document.getElementById("cfgPhone").value = cfg.phone;
+  if (cfg.privacyPolicy) document.getElementById("cfgPrivacyPolicy").value = cfg.privacyPolicy;
+  if (cfg.medicalDisclaimer) document.getElementById("cfgMedicalDisclaimer").value = cfg.medicalDisclaimer;
+}
+
+function factoryReset() {
+  if (confirm("RESET EVERYTHING to initial defaults? All custom doctors, hospitals, appointments, and reviews will be reset.")) {
+    localStorage.clear();
+    location.reload();
+  }
+}
+
+function closeModals() {
+  document.querySelectorAll(".modal-backdrop").forEach(m => m.classList.remove("show"));
+}
+
+function showToast(msg){
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  setTimeout(() => t.classList.remove("show"), 4000);
+}
+
+// Cross-tab real-time listener
+window.addEventListener("storage", (e) => {
+  if (["aikdoc_appointments", "aikdoc_master_doctors", "aikdoc_master_hospitals", "aikdoc_master_specialties", "aikdoc_registered_patients", "aikdoc_patient_session", "aikdoc_deleted_patient_phones", "aikdoc_last_sync"].includes(e.key)) {
+    renderAll();
+  }
+});
+
+// Boot authentication check
+checkAdminAuth();
+</script>
+</body>
+</html>

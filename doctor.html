@@ -1,0 +1,1412 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AIKDOC Partner — Doctor Practice, Revenue & Reviews Dashboard</title>
+<style>
+:root{--blue:#1769e0;--blue-dark:#0e55bf;--navy:#12345b;--teal:#10a99a;--ink:#17263c;--muted:#63738a;--line:#e2ebf6;--bg:#f6f9fd;--white:#fff;--success:#10b981;--warn:#f59e0b;--danger:#e02424}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--ink);background:var(--bg)}button,input,select,textarea{font:inherit}button{cursor:pointer}
+
+/* Topbar & Header Navigation */
+.topbar{background:#fff;border-bottom:1.5px solid var(--line);position:sticky;top:0;z-index:40;box-shadow:0 2px 10px rgba(18,52,91,.03)}
+.nav{max-width:1240px;margin:auto;padding:12px 22px;display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px;font-weight:850;font-size:20px;letter-spacing:-.5px;color:var(--navy);text-decoration:none}
+.logo{display:grid;place-items:center;width:38px;height:38px;border-radius:12px;background:linear-gradient(145deg,#1769e0,#10a99a);color:white;font-size:22px}
+.partner-tag{background:#eaf2ff;color:var(--blue);font-size:11px;font-weight:800;padding:4px 9px;border-radius:8px;border:1px solid #c8dcf6;letter-spacing:.3px}
+
+.nav-tabs{display:flex;align-items:center;gap:6px}
+.tab-btn{border:1.5px solid transparent;background:transparent;color:var(--muted);font-weight:750;padding:8px 13px;border-radius:10px;font-size:13px;display:inline-flex;align-items:center;gap:6px;transition:.15s}
+.tab-btn:hover{color:var(--navy);background:#f0f5fc}
+.tab-btn.active{background:#eaf2ff;color:var(--blue);border-color:#bcd6ff}
+.badge-count{background:var(--blue);color:#fff;border-radius:999px;font-size:11px;padding:2px 7px;font-weight:800}
+
+.header-actions{display:flex;align-items:center;gap:10px}
+.btn-view-patient{background:#f0f6ff;color:var(--blue);border:1.5px solid #bcd6ff;border-radius:10px;padding:8px 14px;font-size:12.5px;font-weight:800;display:inline-flex;align-items:center;gap:6px;text-decoration:none;transition:.2s}
+.btn-view-patient:hover{background:var(--blue);color:#fff;border-color:var(--blue);transform:translateY(-1px);box-shadow:0 4px 12px rgba(23,105,224,.18)}
+.doctor-profile-pill{display:flex;align-items:center;gap:8px;background:#f8fafc;border:1.5px solid var(--line);border-radius:12px;padding:4px 10px 4px 5px}
+.doc-pill-avatar{width:32px;height:32px;border-radius:8px;object-fit:cover;border:1px solid var(--line)}
+.doc-pill-name{font-size:12.5px;font-weight:800;color:var(--navy);max-width:130px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.btn-logout-icon{border:0;background:transparent;color:var(--muted);font-size:12px;font-weight:800;padding:5px 8px;border-radius:6px;display:inline-flex;align-items:center;gap:4px;transition:.15s}
+.btn-logout-icon:hover{background:#fee2e2;color:#b91c1c}
+
+/* Auth Screens */
+.auth-wrapper{min-height:calc(100vh - 75px);display:flex;align-items:center;justify-content:center;padding:40px 20px;background:radial-gradient(circle at 80% 20%,#e1f6f2 0,transparent 40%),linear-gradient(135deg,#eaf2fd,#f6f9fc 60%)}
+.auth-box{width:min(100%,480px);background:#fff;border:1.5px solid #dce5ef;border-radius:24px;padding:32px;box-shadow:0 18px 45px rgba(18,52,91,.08)}
+.auth-header{text-align:center;margin-bottom:24px}
+.auth-icon{width:56px;height:56px;border-radius:16px;background:linear-gradient(145deg,#1769e0,#10a99a);color:#fff;font-size:28px;display:grid;place-items:center;margin:0 auto 12px}
+.auth-header h2{font-size:22px;color:var(--navy);margin:0 0 6px;font-weight:850}
+.auth-header p{color:var(--muted);font-size:13px;margin:0}
+
+.auth-nav{display:grid;grid-template-columns:1fr 1fr;background:#f0f5fc;padding:4px;border-radius:12px;margin-bottom:20px;gap:4px}
+.auth-nav-btn{border:0;background:transparent;padding:9px;font-size:13px;font-weight:800;color:var(--muted);border-radius:9px;transition:.15s}
+.auth-nav-btn.active{background:#fff;color:var(--navy);box-shadow:0 2px 8px rgba(18,52,91,.08)}
+
+/* Dashboard Base */
+.container{max-width:1240px;margin:auto;padding:28px 22px}
+.hero-portal{background:linear-gradient(135deg,#0e2747 0%,#1769e0 100%);color:#fff;border-radius:24px;padding:30px 34px;margin-bottom:24px;display:flex;justify-content:space-between;align-items:center;gap:24px;box-shadow:0 14px 34px rgba(18,52,91,.12)}
+.hero-portal h1{font-size:clamp(22px,3vw,32px);margin:0 0 6px;letter-spacing:-.7px}
+.hero-portal p{color:#dceafb;font-size:14px;max-width:620px;line-height:1.6;margin:0}
+.portal-stats{display:flex;gap:12px;flex-wrap:wrap;margin-top:14px}
+.p-stat{background:rgba(255,255,255,.14);padding:6px 12px;border-radius:999px;font-size:12px;font-weight:750;backdrop-filter:blur(4px);border:1px solid rgba(255,255,255,.2)}
+
+.portal-grid{display:grid;grid-template-columns:1.25fr .75fr;gap:24px;align-items:start}
+.portal-card{background:#fff;border:1.5px solid var(--line);border-radius:22px;padding:24px;box-shadow:0 4px 18px rgba(18,52,91,.03);margin-bottom:20px}
+.card-title{font-size:17.5px;font-weight:850;color:var(--navy);margin:0 0 4px}
+.card-sub{font-size:13px;color:var(--muted);margin:0 0 16px;line-height:1.5}
+
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.form-field{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}
+.form-field.full{grid-column:1/-1}
+.form-field label{font-size:11px;font-weight:800;color:#435770;text-transform:uppercase;letter-spacing:.5px}
+.form-field input,.form-field select,.form-field textarea{border:1.5px solid #dce5ef;border-radius:10px;padding:10px 12px;outline-color:#80b3ff;background:#fff;font-size:13.5px}
+.form-field input:focus,.form-field select:focus,.form-field textarea:focus{border-color:var(--blue)}
+.checkbox-row{display:flex;gap:16px;flex-wrap:wrap;padding:4px 0}
+.checkbox-item{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:var(--navy)}
+
+/* Image Upload with Neutral Silhouette */
+.upload-card{border:2px dashed #cbdbee;border-radius:16px;padding:16px;background:#f9fbfe;text-align:center;transition:.2s;cursor:pointer}
+.upload-card:hover{border-color:var(--blue);background:#f2f7ff}
+.upload-preview-wrap{display:flex;align-items:center;gap:16px;text-align:left}
+.uploaded-avatar{width:76px;height:76px;border-radius:16px;object-fit:cover;border:2px solid #fff;box-shadow:0 4px 14px rgba(18,52,91,.12);background:#e2edfb;flex-shrink:0}
+.upload-info strong{display:block;font-size:13.5px;color:var(--navy);margin-bottom:2px}
+.upload-info span{display:block;font-size:11.5px;color:var(--muted)}
+.upload-btn-trigger{display:inline-flex;align-items:center;gap:6px;background:var(--blue);color:#fff;border-radius:8px;padding:6px 12px;font-size:11.5px;font-weight:750;margin-top:6px}
+
+.slots-config-box{background:#f8fbfe;border:1.5px solid #dce8f6;border-radius:14px;padding:16px;margin:8px 0 16px}
+.slots-title{font-size:12px;font-weight:800;color:var(--navy);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+
+.primary-btn{border:0;background:var(--blue);color:white;border-radius:11px;padding:13px 18px;font-weight:800;font-size:13.5px;box-shadow:0 6px 16px #1769e028;transition:.15s;width:100%;text-align:center;display:flex;align-items:center;justify-content:center;gap:8px}
+.primary-btn:hover{background:var(--blue-dark);transform:translateY(-1px)}
+
+.preview-sticky{position:sticky;top:80px}
+.badge-preview{display:inline-block;background:#e6faf3;color:#0e7257;font-size:11px;font-weight:800;padding:4px 8px;border-radius:6px;margin-bottom:10px}
+.doctor-card-preview{border:1.5px solid #bcd6ff;border-radius:18px;padding:16px;background:#fff;box-shadow:0 8px 24px rgba(23,105,224,.08);display:flex;flex-direction:column;gap:12px}
+.preview-top{display:flex;gap:12px;align-items:center}
+.preview-avatar{width:60px;height:60px;border-radius:16px;object-fit:cover;background:#e2edfb;border:1px solid var(--line)}
+.preview-meta{display:flex;flex-wrap:wrap;gap:6px}
+.preview-pill{background:#f0f5fc;color:#35567a;border-radius:6px;padding:4px 8px;font-size:11px;font-weight:750}
+.preview-slots{background:#f8fbfe;border:1px solid #e2edf8;border-radius:10px;padding:9px 12px;font-size:11.5px}
+
+/* Appointments Section */
+.subtabs-bar{display:flex;gap:8px;border-bottom:1.5px solid var(--line);padding-bottom:12px;margin-bottom:16px}
+.subtab-btn{border:1.5px solid var(--line);background:#fff;color:var(--muted);font-weight:750;font-size:12.5px;padding:8px 14px;border-radius:10px;transition:.15s}
+.subtab-btn.active{background:var(--navy);color:#fff;border-color:var(--navy)}
+
+.appointment-item-card{border:1.5px solid var(--line);border-radius:18px;padding:18px;margin-bottom:14px;background:#fff;box-shadow:0 4px 14px rgba(18,52,91,.03);display:flex;flex-direction:column;gap:12px}
+.appt-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.appt-patient-name{font-size:16px;font-weight:850;color:var(--navy)}
+.appt-token{background:#eaf2ff;color:var(--blue);padding:4px 9px;border-radius:7px;font-family:monospace;font-weight:850;font-size:13px}
+.appt-details-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;background:#f8fbfe;border:1px solid #e2edf8;padding:12px 14px;border-radius:12px;font-size:12.5px}
+.appt-details-grid small{display:block;color:var(--muted);font-size:10.5px;font-weight:800;text-transform:uppercase}
+.appt-details-grid strong{color:var(--navy);font-size:13px}
+.appt-actions{display:flex;justify-content:space-between;align-items:center;padding-top:6px;gap:10px;flex-wrap:wrap}
+.status-pill{font-size:11px;font-weight:800;padding:4px 9px;border-radius:999px}
+.status-confirmed{background:#ecfdf5;color:#059669;border:1px solid #a7f3d0}
+.status-completed{background:#f1f5f9;color:#475569;border:1px solid #cbd5e1}
+.status-cancelled{background:#fef2f2;color:#b91c1c;border:1px solid #fecaca}
+
+.action-btn-group{display:flex;gap:8px}
+.action-btn{border:1.5px solid var(--line);border-radius:8px;padding:6px 12px;font-size:12px;font-weight:750;background:#fff;transition:.15s;text-decoration:none;display:inline-flex;align-items:center;gap:4px}
+.action-btn.done{background:#ecfdf5;color:#059669;border-color:#a7f3d0}
+.action-btn.cancel{color:#b91c1c}
+.action-btn.call{color:var(--blue);border-color:#bcd6ff}
+.empty-state{text-align:center;padding:44px 16px;border:1.5px dashed #cbdbee;border-radius:18px;color:var(--muted);background:#fff}
+
+/* METRICS, REVENUE & REVIEWS DASHBOARD STYLES */
+.metrics-row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:22px}
+.metric-card{background:#fff;border:1.5px solid var(--line);border-radius:18px;padding:18px;box-shadow:0 2px 10px rgba(18,52,91,.02)}
+.metric-card small{display:block;font-size:10.5px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.metric-card strong{font-size:24px;color:var(--navy);font-weight:900}
+.metric-card span{display:block;font-size:11.5px;color:var(--teal);margin-top:4px;font-weight:700}
+
+.revenue-split-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:22px}
+.split-box{background:#f8fbfe;border:1.5px solid #dce8f6;border-radius:16px;padding:18px}
+.split-title{font-size:12.5px;font-weight:850;color:var(--navy);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px}
+.split-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #e8f0fa;font-size:13px}
+.split-row:last-child{border-bottom:0}
+
+.table-responsive{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px;text-align:left}
+th{background:#f8fbfe;padding:12px 14px;font-size:11px;font-weight:850;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;border-bottom:1.5px solid var(--line)}
+td{padding:13px 14px;border-bottom:1px solid #edf2f9;vertical-align:middle}
+tr:hover td{background:#fafcff}
+
+/* Reviews Summary Card */
+.reviews-hero-card{background:linear-gradient(135deg,#ffffff 0%,#f8fbfe 100%);border:1.5px solid var(--line);border-radius:20px;padding:24px;display:grid;grid-template-columns:1fr 1.5fr;gap:28px;align-items:center;margin-bottom:24px}
+.score-box{text-align:center;padding-right:24px;border-right:1.5px solid var(--line)}
+.big-score{font-size:48px;font-weight:950;color:var(--navy);line-height:1}
+.big-stars{color:#f59e0b;font-size:20px;margin:6px 0}
+.score-sub{font-size:12.5px;color:var(--muted);font-weight:700}
+
+.rating-bars-wrap{display:flex;flex-direction:column;gap:7px}
+.rating-bar-row{display:flex;align-items:center;gap:10px;font-size:12px;font-weight:700;color:var(--muted)}
+.bar-track{flex:1;height:8px;background:#e5effa;border-radius:999px;overflow:hidden}
+.bar-fill{height:100%;background:#f59e0b;border-radius:999px;width:0%}
+
+.review-card-item{border:1.5px solid var(--line);border-radius:18px;padding:18px;margin-bottom:14px;background:#fff;box-shadow:0 3px 12px rgba(18,52,91,.02)}
+.review-header-flex{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.reviewer-info{display:flex;align-items:center;gap:10px}
+.reviewer-initial{width:36px;height:36px;border-radius:10px;background:#eaf2ff;color:var(--blue);font-weight:850;display:grid;place-items:center;font-size:14px}
+.verified-consult-tag{background:#ecfdf5;color:#059669;padding:3px 7px;border-radius:6px;font-size:11px;font-weight:800}
+
+/* Full preview button + modal */
+.btn-full-preview{width:100%;margin-top:12px;border:1.5px solid #bcd6ff;background:#f0f6ff;color:var(--blue);border-radius:11px;padding:11px 14px;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;gap:8px;transition:.15s}
+.btn-full-preview:hover{background:var(--blue);color:#fff;border-color:var(--blue)}
+.fp-backdrop{position:fixed;inset:0;background:rgba(12,33,57,.65);backdrop-filter:blur(3px);z-index:150;display:none;align-items:center;justify-content:center;padding:16px}
+.fp-backdrop.show{display:flex}
+.fp-modal{background:#fff;width:min(100%,600px);max-height:92vh;overflow-y:auto;border-radius:22px;padding:22px;box-shadow:0 25px 60px rgba(10,30,55,.3)}
+.fp-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.fp-head h2{margin:0;font-size:18px;color:var(--navy)}
+.fp-close{border:0;background:#f1f5f9;border-radius:8px;width:32px;height:32px;font-size:20px}
+.fp-note{background:#fffbeb;border:1px solid #fde68a;color:#92400e;border-radius:10px;padding:8px 12px;font-size:12px;margin-bottom:14px}
+.fp-profile{border:1.5px solid var(--line);border-radius:18px;overflow:hidden}
+.fp-top{display:flex;gap:14px;align-items:center;padding:18px;background:linear-gradient(135deg,rgba(23,105,224,.08),rgba(16,169,154,.08));border-bottom:1.5px solid var(--line)}
+.fp-avatar{width:80px;height:80px;border-radius:18px;object-fit:cover;border:3px solid #fff;box-shadow:0 6px 16px rgba(0,0,0,.15);background:#e2edfb;flex-shrink:0}
+.fp-badges{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.fp-badge-v{background:rgba(16,169,154,.15);color:var(--teal);padding:4px 8px;border-radius:8px;font-size:11px;font-weight:800}
+.fp-badge-r{background:rgba(245,158,11,.15);color:#b45309;padding:4px 8px;border-radius:8px;font-size:11px;font-weight:800}
+.fp-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:14px;background:#f8fbfe;border-bottom:1.5px solid var(--line)}
+.fp-stat{background:#fff;border:1.5px solid var(--line);border-radius:12px;padding:8px;text-align:center}
+.fp-stat small{display:block;font-size:9.5px;font-weight:800;color:var(--muted);text-transform:uppercase;margin-bottom:3px}
+.fp-stat strong{font-size:12.5px;color:var(--navy)}
+.fp-sec{padding:16px 18px}
+.fp-title{font-size:11.5px;font-weight:850;color:var(--navy);text-transform:uppercase;margin:12px 0 6px}
+.fp-title:first-child{margin-top:0}
+.fp-text{margin:0;color:var(--muted);font-size:12.5px;line-height:1.65}
+.fp-hosp{background:#f8fbfe;border:1.5px solid var(--line);border-radius:14px;padding:12px;margin-top:8px}
+.fp-slots{display:flex;gap:6px;flex-wrap:wrap}
+.fp-slot{background:#fff;border:1.5px solid var(--line);border-radius:8px;padding:6px 9px;font-size:11.5px;font-weight:750;color:var(--ink)}
+.fp-reviews{background:#f8fbfe;border-top:1.5px solid var(--line);padding:16px 18px}
+.fp-rev{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px}
+
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:#102b4d;color:#fff;padding:12px 22px;border-radius:12px;box-shadow:0 10px 30px #102b4d35;display:none;z-index:200;font-size:13.5px;font-weight:700}
+.toast.show{display:block}
+
+@media(max-width:980px){
+  .metrics-row{grid-template-columns:1fr 1fr}
+  .revenue-split-grid{grid-template-columns:1fr}
+  .reviews-hero-card{grid-template-columns:1fr;gap:20px}
+  .score-box{border-right:0;border-bottom:1.5px solid var(--line);padding-right:0;padding-bottom:18px}
+}
+@media(max-width:880px){
+  .portal-grid{grid-template-columns:1fr}
+  .preview-sticky{position:static}
+  .form-grid{grid-template-columns:1fr}
+  .appt-details-grid{grid-template-columns:1fr}
+}
+@media(max-width:640px){
+  .fp-backdrop{align-items:flex-end;padding:0}
+  .fp-modal{border-radius:22px 22px 0 0;width:100%}
+  .fp-stats{grid-template-columns:repeat(2,1fr)}
+  .fp-top{flex-direction:column;text-align:center}
+  .fp-badges{justify-content:center}
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <nav class="nav">
+    <div style="display:flex;align-items:center;gap:12px">
+      <a class="brand" href="#"><span class="logo">✚</span><span>AIKDOC</span></a>
+      <span class="partner-tag">DOCTOR PORTAL</span>
+    </div>
+
+    <!-- Practice Navigation Tabs -->
+    <div class="nav-tabs" id="navTabsWrap" style="display:none">
+      <button class="tab-btn active" id="tabProfileBtn" type="button">👨‍⚕️ Profile Setup</button>
+      <button class="tab-btn" id="tabApptsBtn" type="button">
+        📅 Appointments <span class="badge-count" id="docApptBadge" style="display:none">0</span>
+      </button>
+      <button class="tab-btn" id="tabReviewsBtn" type="button">
+        ⭐ Patient Reviews <span class="badge-count" id="docReviewBadge" style="display:none;background:#f59e0b">0</span>
+      </button>
+      <button class="tab-btn" id="tabRevenueBtn" type="button">
+        💰 Revenue & Analytics
+      </button>
+    </div>
+
+    <div class="header-actions">
+      <a class="btn-view-patient" href="patient.html" target="_blank">
+        <span>🌐 View Patient Website</span><span style="font-size:11px">↗</span>
+      </a>
+
+      <div class="doctor-profile-pill" id="docUserPill" style="display:none">
+        <img class="doc-pill-avatar" id="docPillImg" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2394a3b8'%3E%3Cpath d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/%3E%3C/svg%3E" alt="Doctor">
+        <span class="doc-pill-name" id="docPillName">Doctor</span>
+        <button class="btn-logout-icon" id="logoutBtn" type="button">🚪 Logout</button>
+      </div>
+    </div>
+  </nav>
+</header>
+
+<!-- AUTHENTICATION SCREEN -->
+<section class="auth-wrapper" id="authGateSection">
+  <div class="auth-box">
+    <div class="auth-header">
+      <div class="auth-icon">✚</div>
+      <h2>Doctor Practice Login</h2>
+      <p>Sign in with your credentials or register your clinical practice.</p>
+    </div>
+
+    <div class="auth-nav">
+      <button type="button" class="auth-nav-btn active" id="authTabLogin">Sign In</button>
+      <button type="button" class="auth-nav-btn" id="authTabRegister">Register Practice</button>
+    </div>
+
+    <!-- Sign In Form -->
+    <form id="loginForm">
+      <div class="form-field">
+        <label for="loginIdentifier">Mobile Number or Email Address *</label>
+        <input type="text" id="loginIdentifier" required placeholder="e.g. 9876543210 or doctor@gmail.com">
+      </div>
+      <div class="form-field">
+        <label for="loginPassword">Doctor Portal Password *</label>
+        <input type="password" id="loginPassword" required placeholder="Enter password">
+      </div>
+      <button type="submit" class="primary-btn" style="margin-top:14px">Sign In to Practice Portal →</button>
+    </form>
+
+    <!-- Register Form -->
+    <form id="registerForm" style="display:none">
+      <div class="form-field full" style="margin-bottom:16px">
+        <label>1. Doctor Portrait Photo *</label>
+        <input type="file" id="regPhotoFile" accept="image/*" style="display:none">
+        <div class="upload-card" id="regUploadTrigger" style="padding:12px">
+          <div class="upload-preview-wrap">
+            <img class="uploaded-avatar" id="regAvatarImg" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2394a3b8'%3E%3Cpath d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/%3E%3C/svg%3E" alt="Avatar">
+            <div class="upload-info">
+              <strong>Upload Your Doctor Photo</strong>
+              <span id="regFileNameText">Click to select photo from device</span>
+              <span class="upload-btn-trigger">📁 Choose image file...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-field">
+        <label for="regDocName">Doctor Full Name *</label>
+        <input type="text" id="regDocName" required placeholder="e.g. Dr. Ramesh Kumar">
+      </div>
+      
+      <div class="form-field">
+        <label for="regDocMobile">10-Digit Mobile Number *</label>
+        <input type="tel" id="regDocMobile" required pattern="[0-9]{10}" maxlength="10" placeholder="e.g. 9876543210">
+      </div>
+
+      <div class="form-field">
+        <label for="regDocEmail">Email Address *</label>
+        <input type="email" id="regDocEmail" required placeholder="e.g. drkumar@gmail.com">
+      </div>
+
+      <div class="form-field">
+        <label for="regDocSpecialityInput">Speciality (Select or Type) *</label>
+        <input list="adminSpecialitiesDatalist" id="regDocSpecialityInput" required placeholder="Type or select speciality...">
+        <datalist id="adminSpecialitiesDatalist"></datalist>
+      </div>
+
+      <div class="form-field">
+        <label for="regDocPassword">Create Password *</label>
+        <input type="password" id="regDocPassword" required minlength="4" placeholder="Enter password (min 4 chars)">
+      </div>
+
+      <button type="submit" class="primary-btn" style="margin-top:14px">Register Practice & Continue →</button>
+    </form>
+  </div>
+</section>
+
+<!-- MAIN DOCTOR DASHBOARD -->
+<main class="container" id="mainDashboardSection" style="display:none">
+  <div class="hero-portal">
+    <div>
+      <span style="font-size:11px;font-weight:850;color:#7de8da;letter-spacing:1px;text-transform:uppercase">PRACTICE CONTROL PANEL</span>
+      <h1 id="heroGreeting">Welcome back</h1>
+      <p>Monitor your consultation schedule, patient ratings, reviews, and clinical revenue analytics.</p>
+    </div>
+  </div>
+
+  <!-- TAB 1: PRACTICE PROFILE SETUP -->
+  <div id="profileSection" class="portal-grid">
+    <div class="portal-card">
+      <h2 class="card-title">Doctor Credentials & OPD Schedule</h2>
+      <p class="card-sub">Updating details pushes instant live updates to the Patient Website and Super Admin panel.</p>
+
+      <form id="doctorForm">
+        <div class="form-field full">
+          <label>Doctor Portrait Photo</label>
+          <input type="file" id="docPhotoFileInput" accept="image/*" style="display:none">
+          <div class="upload-card" id="uploadTriggerCard">
+            <div class="upload-preview-wrap">
+              <img class="uploaded-avatar" id="avatarPreviewImg" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2394a3b8'%3E%3Cpath d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/%3E%3C/svg%3E" alt="Avatar">
+              <div class="upload-info">
+                <strong>Change Photo from Computer</strong>
+                <span id="fileNameDisplay">JPG, PNG, WEBP supported</span>
+                <span class="upload-btn-trigger">📁 Replace image...</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-grid">
+          <div class="form-field">
+            <label for="docName">Doctor Full Name *</label>
+            <input id="docName" required placeholder="e.g. Dr. Stark">
+          </div>
+
+          <div class="form-field">
+            <label for="docReg">BMRC / Medical Reg. No.</label>
+            <input id="docReg" placeholder="e.g. BMRC-62910">
+          </div>
+
+          <div class="form-field">
+            <label for="docSpecialityInput">Speciality (Select or Type) *</label>
+            <input list="adminSpecialitiesDatalist" id="docSpecialityInput" required placeholder="Type or select speciality...">
+          </div>
+
+          <div class="form-field">
+            <label for="docPatientGroup">Primary Patient Group</label>
+            <select id="docPatientGroup">
+              <option value="Adult">Adult Care (18+ yrs)</option>
+              <option value="Paediatric">Paediatric Care (0–18 yrs)</option>
+              <option value="All">All Ages (Adult & Child)</option>
+            </select>
+          </div>
+
+          <div class="form-field">
+            <label for="docQual">Degrees & Qualifications *</label>
+            <input id="docQual" required placeholder="e.g. MBBS, MD (Medicine)" value="MBBS, MD">
+          </div>
+
+          <div class="form-field">
+            <label for="docExp">Experience (Years) *</label>
+            <input id="docExp" required placeholder="e.g. 12 years" value="10 years">
+          </div>
+
+          <div class="form-field">
+            <label for="docDistrict">District / City *</label>
+            <select id="docDistrict">
+              <option value="Patna">Patna</option>
+              <option value="Muzaffarpur">Muzaffarpur</option>
+              <option value="Gaya">Gaya</option>
+              <option value="Darbhanga">Darbhanga</option>
+              <option value="Bhagalpur">Bhagalpur</option>
+              <option value="Purnia">Purnia</option>
+              <option value="Begusarai">Begusarai</option>
+            </select>
+          </div>
+
+          <div class="form-field">
+            <label for="docFee">Consultation Fee (₹) *</label>
+            <input id="docFee" type="number" min="100" max="5000" required placeholder="e.g. 500" value="500">
+          </div>
+
+          <div class="form-field full">
+            <label for="docHospital">Hospital / Clinic Venue *</label>
+            <select id="docHospital" required></select>
+          </div>
+
+          <div class="form-field full">
+            <label for="docAddress">Clinic Street Address *</label>
+            <input id="docAddress" required placeholder="e.g. Bailey Road, Patna, Bihar" value="Bailey Road, Patna">
+          </div>
+
+          <div class="form-field full">
+            <label>Consultation Modes Offered</label>
+            <div class="checkbox-row">
+              <label class="checkbox-item"><input type="checkbox" id="modeClinic" checked> 🏥 In-Person Clinic Visit</label>
+              <label class="checkbox-item"><input type="checkbox" id="modeOnline" checked> 📱 Online Video Consult</label>
+            </div>
+          </div>
+
+          <div class="form-field full">
+            <label for="docTimings">OPD Days & Hours *</label>
+            <input id="docTimings" required placeholder="e.g. Mon–Sat · 10:00 AM–2:00 PM" value="Mon–Sat · 10:00 AM–2:00 PM">
+          </div>
+
+          <div class="form-field full">
+            <label for="docAbout">Professional Biography & Focus Areas</label>
+            <textarea id="docAbout" rows="3">Senior medical practitioner providing patient-first clinical consultations and preventive healthcare across Bihar.</textarea>
+          </div>
+        </div>
+
+        <div class="slots-config-box">
+          <div class="slots-title">⚙️ Configure Available Time Slots (Comma-separated)</div>
+          <div class="form-grid">
+            <div class="form-field">
+              <label for="morningSlots">Morning Slots</label>
+              <input id="morningSlots" value="09:30 AM, 10:15 AM, 11:00 AM">
+            </div>
+            <div class="form-field">
+              <label for="eveningSlots">Evening Slots</label>
+              <input id="eveningSlots" value="04:30 PM, 05:15 PM, 06:00 PM">
+            </div>
+          </div>
+        </div>
+
+        <button type="submit" class="primary-btn" id="saveDoctorBtn">🚀 Save & Publish Profile to AIKDOC</button>
+      </form>
+    </div>
+
+    <!-- SIDEBAR: LIVE PREVIEW -->
+    <div class="preview-sticky">
+      <div class="portal-card">
+        <span class="badge-preview">LIVE PREVIEW</span>
+        <h3 style="margin:0 0 10px;font-size:15px;color:var(--navy)">How Patients See Your Card</h3>
+        <div class="doctor-card-preview" id="livePreviewCard"></div>
+        <button type="button" class="btn-full-preview" onclick="openFullPreview()">👁️ View Full Preview</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 2: APPOINTMENTS SCHEDULE -->
+  <div id="appointmentsSection" style="display:none">
+    <div class="portal-card">
+      <h2 class="card-title">Patient Consultations & Booking Tokens</h2>
+      <p class="card-sub">Appointments booked by patients on the patient discovery website.</p>
+
+      <div class="subtabs-bar">
+        <button class="subtab-btn active" type="button" data-appttab="Upcoming">Upcoming Bookings (<span id="countUpcoming">0</span>)</button>
+        <button class="subtab-btn" type="button" data-appttab="Completed">Past / Completed (<span id="countCompleted">0</span>)</button>
+        <button class="subtab-btn" type="button" data-appttab="Cancelled">Cancelled (<span id="countCancelled">0</span>)</button>
+      </div>
+
+      <div id="doctorAppointmentsList"></div>
+    </div>
+  </div>
+
+  <!-- TAB 3: PATIENT REVIEWS & RATINGS DASHBOARD -->
+  <div id="reviewsSection" style="display:none">
+    <div class="reviews-hero-card">
+      <div class="score-box">
+        <div class="big-score" id="revOverallScore">5.0</div>
+        <div class="big-stars" id="revOverallStars">★★★★★</div>
+        <div class="score-sub"><span id="revTotalCount">0</span> Verified Patient Reviews</div>
+      </div>
+      <div>
+        <div style="font-size:13px;font-weight:850;color:var(--navy);margin-bottom:10px">Rating Breakdown</div>
+        <div class="rating-bars-wrap">
+          <div class="rating-bar-row">
+            <span>5 ★</span>
+            <div class="bar-track"><div class="bar-fill" id="bar5"></div></div>
+            <span id="txt5">0</span>
+          </div>
+          <div class="rating-bar-row">
+            <span>4 ★</span>
+            <div class="bar-track"><div class="bar-fill" id="bar4"></div></div>
+            <span id="txt4">0</span>
+          </div>
+          <div class="rating-bar-row">
+            <span>3 ★</span>
+            <div class="bar-track"><div class="bar-fill" id="bar3"></div></div>
+            <span id="txt3">0</span>
+          </div>
+          <div class="rating-bar-row">
+            <span>2 ★</span>
+            <div class="bar-track"><div class="bar-fill" id="bar2"></div></div>
+            <span id="txt2">0</span>
+          </div>
+          <div class="rating-bar-row">
+            <span>1 ★</span>
+            <div class="bar-track"><div class="bar-fill" id="bar1"></div></div>
+            <span id="txt1">0</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="portal-card">
+      <h2 class="card-title">Patient Testimonials & Detailed Feedback</h2>
+      <p class="card-sub">Real reviews submitted by verified patients following completed appointments.</p>
+      <div id="doctorReviewsList"></div>
+    </div>
+  </div>
+
+  <!-- TAB 4: REVENUE & FINANCIAL ANALYTICS DASHBOARD -->
+  <div id="revenueSection" style="display:none">
+    <div class="metrics-row">
+      <div class="metric-card">
+        <small>Realized Revenue</small>
+        <strong id="finRealizedRevenue" style="color:var(--teal)">₹0</strong>
+        <span>From Completed Visits</span>
+      </div>
+      <div class="metric-card">
+        <small>Pipeline Revenue</small>
+        <strong id="finPipelineRevenue" style="color:var(--blue)">₹0</strong>
+        <span>From Confirmed Slots</span>
+      </div>
+      <div class="metric-card">
+        <small>Avg. Consultation Value</small>
+        <strong id="finAvgTicket">₹0</strong>
+        <span>Per Patient Visit</span>
+      </div>
+      <div class="metric-card">
+        <small>Total Consultations</small>
+        <strong id="finTotalConsults">0</strong>
+        <span>All time bookings</span>
+      </div>
+    </div>
+
+    <div class="revenue-split-grid">
+      <div class="split-box">
+        <div class="split-title">💳 Payment Channels</div>
+        <div class="split-row">
+          <span>Online Pre-paid (UPI / Cards)</span>
+          <strong id="finOnlineRevenue" style="color:var(--blue)">₹0</strong>
+        </div>
+        <div class="split-row">
+          <span>Pay at Clinic Counter</span>
+          <strong id="finClinicRevenue" style="color:var(--teal)">₹0</strong>
+        </div>
+      </div>
+
+      <div class="split-box">
+        <div class="split-title">🏥 Consultation Format Split</div>
+        <div class="split-row">
+          <span>In-Clinic Physical Visits</span>
+          <strong id="finClinicModeRevenue">₹0</strong>
+        </div>
+        <div class="split-row">
+          <span>Online Tele-Consultations</span>
+          <strong id="finOnlineModeRevenue">₹0</strong>
+        </div>
+      </div>
+    </div>
+
+    <div class="portal-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <div>
+          <h2 class="card-title">Practice Income Ledger</h2>
+          <p class="card-sub" style="margin:0">Detailed financial log of all patient appointments.</p>
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Token</th>
+              <th>Patient</th>
+              <th>Consultation Format</th>
+              <th>Payment Channel</th>
+              <th>Fee Amount</th>
+              <th style="text-align:right">Status</th>
+            </tr>
+          </thead>
+          <tbody id="revenueLedgerTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- FULL PREVIEW MODAL -->
+<div class="fp-backdrop" id="fullPreviewModal" onclick="if(event.target===this)closeFullPreview()">
+  <div class="fp-modal">
+    <div class="fp-head">
+      <h2>Patient View — Full Profile</h2>
+      <button class="fp-close" type="button" onclick="closeFullPreview()">×</button>
+    </div>
+    <div class="fp-note">👁️ This is how patients will see your profile. It shows your current form values. Click <strong>Save & Publish</strong> to make changes live.</div>
+    <div id="fullPreviewBody"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const DEFAULT_AVATAR = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2394a3b8'%3E%3Cpath d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/%3E%3C/svg%3E";
+let currentPhotoBase64 = DEFAULT_AVATAR;
+let activeApptSubtab = "Upcoming";
+
+function getMasterDoctors() {
+  return JSON.parse(localStorage.getItem("aikdoc_master_doctors") || "[]");
+}
+function getMasterHospitals() {
+  return JSON.parse(localStorage.getItem("aikdoc_master_hospitals") || "[]");
+}
+function getMasterSpecialties() {
+  return JSON.parse(localStorage.getItem("aikdoc_master_specialties") || "[]");
+}
+function getDoctorAccounts() {
+  return JSON.parse(localStorage.getItem("aikdoc_doctor_accounts") || "[]");
+}
+
+function populateSpecialityDatalists() {
+  const specs = getMasterSpecialties();
+  const datalist = document.getElementById("adminSpecialitiesDatalist");
+  const unique = [...new Set(specs.map(s => s.tag || s.name))];
+  datalist.innerHTML = unique.map(s => `<option value="${s}">`).join("");
+
+  const hosps = getMasterHospitals();
+  const hospSelect = document.getElementById("docHospital");
+  if (hosps.length) {
+    hospSelect.innerHTML = hosps.map(h => `<option value="${h.name}">${h.name} (${h.district})</option>`).join("");
+  } else {
+    hospSelect.innerHTML = `<option value="AIKDOC Central Medical Centre">AIKDOC Central Medical Centre</option>`;
+  }
+}
+
+// Auth Session Management
+const authGateSection = document.getElementById("authGateSection");
+const mainDashboardSection = document.getElementById("mainDashboardSection");
+const navTabsWrap = document.getElementById("navTabsWrap");
+const docUserPill = document.getElementById("docUserPill");
+const docPillName = document.getElementById("docPillName");
+const docPillImg = document.getElementById("docPillImg");
+const heroGreeting = document.getElementById("heroGreeting");
+
+const authTabLogin = document.getElementById("authTabLogin");
+const authTabRegister = document.getElementById("authTabRegister");
+const loginForm = document.getElementById("loginForm");
+const registerForm = document.getElementById("registerForm");
+
+authTabLogin.addEventListener("click", () => {
+  authTabLogin.classList.add("active");
+  authTabRegister.classList.remove("active");
+  loginForm.style.display = "block";
+  registerForm.style.display = "none";
+});
+
+authTabRegister.addEventListener("click", () => {
+  authTabRegister.classList.add("active");
+  authTabLogin.classList.remove("active");
+  loginForm.style.display = "none";
+  registerForm.style.display = "block";
+});
+
+const regUploadTrigger = document.getElementById("regUploadTrigger");
+const regPhotoFile = document.getElementById("regPhotoFile");
+const regAvatarImg = document.getElementById("regAvatarImg");
+const regFileNameText = document.getElementById("regFileNameText");
+
+regUploadTrigger.addEventListener("click", () => regPhotoFile.click());
+regPhotoFile.addEventListener("change", (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    currentPhotoBase64 = ev.target.result;
+    regAvatarImg.src = currentPhotoBase64;
+    regFileNameText.textContent = `✓ Selected: ${file.name}`;
+  };
+  reader.readAsDataURL(file);
+});
+
+function checkAuthSession() {
+  const sessionUser = JSON.parse(localStorage.getItem("aikdoc_doctor_session") || "null");
+  if (!sessionUser) {
+    showAuthGate();
+    return;
+  }
+
+  const master = getMasterDoctors();
+  const exists = master.some(d => d.name === sessionUser.name || (sessionUser.mobile && d.mobile === sessionUser.mobile));
+
+  if (!exists) {
+    localStorage.removeItem("aikdoc_doctor_session");
+    alert("⚠️ Your doctor account has been deleted by the Super Admin.");
+    showAuthGate();
+    return;
+  }
+
+  showDashboard(sessionUser);
+}
+
+function showAuthGate() {
+  authGateSection.style.display = "flex";
+  mainDashboardSection.style.display = "none";
+  navTabsWrap.style.display = "none";
+  docUserPill.style.display = "none";
+}
+
+function showDashboard(doctor) {
+  authGateSection.style.display = "none";
+  mainDashboardSection.style.display = "block";
+  navTabsWrap.style.display = "flex";
+  docUserPill.style.display = "flex";
+
+  docPillName.textContent = doctor.name;
+  docPillImg.src = doctor.photo || DEFAULT_AVATAR;
+  heroGreeting.textContent = `Welcome back, ${doctor.name}`;
+
+  document.getElementById("docName").value = doctor.name;
+  if (doctor.registration) document.getElementById("docReg").value = doctor.registration;
+  if (doctor.speciality) document.getElementById("docSpecialityInput").value = doctor.speciality;
+  if (doctor.photo) {
+    currentPhotoBase64 = doctor.photo;
+    document.getElementById("avatarPreviewImg").src = currentPhotoBase64;
+  }
+
+  loadDoctorProfileFromMaster(doctor);
+  updatePreview();
+  loadAllDoctorData();
+}
+
+loginForm.addEventListener("submit", (e) => {
+  e.preventDefault();
+  const identifier = document.getElementById("loginIdentifier").value.trim().toLowerCase();
+  const pass = document.getElementById("loginPassword").value;
+
+  const accounts = getDoctorAccounts();
+  const user = accounts.find(a => 
+    (a.mobile === identifier || (a.email && a.email.toLowerCase() === identifier)) && 
+    a.password === pass
+  );
+
+  if (!user) {
+    showToast("❌ Invalid mobile/email or password.");
+    return;
+  }
+
+  const master = getMasterDoctors();
+  const stillExists = master.some(d => d.name === user.name || (user.mobile && d.mobile === user.mobile));
+  if (!stillExists) {
+    showToast("❌ This doctor account has been deleted by administration.");
+    return;
+  }
+
+  localStorage.setItem("aikdoc_doctor_session", JSON.stringify(user));
+  showToast(`Welcome back, ${user.name}!`);
+  showDashboard(user);
+});
+
+registerForm.addEventListener("submit", (e) => {
+  e.preventDefault();
+  const name = document.getElementById("regDocName").value.trim();
+  const mobile = document.getElementById("regDocMobile").value.trim();
+  const email = document.getElementById("regDocEmail").value.trim().toLowerCase();
+  const spec = document.getElementById("regDocSpecialityInput").value.trim();
+  const pass = document.getElementById("regDocPassword").value;
+
+  if (currentPhotoBase64 === DEFAULT_AVATAR) {
+    showToast("⚠️ Please upload your doctor portrait photo.");
+    return;
+  }
+
+  const accounts = getDoctorAccounts();
+  if (accounts.some(a => a.mobile === mobile || (a.email && a.email.toLowerCase() === email))) {
+    showToast("⚠️ An account with this mobile/email already exists. Please Sign In.");
+    authTabLogin.click();
+    return;
+  }
+
+  const newDoc = {
+    id: Date.now(),
+    name: name,
+    mobile: mobile,
+    email: email,
+    password: pass,
+    speciality: spec,
+    patientGroup: "Adult",
+    qualification: "MBBS",
+    registration: "BMRC-" + Math.floor(10000 + Math.random() * 90000),
+    district: "Patna",
+    fee: 500,
+    modes: ["Clinic visit", "Online consultation"],
+    experience: "8 years",
+    rating: "5.0 ★",
+    photo: currentPhotoBase64,
+    hospital: getMasterHospitals()[0]?.name || "AIKDOC Central Medical Centre",
+    address: "Main Road, Bihar",
+    timings: "Mon–Sat · 10:00 AM–2:00 PM",
+    quickSlots: ["09:30 AM", "11:00 AM", "04:30 PM"],
+    about: "Verified practitioner listed on AIKDOC."
+  };
+
+  accounts.unshift(newDoc);
+  localStorage.setItem("aikdoc_doctor_accounts", JSON.stringify(accounts));
+
+  let master = getMasterDoctors();
+  master.unshift(newDoc);
+  localStorage.setItem("aikdoc_master_doctors", JSON.stringify(master));
+  localStorage.setItem("aikdoc_last_sync", Date.now().toString());
+
+  localStorage.setItem("aikdoc_doctor_session", JSON.stringify(newDoc));
+  showToast(`🎉 Practice registered! Welcome, ${name}.`);
+  showDashboard(newDoc);
+});
+
+document.getElementById("logoutBtn").addEventListener("click", () => {
+  localStorage.removeItem("aikdoc_doctor_session");
+  showToast("Logged out.");
+  showAuthGate();
+});
+
+// MAIN NAVIGATION TABS CONTROLLER
+const tabProfileBtn = document.getElementById("tabProfileBtn");
+const tabApptsBtn = document.getElementById("tabApptsBtn");
+const tabReviewsBtn = document.getElementById("tabReviewsBtn");
+const tabRevenueBtn = document.getElementById("tabRevenueBtn");
+
+const profileSection = document.getElementById("profileSection");
+const appointmentsSection = document.getElementById("appointmentsSection");
+const reviewsSection = document.getElementById("reviewsSection");
+const revenueSection = document.getElementById("revenueSection");
+
+function switchMainTab(tab) {
+  [tabProfileBtn, tabApptsBtn, tabReviewsBtn, tabRevenueBtn].forEach(b => b.classList.remove("active"));
+  [profileSection, appointmentsSection, reviewsSection, revenueSection].forEach(s => s.style.display = "none");
+
+  if (tab === "appointments") {
+    tabApptsBtn.classList.add("active");
+    appointmentsSection.style.display = "block";
+    loadDoctorAppointments();
+  } else if (tab === "reviews") {
+    tabReviewsBtn.classList.add("active");
+    reviewsSection.style.display = "block";
+    loadDoctorReviews();
+  } else if (tab === "revenue") {
+    tabRevenueBtn.classList.add("active");
+    revenueSection.style.display = "block";
+    loadDoctorRevenue();
+  } else {
+    tabProfileBtn.classList.add("active");
+    profileSection.style.display = "grid";
+    updatePreview();
+  }
+}
+
+tabProfileBtn.addEventListener("click", () => switchMainTab("profile"));
+tabApptsBtn.addEventListener("click", () => switchMainTab("appointments"));
+tabReviewsBtn.addEventListener("click", () => switchMainTab("reviews"));
+tabRevenueBtn.addEventListener("click", () => switchMainTab("revenue"));
+
+document.querySelectorAll(".subtab-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".subtab-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    activeApptSubtab = btn.dataset.appttab;
+    loadDoctorAppointments();
+  });
+});
+
+// Photo upload in dashboard
+const uploadTriggerCard = document.getElementById("uploadTriggerCard");
+const docPhotoFileInput = document.getElementById("docPhotoFileInput");
+const avatarPreviewImg = document.getElementById("avatarPreviewImg");
+const fileNameDisplay = document.getElementById("fileNameDisplay");
+
+uploadTriggerCard.addEventListener("click", () => docPhotoFileInput.click());
+docPhotoFileInput.addEventListener("change", (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    currentPhotoBase64 = ev.target.result;
+    avatarPreviewImg.src = currentPhotoBase64;
+    docPillImg.src = currentPhotoBase64;
+    fileNameDisplay.textContent = `✓ Selected: ${file.name}`;
+    updatePreview();
+    showToast("Photo updated!");
+  };
+  reader.readAsDataURL(file);
+});
+
+function updatePreview(){
+  const name = document.getElementById("docName").value || "Dr. Your Name";
+  const spec = document.getElementById("docSpecialityInput").value || "General Physician";
+  const qual = document.getElementById("docQual").value || "MBBS";
+  const hosp = document.getElementById("docHospital").value || "Hospital";
+  const dist = document.getElementById("docDistrict").value;
+  const fee = document.getElementById("docFee").value || "500";
+  const pGroup = document.getElementById("docPatientGroup").value;
+  const mSlots = document.getElementById("morningSlots").value.split(",")[0] || "10:00 AM";
+
+  document.getElementById("livePreviewCard").innerHTML = `
+    <div class="preview-top">
+      <img class="preview-avatar" src="${currentPhotoBase64}" alt="Portrait">
+      <div>
+        <strong style="color:var(--navy);font-size:15px;display:block">${name}</strong>
+        <span style="font-size:12px;color:var(--muted)">${spec} · ${qual}</span>
+      </div>
+    </div>
+    <div style="font-size:12px;color:var(--muted)">📍 ${hosp}, ${dist}</div>
+    <div class="preview-meta">
+      <span class="preview-pill">Fee: ₹${fee}</span>
+      <span class="preview-pill">${pGroup} Care</span>
+    </div>
+    <div class="preview-slots">
+      <span style="color:#108367;font-weight:750">⚡ Next Slot:</span> <strong>${mSlots} Today</strong>
+    </div>
+  `;
+}
+
+document.querySelectorAll("#doctorForm input:not([type='file']), #doctorForm select, #doctorForm textarea").forEach(el => {
+  el.addEventListener("input", updatePreview);
+});
+
+// Save Doctor Profile
+document.getElementById("doctorForm").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const sessionUser = JSON.parse(localStorage.getItem("aikdoc_doctor_session") || "{}");
+  const morningArr = document.getElementById("morningSlots").value.split(",").map(s => s.trim()).filter(Boolean);
+  const eveningArr = document.getElementById("eveningSlots").value.split(",").map(s => s.trim()).filter(Boolean);
+  
+  const modes = [];
+  if(document.getElementById("modeClinic").checked) modes.push("Clinic visit");
+  if(document.getElementById("modeOnline").checked) modes.push("Online consultation");
+
+  const docProfile = {
+    id: sessionUser.id || Date.now(),
+    name: document.getElementById("docName").value.trim(),
+    speciality: document.getElementById("docSpecialityInput").value.trim(),
+    patientGroup: document.getElementById("docPatientGroup").value,
+    qualification: document.getElementById("docQual").value.trim(),
+    registration: document.getElementById("docReg").value.trim() || sessionUser.registration || "BMRC-62910",
+    district: document.getElementById("docDistrict").value,
+    fee: Number(document.getElementById("docFee").value),
+    modes: modes.length ? modes : ["Clinic visit"],
+    experience: document.getElementById("docExp").value.trim(),
+    rating: sessionUser.rating || "5.0 ★",
+    photo: currentPhotoBase64,
+    hospital: document.getElementById("docHospital").value,
+    address: document.getElementById("docAddress").value.trim(),
+    timings: document.getElementById("docTimings").value.trim(),
+    languages: "Hindi, English",
+    about: document.getElementById("docAbout").value.trim(),
+    quickSlots: morningArr.concat(eveningArr).slice(0, 3),
+    mobile: sessionUser.mobile || "9876543210",
+    email: sessionUser.email || "doctor@aikdoc.in"
+  };
+
+  let masterDocs = getMasterDoctors();
+  const existingIdx = masterDocs.findIndex(d => 
+    (docProfile.registration && d.registration === docProfile.registration) ||
+    (docProfile.mobile && d.mobile === docProfile.mobile) ||
+    (d.name.toLowerCase() === docProfile.name.toLowerCase())
+  );
+
+  if (existingIdx >= 0) {
+    docProfile.id = masterDocs[existingIdx].id;
+    masterDocs[existingIdx] = docProfile;
+  } else {
+    docProfile.id = Date.now();
+    masterDocs.unshift(docProfile);
+  }
+
+  localStorage.setItem("aikdoc_master_doctors", JSON.stringify(masterDocs));
+  localStorage.setItem("aikdoc_last_sync", Date.now().toString());
+
+  sessionUser.name = docProfile.name;
+  sessionUser.photo = docProfile.photo;
+  sessionUser.speciality = docProfile.speciality;
+  localStorage.setItem("aikdoc_doctor_session", JSON.stringify(sessionUser));
+
+  docPillName.textContent = docProfile.name;
+  docPillImg.src = docProfile.photo;
+  showToast("🚀 Profile updated and published live!");
+  loadAllDoctorData();
+});
+
+// GET RELEVANT APPOINTMENTS FOR CURRENT DOCTOR
+function getCurrentDoctorAppointments() {
+  const currentDocName = document.getElementById("docName").value.trim() || localStorage.getItem("aikdoc_active_doctor_name") || "Dr. Stark";
+  const appts = JSON.parse(localStorage.getItem("aikdoc_appointments") || "[]");
+  
+  return appts.filter(a => 
+    (a.doctorName && a.doctorName.toLowerCase().includes(currentDocName.toLowerCase())) || 
+    (currentDocName && currentDocName.toLowerCase().includes(a.doctorName.toLowerCase()))
+  );
+}
+
+// 1. Appointments Loader
+function loadDoctorAppointments() {
+  const myAppts = getCurrentDoctorAppointments();
+
+  const upcoming = myAppts.filter(a => (!a.status || a.status === "Confirmed"));
+  const completed = myAppts.filter(a => a.status === "Completed");
+  const cancelled = myAppts.filter(a => a.status === "Cancelled");
+
+  document.getElementById("countUpcoming").textContent = upcoming.length;
+  document.getElementById("countCompleted").textContent = completed.length;
+  document.getElementById("countCancelled").textContent = cancelled.length;
+
+  const badge = document.getElementById("docApptBadge");
+  if (upcoming.length > 0) {
+    badge.textContent = upcoming.length;
+    badge.style.display = "inline-block";
+  } else {
+    badge.style.display = "none";
+  }
+
+  const container = document.getElementById("doctorAppointmentsList");
+  let displayList = activeApptSubtab === "Upcoming" ? upcoming : activeApptSubtab === "Completed" ? completed : cancelled;
+
+  if (displayList.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <div style="font-size:38px;margin-bottom:8px">📅</div>
+        <strong style="color:var(--navy);font-size:16px">No ${activeApptSubtab} Appointments</strong>
+        <p style="margin:6px 0 0;font-size:13px">When appointments are booked by patients, they will appear here.</p>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = displayList.map(a => {
+    const status = a.status || "Confirmed";
+    const statusClass = status === "Completed" ? "status-completed" : status === "Cancelled" ? "status-cancelled" : "status-confirmed";
+
+    return `
+      <div class="appointment-item-card" data-appt-token="${a.token}">
+        <div class="appt-top">
+          <div>
+            <div class="appt-patient-name">${a.patientName}</div>
+            <div style="font-size:12.5px;color:var(--muted);margin-top:2px">Phone: <strong>${a.phone}</strong></div>
+          </div>
+          <span class="appt-token">${a.token}</span>
+        </div>
+
+        <div class="appt-details-grid">
+          <div><small>Slot Schedule</small><strong>${a.date} at ${a.time}</strong></div>
+          <div><small>Mode</small><strong>${a.mode}</strong></div>
+          <div><small>Fee & Status</small><strong>₹${a.fee} (${a.paymentStatus})</strong></div>
+        </div>
+
+        <div class="appt-actions">
+          <span class="status-pill ${statusClass}">● ${status} ${a.cancelledBy ? `(by ${a.cancelledBy})` : ''}</span>
+          
+          <div class="action-btn-group">
+            <a class="action-btn call" href="tel:${a.phone}">📞 Call Patient</a>
+            ${status === "Confirmed" ? `
+              <button class="action-btn done" type="button" onclick="doctorSetStatus('${a.token}', 'Completed')">✓ Mark Done</button>
+              <button class="action-btn cancel" type="button" onclick="doctorSetStatus('${a.token}', 'Cancelled')">✕ Cancel</button>
+            ` : ''}
+          </div>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+// 2. Reviews Loader & Scorecard Calculator
+function loadDoctorReviews() {
+  const myAppts = getCurrentDoctorAppointments();
+  const reviewedAppts = myAppts.filter(a => a.review && a.review.rating);
+
+  const totalReviews = reviewedAppts.length;
+  const badge = document.getElementById("docReviewBadge");
+  if (totalReviews > 0) {
+    badge.textContent = totalReviews;
+    badge.style.display = "inline-block";
+  } else {
+    badge.style.display = "none";
+  }
+
+  const counts = {5: 0, 4: 0, 3: 0, 2: 0, 1: 0};
+  let sumScore = 0;
+
+  reviewedAppts.forEach(a => {
+    const r = Math.min(5, Math.max(1, Number(a.review.rating) || 5));
+    counts[r] = (counts[r] || 0) + 1;
+    sumScore += r;
+  });
+
+  const avg = totalReviews > 0 ? (sumScore / totalReviews).toFixed(1) : "5.0";
+
+  document.getElementById("revOverallScore").textContent = avg;
+  document.getElementById("revOverallStars").textContent = '★'.repeat(Math.round(avg)) + '☆'.repeat(5 - Math.round(avg));
+  document.getElementById("revTotalCount").textContent = totalReviews;
+
+  for (let i = 1; i <= 5; i++) {
+    const c = counts[i] || 0;
+    const pct = totalReviews > 0 ? (c / totalReviews) * 100 : 0;
+    document.getElementById(`bar${i}`).style.width = `${pct}%`;
+    document.getElementById(`txt${i}`).textContent = c;
+  }
+
+  const container = document.getElementById("doctorReviewsList");
+
+  if (totalReviews === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <div style="font-size:38px;margin-bottom:8px">⭐</div>
+        <strong style="color:var(--navy);font-size:16px">No Reviews Received Yet</strong>
+        <p style="margin:6px 0 0;font-size:13px">When patients complete consultations, they are prompted to leave a star rating and feedback.</p>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = reviewedAppts.map(a => {
+    const r = a.review;
+    const patientInitials = (a.patientName || "Verified Patient").split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase();
+
+    return `
+      <div class="review-card-item">
+        <div class="review-header-flex">
+          <div class="reviewer-info">
+            <div class="reviewer-initial">${patientInitials}</div>
+            <div>
+              <strong style="font-size:14px;color:var(--navy)">${a.patientName}</strong>
+              <div style="font-size:11.5px;color:var(--muted)">Consulted: ${a.date} · Token ${a.token}</div>
+            </div>
+          </div>
+          <span class="verified-consult-tag">✓ Verified Patient</span>
+        </div>
+
+        <div style="color:#f59e0b;font-size:15px;margin:6px 0">
+          ${'★'.repeat(r.rating || 5)}${'☆'.repeat(5 - (r.rating || 5))}
+          <span style="font-size:11px;color:var(--muted);margin-left:6px">${r.date || a.date}</span>
+        </div>
+
+        <p style="margin:4px 0 0;font-size:13.5px;color:var(--ink);line-height:1.6">
+          "${r.comment || 'Patient did not provide written comments.'}"
+        </p>
+      </div>
+    `;
+  }).join("");
+}
+
+// 3. Revenue & Financial Analytics Calculator
+function loadDoctorRevenue() {
+  const myAppts = getCurrentDoctorAppointments();
+
+  const completed = myAppts.filter(a => a.status === "Completed");
+  const upcoming = myAppts.filter(a => !a.status || a.status === "Confirmed");
+
+  const realizedRevenue = completed.reduce((sum, a) => sum + (Number(a.fee) || 0), 0);
+  const pipelineRevenue = upcoming.reduce((sum, a) => sum + (Number(a.fee) || 0), 0);
+  const totalConsults = completed.length;
+  const avgTicket = totalConsults > 0 ? Math.round(realizedRevenue / totalConsults) : (Number(document.getElementById("docFee").value) || 500);
+
+  document.getElementById("finRealizedRevenue").textContent = `₹${realizedRevenue.toLocaleString()}`;
+  document.getElementById("finPipelineRevenue").textContent = `₹${pipelineRevenue.toLocaleString()}`;
+  document.getElementById("finAvgTicket").textContent = `₹${avgTicket.toLocaleString()}`;
+  document.getElementById("finTotalConsults").textContent = totalConsults;
+
+  const onlineRev = completed.filter(a => a.paymentMethod !== "PayAtClinic" && (a.paymentStatus || "").includes("Online")).reduce((sum, a) => sum + (Number(a.fee) || 0), 0);
+  const clinicRev = completed.filter(a => a.paymentMethod === "PayAtClinic" || (a.paymentStatus || "").includes("Counter")).reduce((sum, a) => sum + (Number(a.fee) || 0), 0);
+
+  document.getElementById("finOnlineRevenue").textContent = `₹${onlineRev.toLocaleString()}`;
+  document.getElementById("finClinicRevenue").textContent = `₹${clinicRev.toLocaleString()}`;
+
+  const clinicModeRev = completed.filter(a => a.mode === "Clinic visit").reduce((sum, a) => sum + (Number(a.fee) || 0), 0);
+  const onlineModeRev = completed.filter(a => a.mode !== "Clinic visit").reduce((sum, a) => sum + (Number(a.fee) || 0), 0);
+
+  document.getElementById("finClinicModeRevenue").textContent = `₹${clinicModeRev.toLocaleString()}`;
+  document.getElementById("finOnlineModeRevenue").textContent = `₹${onlineModeRev.toLocaleString()}`;
+
+  const tbody = document.getElementById("revenueLedgerTableBody");
+  if (myAppts.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:26px;color:var(--muted)">No financial records recorded yet.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = myAppts.map(a => {
+    const isCompleted = a.status === "Completed";
+    const statusColor = isCompleted ? "#059669" : a.status === "Cancelled" ? "#b91c1c" : "var(--blue)";
+
+    return `
+      <tr>
+        <td><strong>${a.date}</strong></td>
+        <td><code style="color:var(--blue);font-weight:800">${a.token}</code></td>
+        <td><strong>${a.patientName}</strong><br><small style="color:var(--muted)">${a.phone}</small></td>
+        <td>${a.mode === "Clinic visit" ? "🏥 Clinic Visit" : "📱 Teleconsult"}</td>
+        <td>${a.paymentMethod || "UPI / Online"}</td>
+        <td><strong style="color:var(--navy);font-size:14px">₹${a.fee}</strong></td>
+        <td style="text-align:right">
+          <span style="font-size:11px;font-weight:800;color:${statusColor}">● ${a.status || 'Confirmed'}</span>
+        </td>
+      </tr>
+    `;
+  }).join("");
+}
+
+function loadAllDoctorData() {
+  loadDoctorAppointments();
+  loadDoctorReviews();
+  loadDoctorRevenue();
+}
+
+// Doctor updates status: Done or Cancelled
+window.doctorSetStatus = function(token, newStatus) {
+  let appts = JSON.parse(localStorage.getItem("aikdoc_appointments") || "[]");
+  const target = appts.find(a => a.token === token);
+  if (target) {
+    target.status = newStatus;
+    if (newStatus === "Cancelled") {
+      target.cancelledBy = "Doctor";
+    }
+    target.lastUpdated = Date.now();
+    localStorage.setItem("aikdoc_appointments", JSON.stringify(appts));
+    localStorage.setItem("aikdoc_last_sync", Date.now().toString());
+    showToast(`Appointment ${token} marked as ${newStatus}.`);
+    loadAllDoctorData();
+  }
+};
+
+// Storage event listener (syncs across tabs in real-time)
+window.addEventListener("storage", (e) => {
+  if (e.key === "aikdoc_appointments") {
+    loadAllDoctorData();
+    showToast("🔔 Real-time appointment or review update received!");
+  }
+  if (e.key === "aikdoc_doctor_deleted" || e.key === "aikdoc_master_doctors") {
+    checkAuthSession();
+  }
+  if (e.key === "aikdoc_master_specialties" || e.key === "aikdoc_master_hospitals") {
+    populateSpecialityDatalists();
+  }
+});
+
+function showToast(msg){
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  setTimeout(() => t.classList.remove("show"), 4200);
+}
+
+function loadDoctorProfileFromMaster(sessionUser) {
+  try {
+    const master = getMasterDoctors();
+    const doc = master.find(d => 
+      (sessionUser.mobile && d.mobile === sessionUser.mobile) ||
+      (d.name.toLowerCase() === sessionUser.name.toLowerCase())
+    );
+
+    if (doc) {
+      document.getElementById("docName").value = doc.name;
+      document.getElementById("docReg").value = doc.registration || "";
+      document.getElementById("docSpecialityInput").value = doc.speciality;
+      document.getElementById("docPatientGroup").value = doc.patientGroup || "Adult";
+      document.getElementById("docQual").value = doc.qualification || "MBBS";
+      document.getElementById("docExp").value = doc.experience || "10 years";
+      document.getElementById("docDistrict").value = doc.district || "Patna";
+      document.getElementById("docFee").value = doc.fee || 500;
+      if (doc.hospital) document.getElementById("docHospital").value = doc.hospital;
+      document.getElementById("docAddress").value = doc.address || "Bailey Road, Patna";
+      document.getElementById("docTimings").value = doc.timings || "Mon–Sat · 10:00 AM–2:00 PM";
+      document.getElementById("docAbout").value = doc.about || "";
+      if (doc.photo && doc.photo !== DEFAULT_AVATAR) {
+        currentPhotoBase64 = doc.photo;
+        avatarPreviewImg.src = currentPhotoBase64;
+      }
+    }
+  } catch (e) {}
+}
+
+// ======================================================
+// FULL PREVIEW (as patients see it, including reviews)
+// ======================================================
+function escHtml(s){
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function openFullPreview(){
+  const v = id => document.getElementById(id).value.trim();
+  const name = v("docName") || "Dr. Your Name";
+  const spec = v("docSpecialityInput") || "General Physician";
+  const group = v("docPatientGroup");
+  const qual = v("docQual") || "MBBS";
+  const exp = v("docExp") || "8 years";
+  const fee = v("docFee") || "500";
+  const reg = v("docReg") || "VERIFIED";
+  const hosp = v("docHospital");
+  const addr = v("docAddress");
+  const timings = v("docTimings");
+  const about = v("docAbout") || "Senior medical specialist providing trusted care on AIKDOC.";
+
+  const morning = v("morningSlots").split(",").map(s => s.trim()).filter(Boolean);
+  const evening = v("eveningSlots").split(",").map(s => s.trim()).filter(Boolean);
+
+  const modes = [];
+  if (document.getElementById("modeClinic").checked) modes.push("Clinic visit");
+  if (document.getElementById("modeOnline").checked) modes.push("Online consultation");
+
+  // Patient reviews for this doctor
+  const reviews = getCurrentDoctorAppointments().filter(a => a.review && a.review.rating);
+  const total = reviews.length;
+  const avg = total ? (reviews.reduce((s, a) => s + (Number(a.review.rating) || 5), 0) / total).toFixed(1) : "5.0";
+
+  const maskName = n => {
+    const p = String(n || "").split(" ");
+    return p[0] ? p[0] + (p[1] ? " " + p[1][0] + "." : "") : "Verified Patient";
+  };
+
+  const slotPills = list => list.length
+    ? list.map(s => `<span class="fp-slot">${escHtml(s)}</span>`).join("")
+    : `<span style="font-size:12px;color:var(--muted)">No slots set</span>`;
+
+  document.getElementById("fullPreviewBody").innerHTML = `
+    <div class="fp-profile">
+      <div class="fp-top">
+        <img class="fp-avatar" src="${currentPhotoBase64}" alt="${escHtml(name)}">
+        <div>
+          <div style="font-size:19px;font-weight:900;color:var(--navy)">${escHtml(name)}</div>
+          <div style="font-size:13px;font-weight:700;color:var(--blue);margin-top:3px">${escHtml(spec)} (${escHtml(group)} Care)</div>
+          <div style="font-size:11.5px;color:var(--muted);margin-top:3px">${escHtml(qual)}</div>
+          <div class="fp-badges">
+            <span class="fp-badge-v">✓ Verified Specialist</span>
+            <span class="fp-badge-r">★ ${avg} (${total} review${total === 1 ? '' : 's'})</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="fp-stats">
+        <div class="fp-stat"><small>Experience</small><strong>${escHtml(exp)}</strong></div>
+        <div class="fp-stat"><small>Consultation</small><strong style="color:var(--teal)">₹${escHtml(fee)}</strong></div>
+        <div class="fp-stat"><small>Reg. No.</small><strong>${escHtml(reg)}</strong></div>
+        <div class="fp-stat"><small>Languages</small><strong>Hindi, Eng</strong></div>
+      </div>
+
+      <div class="fp-sec">
+        <div class="fp-title">📝 About Doctor</div>
+        <p class="fp-text">${escHtml(about)}</p>
+
+        <div class="fp-title">🏥 Hospital Affiliation & Clinic</div>
+        <div class="fp-hosp">
+          <strong style="color:var(--navy);font-size:14px">${escHtml(hosp)}</strong>
+          <div style="font-size:12.5px;color:var(--muted);margin-top:2px">📍 ${escHtml(addr)}</div>
+          <div style="font-size:12px;color:var(--teal);font-weight:750;margin-top:4px">🕒 OPD Timings: ${escHtml(timings)}</div>
+        </div>
+
+        <div class="fp-title">💬 Consultation Modes</div>
+        <div class="fp-slots">${modes.map(m => `<span class="fp-slot">${escHtml(m)}</span>`).join("") || '<span style="font-size:12px;color:var(--muted)">None selected</span>'}</div>
+
+        <div class="fp-title">🌅 Morning Slots</div>
+        <div class="fp-slots">${slotPills(morning)}</div>
+
+        <div class="fp-title">🌇 Afternoon & Evening Slots</div>
+        <div class="fp-slots">${slotPills(evening)}</div>
+      </div>
+
+      <div class="fp-reviews">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <strong style="font-size:13px;color:var(--navy);text-transform:uppercase;letter-spacing:.5px">⭐ Patient Reviews & Feedback (${total})</strong>
+          <span style="font-size:12px;font-weight:800;color:#d97706">Overall ★ ${avg}</span>
+        </div>
+        ${total ? reviews.map(a => `
+          <div class="fp-rev">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+              <strong style="font-size:13px;color:var(--navy)">${escHtml(maskName(a.patientName))}</strong>
+              <span style="font-size:11px;color:var(--muted)">${escHtml(a.review.date || a.date || "Recent")}</span>
+            </div>
+            <div style="color:#f59e0b;font-size:13px">${'★'.repeat(a.review.rating || 5)}${'☆'.repeat(5 - (a.review.rating || 5))}</div>
+            <p style="font-size:12px;color:var(--ink);line-height:1.5;margin:4px 0 0">"${escHtml(a.review.comment || "Helpful consultation and diagnosis.")}"</p>
+          </div>
+        `).join("") : `
+          <div style="background:#fff;border:1px dashed var(--line);border-radius:12px;padding:16px;text-align:center;color:var(--muted);font-size:12.5px">
+            ⭐ No patient reviews submitted yet.<br>
+            <span style="font-size:11.5px">Reviews appear here after patients rate their completed consultations.</span>
+          </div>
+        `}
+      </div>
+    </div>
+  `;
+
+  document.getElementById("fullPreviewModal").classList.add("show");
+}
+
+function closeFullPreview(){
+  document.getElementById("fullPreviewModal").classList.remove("show");
+}
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeFullPreview(); });
+
+populateSpecialityDatalists();
+checkAuthSession();
+</script>
+</body>
+</html>
