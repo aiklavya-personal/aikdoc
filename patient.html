@@ -3307,18 +3307,31 @@ function renderAppointmentsList() {
 }
 
 function cancelAppointment(token){
-  if(confirm("Cancel this appointment?")){
-    let appts = safeGetJSON("aikdoc_appointments", []);
-    const t = appts.find(x => x.token === token);
-    if(t){
-      t.status = "Cancelled";
-      t.cancelledBy = "Patient";
-      safeSetJSON("aikdoc_appointments", appts);
-      localStorage.setItem("aikdoc_last_sync", Date.now().toString());
-      renderAppointmentsList();
-      updateAppointmentBadge();
-      showToast("Appointment cancelled.");
-    }
+  const reasons = ["Personal reasons","Scheduling conflict","Found another doctor","No longer need the appointment","Booked by mistake","Other"];
+  const choice = prompt("Please select a cancellation reason by number:\n1. Personal reasons\n2. Scheduling conflict\n3. Found another doctor\n4. No longer need the appointment\n5. Booked by mistake\n6. Other");
+  if (choice === null) return;
+  const index = Number(choice) - 1;
+  if (!Number.isInteger(index) || index < 0 || index >= reasons.length) { showToast("Please enter a number from 1 to 6."); return; }
+  let reason = reasons[index];
+  if (reason === "Other") {
+    reason = prompt("Please enter your cancellation reason:");
+    if (reason === null) return;
+    reason = reason.trim();
+    if (!reason) { showToast("A cancellation reason is required."); return; }
+  }
+  if (!confirm("Cancel this appointment?\nReason: " + reason)) return;
+  let appts = safeGetJSON("aikdoc_appointments", []);
+  const t = appts.find(x => x.token === token);
+  if (t && (t.status === "Confirmed" || !t.status)) {
+    t.status = "Cancelled";
+    t.cancelledBy = "Patient";
+    t.cancellationReason = reason;
+    t.cancelledAt = new Date().toISOString();
+    safeSetJSON("aikdoc_appointments", appts);
+    localStorage.setItem("aikdoc_last_sync", Date.now().toString());
+    renderAppointmentsList();
+    updateAppointmentBadge();
+    showToast("Appointment cancelled. Reason saved.");
   }
 }
 
@@ -3647,6 +3660,40 @@ if(location.hash && location.hash.startsWith("#page-") && location.hash !== "#pa
   );
 
   console.log("AIKDOC Supabase client initialized.");
+</script>
+<!-- AIKDOC Instant Help (FAQ prototype; real AI requires a secure backend) -->
+<style>
+.aikhelp-launch{position:fixed;right:20px;bottom:20px;z-index:9998;border:0;border-radius:999px;background:#087f8c;color:#fff;padding:13px 18px;font-weight:800;box-shadow:0 8px 28px #0003;cursor:pointer}
+.aikhelp-panel{position:fixed;right:20px;bottom:78px;width:min(360px,calc(100vw - 28px));height:440px;max-height:calc(100vh - 110px);z-index:9999;background:#fff;color:#17263c;border:1px solid #dbe4ee;border-radius:18px;box-shadow:0 16px 48px #0003;display:none;overflow:hidden;font:14px/1.45 Arial,sans-serif}
+.aikhelp-panel.open{display:flex;flex-direction:column}.aikhelp-head{background:#087f8c;color:#fff;padding:14px;display:flex;align-items:center;justify-content:space-between;font-weight:800}.aikhelp-head button{background:transparent;border:0;color:#fff;font-size:22px;cursor:pointer}.aikhelp-messages{padding:13px;overflow:auto;flex:1;background:#f7fafc}.aikhelp-msg{padding:10px 12px;border-radius:12px;margin:0 0 10px;max-width:90%;white-space:pre-wrap;overflow-wrap:anywhere}.aikhelp-bot{background:#e8f3f4;margin-right:auto}.aikhelp-user{background:#dbeafe;margin-left:auto}.aikhelp-form{display:flex;gap:7px;padding:10px;border-top:1px solid #e2e8f0}.aikhelp-form input{min-width:0;flex:1;border:1px solid #cbd5e1;border-radius:999px;padding:10px}.aikhelp-form button{border:0;border-radius:999px;background:#087f8c;color:#fff;padding:0 14px;font-weight:700;cursor:pointer}.aikhelp-note{font-size:10px;color:#64748b;text-align:center;padding:0 8px 8px}
+@media(max-width:480px){.aikhelp-launch{right:12px;bottom:12px}.aikhelp-panel{right:8px;bottom:70px}}
+</style>
+<button type="button" class="aikhelp-launch" id="aikhelpLaunch" aria-label="Open AIKDOC Instant Help">💬 Instant Help</button>
+<section class="aikhelp-panel" id="aikhelpPanel" role="dialog" aria-label="AIKDOC Instant Help" aria-modal="false">
+<div class="aikhelp-head"><span>AIKDOC Instant Help</span><button type="button" id="aikhelpClose" aria-label="Minimize chat">−</button></div>
+<div class="aikhelp-messages" id="aikhelpMessages" aria-live="polite"><div class="aikhelp-msg aikhelp-bot">Hi! I can help you navigate AIKDOC. Ask about appointments, cancellations, accounts, or using this panel.</div></div>
+<form class="aikhelp-form" id="aikhelpForm"><input id="aikhelpInput" maxlength="500" autocomplete="off" placeholder="Type your question…" aria-label="Your question" required><button type="submit">Send</button></form>
+<div class="aikhelp-note">FAQ prototype only — not medical advice. Live AI will need a secure backend.</div>
+</section>
+<script>
+(function(){
+ const launch=document.getElementById("aikhelpLaunch"),panel=document.getElementById("aikhelpPanel"),close=document.getElementById("aikhelpClose"),form=document.getElementById("aikhelpForm"),input=document.getElementById("aikhelpInput"),messages=document.getElementById("aikhelpMessages");
+ if(!launch||!panel||!form||!input||!messages)return;
+ launch.addEventListener("click",()=>{panel.classList.add("open");input.focus()});
+ close.addEventListener("click",()=>panel.classList.remove("open"));
+ function addMessage(text,who){const el=document.createElement("div");el.className="aikhelp-msg "+(who==="user"?"aikhelp-user":"aikhelp-bot");el.textContent=text;messages.appendChild(el);messages.scrollTop=messages.scrollHeight}
+ function answer(q){const s=q.toLowerCase();
+  if(/cancel/.test(s))return "To cancel an appointment, open your appointment list and choose the cancel option. A cancellation reason is required before confirmation.";
+  if(/book|appointment|schedule/.test(s))return "To book an appointment, open the Patient Panel, choose an available doctor and time slot, then follow the booking steps. If you cannot find a slot, contact the clinic.";
+  if(/doctor|specialit|find/.test(s))return "Browse available doctors and review their specialties, qualifications, consultation modes and clinic details before choosing.";
+  if(/payment|fee|refund/.test(s))return "Check the appointment details for the listed consultation fee and payment status. For payment or refund issues, contact AIKDOC support or the clinic.";
+  if(/login|account|register|profile/.test(s))return "Use the sign-in or profile options available in this panel. Never share passwords or verification codes in chat.";
+  if(/admin|approv/.test(s))return "Admins can use the Admin Panel's existing dashboard and management sections to review registrations and manage records.";
+  if(/medical|symptom|pain|medicine|diagnos|treatment|emergency/.test(s))return "I can help with website navigation, but I cannot diagnose or recommend treatment. Please contact a qualified healthcare professional. For a medical emergency, contact local emergency services.";
+  return "I can answer basic AIKDOC navigation FAQs about appointments, cancellations, doctor listings, accounts and payments. This prototype does not yet use a live AI service.";
+ }
+ form.addEventListener("submit",e=>{e.preventDefault();const q=input.value.trim();if(!q)return;addMessage(q,"user");input.value="";addMessage(answer(q),"bot")});
+})();
 </script>
 </body>
 </html>
