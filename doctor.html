@@ -230,6 +230,25 @@ body.dark-mode .doctor-banned-screen{background:#101827}.dark-mode .doctor-banne
 .clinic-photo-preview{max-width:100px;max-height:80px;object-fit:cover;border-radius:9px;display:none;margin-top:8px}
 @media(max-width:760px){.preferences{width:100%;justify-content:flex-end}.nav{gap:10px}}
 
+
+/* Refined login-visibility preference card */
+.credential-share-card{margin:18px 0;padding:20px 22px;border:1px solid var(--line);border-radius:18px;background:linear-gradient(135deg,#fff 0%,#f6f9ff 100%);box-shadow:0 8px 24px rgba(18,52,91,.06)}
+.credential-share-heading{display:flex;align-items:flex-start;gap:13px}
+.credential-share-icon{width:42px;height:42px;flex:0 0 42px;display:grid;place-items:center;border-radius:13px;background:#e8f0ff;font-size:20px}
+.credential-share-heading .card-title{margin:0 0 5px}
+.credential-share-heading .card-sub{margin:0;line-height:1.55;max-width:760px}
+.credential-share-controls{display:flex;gap:9px;flex-wrap:wrap;margin-top:16px}
+.credential-choice{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:10px;padding:9px 14px;font-size:13px;font-weight:800;border:1px solid transparent;transition:background .18s,border-color .18s,box-shadow .18s;min-height:38px}
+.credential-choice-share{background:#1769e0;color:#fff;border-color:#1769e0}
+.credential-choice-share:hover{background:#0e55bf;box-shadow:0 4px 12px #1769e033}
+.credential-choice-hide{background:#fff;color:#40516a;border-color:#d7e1ef}
+.credential-choice-hide:hover{background:#f3f6fb;border-color:#b7c7dc}
+.credential-choice:disabled{cursor:default;opacity:1;box-shadow:none}
+.credential-choice-share:disabled{background:#eaf2ff;color:#1757b3;border-color:#c6dcff}
+.credential-choice-hide:disabled{background:#f0fdf4;color:#167447;border-color:#b7ebce}
+.credential-share-status{margin:11px 0 0;font-size:12px;font-weight:750;color:var(--muted)}
+@media(max-width:600px){.credential-share-card{padding:16px}.credential-share-controls{display:grid;grid-template-columns:1fr}.credential-choice{width:100%}}
+
 </style>
 </head>
 <body>
@@ -360,6 +379,18 @@ body.dark-mode .doctor-banned-screen{background:#101827}.dark-mode .doctor-banne
     </div>
   </div>
 
+  <section class="portal-card credential-share-card" id="adminCredentialPreferenceCard">
+    <div class="credential-share-heading">
+      <div class="credential-share-icon" aria-hidden="true">🔐</div>
+      <div><h2 class="card-title">Login details visibility</h2><p class="card-sub">Choose whether the admin can see your registered email and mobile number. Your password stays protected and is never shown as readable text.</p></div>
+    </div>
+    <div class="credential-share-controls" role="group" aria-label="Login details visibility">
+      <button type="button" class="credential-choice credential-choice-share" id="shareLoginIdBtn"><span aria-hidden="true">✓</span> Share login ID</button>
+      <button type="button" class="credential-choice credential-choice-hide" id="hideLoginIdBtn"><span aria-hidden="true">🔒</span> Keep private</button>
+    </div>
+    <p id="credentialPreferenceStatus" class="credential-share-status" role="status" aria-live="polite"></p>
+  </section>
+
   <!-- TAB 1: PRACTICE PROFILE SETUP -->
   <div id="profileSection" class="portal-grid">
     <div class="portal-card">
@@ -448,7 +479,8 @@ body.dark-mode .doctor-banned-screen{background:#101827}.dark-mode .doctor-banne
               <div class="form-field"><label for="ownClinicDistrict">District / City</label><input id="ownClinicDistrict" placeholder="District or city"></div>
               <div class="form-field"><label for="ownClinicPin">PIN Code</label><input id="ownClinicPin" inputmode="numeric" maxlength="6" placeholder="6-digit PIN code"></div>
               <div class="form-field full"><label for="ownClinicAddress">Full Clinic Address *</label><textarea id="ownClinicAddress" rows="2" placeholder="Building, street, landmark, district"></textarea></div>
-              <div class="form-field full"><label for="ownClinicPhoto">Clinic Photo / Logo</label><input id="ownClinicPhoto" type="file" accept="image/*"><img id="ownClinicPhotoPreview" class="clinic-photo-preview" alt="Clinic photo preview"></div>
+              <div class="form-field full"><label for="ownClinicPhoto">Clinic Photos (up to 8)</label><input id="ownClinicPhoto" type="file" accept="image/*" multiple><div id="ownClinicPhotoGallery" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"></div></div>
+              <div class="form-field full" style="background:var(--input-bg);border:1px solid var(--line);padding:12px;border-radius:10px"><label style="display:flex;align-items:flex-start;gap:9px;font-weight:700"><input id="publishOwnClinic" type="checkbox" style="margin-top:3px"> Publish my clinic in the public Hospitals / Clinics directory</label><p style="font-size:11px;color:var(--muted);margin:5px 0 0 24px">If unchecked, your clinic details remain on your doctor profile but won't appear as a separate public listing.</p></div>
             </div>
             <p style="font-size:11px;color:var(--muted);margin:4px 0 0">Your clinic details will be saved with your doctor profile in this browser.</p>
           </div>
@@ -1056,10 +1088,12 @@ document.getElementById("doctorForm").addEventListener("submit", (e) => {
     photo: currentPhotoBase64,
     hospital: document.getElementById("docHospital").value === "__OWN_CLINIC__" ? (document.getElementById("ownClinicName").value.trim() || "Own Clinic") : document.getElementById("docHospital").value,
     hospitalType: document.getElementById("docHospital").value === "__OWN_CLINIC__" ? "own" : "listed",
+    publishOwnClinic: document.getElementById("docHospital").value === "__OWN_CLINIC__" && document.getElementById("publishOwnClinic").checked,
     ownClinic: document.getElementById("docHospital").value === "__OWN_CLINIC__" ? {
       name: document.getElementById("ownClinicName").value.trim(), phone: document.getElementById("ownClinicPhone").value.trim(),
-      district: document.getElementById("ownClinicDistrict").value.trim(), pin: document.getElementById("ownClinicPin").value.trim(),
-      address: document.getElementById("ownClinicAddress").value.trim(), photo: localStorage.getItem("aikdoc_own_clinic_photo") || ""
+      district: document.getElementById("ownClinicDistrict").value.trim() || document.getElementById("docDistrict").value, pin: document.getElementById("ownClinicPin").value.trim(),
+      address: document.getElementById("ownClinicAddress").value.trim(), photo: (JSON.parse(localStorage.getItem("aikdoc_own_clinic_photos") || "[]")[0] || localStorage.getItem("aikdoc_own_clinic_photo") || ""),
+      photos: JSON.parse(localStorage.getItem("aikdoc_own_clinic_photos") || "[]")
     } : null,
     address: document.getElementById("docHospital").value === "__OWN_CLINIC__" ? document.getElementById("ownClinicAddress").value.trim() : document.getElementById("docAddress").value.trim(),
     timings: document.getElementById("docTimings").value.trim(),
@@ -1067,7 +1101,8 @@ document.getElementById("doctorForm").addEventListener("submit", (e) => {
     about: document.getElementById("docAbout").value.trim(),
     quickSlots: morningArr.concat(eveningArr).slice(0, 3),
     mobile: sessionUser.mobile || "9876543210",
-    email: sessionUser.email || "doctor@aikdoc.in"
+    email: sessionUser.email || "doctor@aikdoc.in",
+    adminCanViewLogin: sessionUser.adminCanViewLogin === true || getMasterDoctors().some(d => ((sessionUser.id != null && String(d.id) === String(sessionUser.id)) || (sessionUser.mobile && d.mobile === sessionUser.mobile) || (sessionUser.email && d.email && d.email.toLowerCase() === sessionUser.email.toLowerCase())) && d.adminCanViewLogin === true)
   };
 
   let masterDocs = getMasterDoctors();
@@ -1085,6 +1120,21 @@ document.getElementById("doctorForm").addEventListener("submit", (e) => {
     masterDocs.unshift(docProfile);
   }
 
+  // Publish/unpublish the doctor's own clinic as a separate listing in the shared Hospitals / Clinics directory.
+  let masterHospitals = getMasterHospitals();
+  masterHospitals = masterHospitals.filter(h => String(h.ownClinicDoctorId || "") !== String(docProfile.id));
+  if (docProfile.publishOwnClinic && docProfile.ownClinic) {
+    const clinicPhotos = (docProfile.ownClinic.photos && docProfile.ownClinic.photos.length) ? docProfile.ownClinic.photos : (docProfile.ownClinic.photo ? [docProfile.ownClinic.photo] : []);
+    masterHospitals.push({
+      id: Number(String(docProfile.id).replace(/\D/g, "").slice(-12)) || Date.now(), ownClinicDoctorId: docProfile.id, type: "clinic",
+      name: docProfile.ownClinic.name, district: docProfile.ownClinic.district || docProfile.district || "Patna", beds: "Clinic",
+      phone: docProfile.ownClinic.phone || docProfile.mobile || "", emergency: "Contact clinic", address: docProfile.ownClinic.address,
+      facilities: ["Doctor consultation"], photo: clinicPhotos[0] || "https://images.unsplash.com/photo-1629909613654-28e377c37b09?auto=format&fit=crop&w=700&q=80",
+      photos: clinicPhotos.length ? clinicPhotos : ["https://images.unsplash.com/photo-1629909613654-28e377c37b09?auto=format&fit=crop&w=700&q=80"],
+      about: "Doctor-owned clinic published by its registered practitioner."
+    });
+  }
+  localStorage.setItem("aikdoc_master_hospitals", JSON.stringify(masterHospitals));
   localStorage.setItem("aikdoc_master_doctors", JSON.stringify(masterDocs));
   localStorage.setItem("aikdoc_last_sync", Date.now().toString());
 
@@ -1383,7 +1433,10 @@ function loadDoctorProfileFromMaster(sessionUser) {
         document.getElementById("ownClinicDistrict").value = c.district || doc.district || "";
         document.getElementById("ownClinicPin").value = c.pin || "";
         document.getElementById("ownClinicAddress").value = c.address || doc.address || "";
-        if (c.photo) { localStorage.setItem("aikdoc_own_clinic_photo", c.photo); const im=document.getElementById("ownClinicPhotoPreview"); im.src=c.photo; im.style.display="block"; }
+        if (c.photo) localStorage.setItem("aikdoc_own_clinic_photo", c.photo);
+        if (c.photos && c.photos.length) localStorage.setItem("aikdoc_own_clinic_photos", JSON.stringify(c.photos));
+        document.getElementById("publishOwnClinic").checked = doc.publishOwnClinic === true;
+        if (typeof renderOwnClinicPhotoGallery === "function") renderOwnClinicPhotoGallery();
       } else if (doc.hospital) document.getElementById("docHospital").value = doc.hospital;
       document.getElementById("docAddress").value = doc.address || "Bailey Road, Patna";
       if (typeof toggleOwnClinicFields === "function") toggleOwnClinicFields();
@@ -1555,7 +1608,44 @@ function toggleOwnClinicFields(){
 document.getElementById('docHospital').addEventListener('change',()=>{toggleOwnClinicFields();if(document.getElementById('docHospital').value==='__OWN_CLINIC__'){document.getElementById('docAddress').value=document.getElementById('ownClinicAddress').value;} });
 toggleOwnClinicFields();
 ['ownClinicName','ownClinicAddress','ownClinicDistrict','ownClinicPin','ownClinicPhone'].forEach(id=>document.getElementById(id).addEventListener('input',()=>{if(document.getElementById('docHospital').value==='__OWN_CLINIC__'){document.getElementById('docAddress').value=document.getElementById('ownClinicAddress').value;if(typeof updatePreview==='function')updatePreview();}}));
-document.getElementById('ownClinicPhoto').addEventListener('change',function(){const f=this.files&&this.files[0];if(!f)return;if(!f.type.startsWith('image/')){showToast('Please choose an image file.');return;}if(f.size>2*1024*1024){showToast('Please choose an image under 2 MB.');this.value='';return;}const reader=new FileReader();reader.onload=()=>{localStorage.setItem('aikdoc_own_clinic_photo',reader.result);const im=document.getElementById('ownClinicPhotoPreview');im.src=reader.result;im.style.display='block';if(typeof updatePreview==='function')updatePreview();};reader.readAsDataURL(f);});
+function renderOwnClinicPhotoGallery(){const box=document.getElementById('ownClinicPhotoGallery');if(!box)return;const photos=JSON.parse(localStorage.getItem('aikdoc_own_clinic_photos')||'[]');box.innerHTML=photos.map((src,i)=>`<div style="position:relative"><img src="${src}" alt="Clinic photo ${i+1}" style="width:82px;height:66px;object-fit:cover;border-radius:8px;border:1px solid var(--line)"><button type="button" aria-label="Remove photo" onclick="removeOwnClinicPhoto(${i})" style="position:absolute;right:-5px;top:-5px;border:0;border-radius:50%;width:20px;height:20px;background:#b42318;color:white;cursor:pointer">×</button></div>`).join('');}
+window.removeOwnClinicPhoto=function(i){const photos=JSON.parse(localStorage.getItem('aikdoc_own_clinic_photos')||'[]');photos.splice(i,1);localStorage.setItem('aikdoc_own_clinic_photos',JSON.stringify(photos));localStorage.setItem('aikdoc_own_clinic_photo',photos[0]||'');renderOwnClinicPhotoGallery();if(typeof updatePreview==='function')updatePreview();};
+document.getElementById('ownClinicPhoto').addEventListener('change',async function(){const files=Array.from(this.files||[]);let photos=JSON.parse(localStorage.getItem('aikdoc_own_clinic_photos')||'[]');for(const f of files){if(photos.length>=8){showToast('Maximum 8 clinic photos.');break;}if(!f.type.startsWith('image/')){showToast('Please choose image files only.');continue;}if(f.size>2*1024*1024){showToast('Each photo must be under 2 MB.');continue;}try{const data=await new Promise((resolve,reject)=>{const r=new FileReader();r.onerror=reject;r.onload=()=>{const im=new Image();im.onerror=reject;im.onload=()=>{const scale=Math.min(1,1000/im.width);const c=document.createElement('canvas');c.width=Math.round(im.width*scale);c.height=Math.round(im.height*scale);c.getContext('2d').drawImage(im,0,0,c.width,c.height);resolve(c.toDataURL('image/jpeg',0.72));};im.src=r.result;};r.readAsDataURL(f)});photos.push(data);}catch(e){showToast('Could not read '+f.name);}}localStorage.setItem('aikdoc_own_clinic_photos',JSON.stringify(photos));localStorage.setItem('aikdoc_own_clinic_photo',photos[0]||'');this.value='';renderOwnClinicPhotoGallery();if(typeof updatePreview==='function')updatePreview();});
+renderOwnClinicPhotoGallery();
+
+// Doctor-controlled consent: the doctor explicitly chooses whether admin can view login credentials, including the password.
+(function initCredentialVisibilityPreference(){
+ const shareBtn=document.getElementById('shareLoginIdBtn');
+ const hideBtn=document.getElementById('hideLoginIdBtn');
+ const statusEl=document.getElementById('credentialPreferenceStatus');
+ if(!shareBtn||!hideBtn||!statusEl)return;
+ function currentDoctor(){return JSON.parse(localStorage.getItem('aikdoc_doctor_session')||'null');}
+ function matches(d,u){return !!(d&&u&&((u.id!=null&&String(d.id)===String(u.id))||(u.mobile&&d.mobile===u.mobile)||(u.email&&d.email&&d.email.toLowerCase()===u.email.toLowerCase())));}
+ function setStatus(allowed){statusEl.textContent=allowed?'Sharing is on — admin can view your email, mobile, and password.':'Private — admin will see that you have hidden your login details.';shareBtn.disabled=allowed;hideBtn.disabled=!allowed;shareBtn.setAttribute('aria-pressed',String(allowed));hideBtn.setAttribute('aria-pressed',String(!allowed));}
+ function persist(allowed){
+   const user=currentDoctor(); if(!user){statusEl.textContent='Please sign in to update this setting.';return;}
+   const docs=JSON.parse(localStorage.getItem('aikdoc_master_doctors')||'[]');
+   const accounts=JSON.parse(localStorage.getItem('aikdoc_doctor_accounts')||'[]');
+   let found=false;
+   docs.forEach(d=>{if(matches(d,user)){d.adminCanViewLogin=allowed;d.loginVisibilityUpdatedAt=Date.now();found=true;}});
+   accounts.forEach(a=>{if(matches(a,user)){a.adminCanViewLogin=allowed;a.loginVisibilityUpdatedAt=Date.now();}});
+   user.adminCanViewLogin=allowed;
+   localStorage.setItem('aikdoc_master_doctors',JSON.stringify(docs));
+   localStorage.setItem('aikdoc_doctor_accounts',JSON.stringify(accounts));
+   localStorage.setItem('aikdoc_doctor_session',JSON.stringify(user));
+   localStorage.setItem('aikdoc_last_sync',Date.now().toString());
+   setStatus(allowed);
+   if(typeof showToast==='function')showToast(allowed?'Your login credentials are now visible to the admin.':'Your login credentials are now hidden from the admin.');
+   if(!found)statusEl.textContent=allowed?'Sharing preference saved in this session; profile sync pending.':'Hide preference saved in this session; profile sync pending.';
+ }
+ const user=currentDoctor();
+ const docs=JSON.parse(localStorage.getItem('aikdoc_master_doctors')||'[]');
+ const saved=docs.find(d=>matches(d,user));
+ const allowed=(saved&&saved.adminCanViewLogin===true)||(user&&user.adminCanViewLogin===true);
+ setStatus(allowed);
+ shareBtn.addEventListener('click',()=>persist(true));
+ hideBtn.addEventListener('click',()=>persist(false));
+})();
 </script>
 
 </body>
