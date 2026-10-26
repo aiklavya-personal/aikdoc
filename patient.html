@@ -2289,11 +2289,9 @@ function checkDoctorLiveUpdates() {
       openReviewModal(completedUnreviewed);
     }
 
-    const cancelledByDoc = appts.find(a => a.phone === activePhone && a.status === "Cancelled" && a.cancelledBy === "Doctor" && !a.patientNotifiedCancel);
+    const cancelledByDoc = appts.find(a => normalizePatientPhone(a.phone) === normalizePatientPhone(activePhone) && a.status === "Cancelled" && a.cancelledBy === "Doctor" && !a.patientDismissedCancellationNotice);
     if (cancelledByDoc) {
-      cancelledByDoc.patientNotifiedCancel = true;
-      safeSetJSON("aikdoc_appointments", appts);
-      showToast(`⚠️ Your appointment with ${cancelledByDoc.doctorName} was cancelled by the doctor.`);
+      openDoctorCancellationNotice(cancelledByDoc);
     }
   }
 
@@ -3461,7 +3459,7 @@ renderDoctorGrid();
 checkPatientSession();
 checkDoctorLiveUpdates();
 changeLanguage(currentLang);
-setTimeout(()=>{const x=safeGetJSON('aikdoc_appointments',[]).find(v=>v.status==='Cancelled'&&v.cancelledBy==='Doctor'&&!v.patientDismissedCancellationNotice);if(x)openDoctorCancellationNotice(x);},350);
+setTimeout(()=>{const session=safeGetJSON('aikdoc_patient_session',null);if(!session||!session.phone)return;const x=safeGetJSON('aikdoc_appointments',[]).find(v=>normalizePatientPhone(v.phone)===normalizePatientPhone(session.phone)&&v.status==='Cancelled'&&v.cancelledBy==='Doctor'&&!v.patientDismissedCancellationNotice);if(x)openDoctorCancellationNotice(x);},350);
 
 if(location.hash && location.hash.startsWith("#page-") && location.hash !== "#page-home"){
   setPage(location.hash.replace("#page-", ""));
