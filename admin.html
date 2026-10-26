@@ -1433,7 +1433,7 @@ function renderBookingsTable(appts, docs) {
 
   const tbody = document.querySelector("#allBookingsTable tbody");
   if (filtered.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:26px;color:var(--muted)">No bookings match criteria.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:26px;color:var(--muted)">No bookings match criteria.</td></tr>`;
     return;
   }
 
