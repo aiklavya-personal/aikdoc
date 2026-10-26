@@ -1437,6 +1437,17 @@ body.theme-dark select.chip{background:#172236;color:#f1f5f9}
   </div>
 </div>
 
+<!-- AIKDOC website cancellation modals -->
+<div class="modal-backdrop" id="patientCancelModal"><div class="modal" style="width:min(100%,460px)">
+<div class="modal-header"><h2>Cancel Appointment</h2><button class="close" type="button" onclick="closePatientCancelModal()">×</button></div>
+<p id="patientCancelApptInfo" style="font-size:13px;color:var(--muted);margin:0 0 14px"></p><label for="patientCancelReason" style="display:block;font-size:12px;font-weight:800;margin-bottom:6px">Why are you cancelling? *</label>
+<select id="patientCancelReason" style="width:100%;padding:11px;border:1.5px solid var(--line);border-radius:10px;background:var(--input-bg);color:var(--ink);margin-bottom:12px"><option value="">Select a reason</option><option>Personal reasons</option><option>Scheduling conflict</option><option>Found another doctor</option><option>No longer need the appointment</option><option>Booked by mistake</option><option>Other</option></select>
+<div id="patientCancelOtherWrap" style="display:none;margin-bottom:12px"><label for="patientCancelOther">Please explain *</label><textarea id="patientCancelOther" rows="3" maxlength="500" style="width:100%;padding:10px;border:1.5px solid var(--line);border-radius:10px;background:var(--input-bg);color:var(--ink)" placeholder="Enter your reason"></textarea></div>
+<div style="display:flex;gap:8px;justify-content:flex-end"><button type="button" class="navbtn" onclick="closePatientCancelModal()">Keep Appointment</button><button type="button" class="primary" style="background:var(--danger)" onclick="submitPatientCancellation()">Confirm Cancellation</button></div></div></div>
+<div class="modal-backdrop" id="doctorCancellationNotice"><div class="modal" style="width:min(100%,460px)">
+<div class="modal-header"><h2>Appointment Cancelled by Doctor</h2><button class="close" type="button" onclick="closeDoctorCancellationNotice()">×</button></div>
+<p id="doctorCancellationNoticeInfo" style="margin:0 0 12px;line-height:1.6"></p><div style="padding:12px;background:var(--input-bg);border:1px solid var(--line);border-radius:10px;margin-bottom:10px"><div style="font-size:11px;font-weight:800;color:var(--muted);margin-bottom:5px">REASON PROVIDED</div><div id="doctorCancellationNoticeReason" style="font-weight:650;line-height:1.6;overflow-wrap:anywhere"></div></div>
+<div id="doctorCancellationNoticeWhen" style="font-size:11px;color:var(--muted);margin-bottom:14px"></div><button type="button" class="primary" style="width:100%" onclick="closeDoctorCancellationNotice()">Got it</button></div></div>
 <!-- 4. Review Modal -->
 <div class="modal-backdrop" id="reviewModalBackdrop">
   <div class="modal" style="width:min(100%,460px)">
@@ -3306,33 +3317,39 @@ function renderAppointmentsList() {
   `).join("");
 }
 
+let patientCancelSelectedToken=null;
 function cancelAppointment(token){
-  const reasons = ["Personal reasons","Scheduling conflict","Found another doctor","No longer need the appointment","Booked by mistake","Other"];
-  const choice = prompt("Please select a cancellation reason by number:\n1. Personal reasons\n2. Scheduling conflict\n3. Found another doctor\n4. No longer need the appointment\n5. Booked by mistake\n6. Other");
-  if (choice === null) return;
-  const index = Number(choice) - 1;
-  if (!Number.isInteger(index) || index < 0 || index >= reasons.length) { showToast("Please enter a number from 1 to 6."); return; }
-  let reason = reasons[index];
-  if (reason === "Other") {
-    reason = prompt("Please enter your cancellation reason:");
-    if (reason === null) return;
-    reason = reason.trim();
-    if (!reason) { showToast("A cancellation reason is required."); return; }
-  }
-  if (!confirm("Cancel this appointment?\nReason: " + reason)) return;
-  let appts = safeGetJSON("aikdoc_appointments", []);
-  const t = appts.find(x => x.token === token);
-  if (t && (t.status === "Confirmed" || !t.status)) {
-    t.status = "Cancelled";
-    t.cancelledBy = "Patient";
-    t.cancellationReason = reason;
-    t.cancelledAt = new Date().toISOString();
-    safeSetJSON("aikdoc_appointments", appts);
-    localStorage.setItem("aikdoc_last_sync", Date.now().toString());
-    renderAppointmentsList();
-    updateAppointmentBadge();
-    showToast("Appointment cancelled. Reason saved.");
-  }
+ const appts=safeGetJSON("aikdoc_appointments",[]),appt=appts.find(x=>x.token===token);
+ if(!appt||(appt.status&&appt.status!=="Confirmed"))return;
+ patientCancelSelectedToken=token;
+ document.getElementById("patientCancelReason").value="";document.getElementById("patientCancelOther").value="";
+ document.getElementById("patientCancelOtherWrap").style.display="none";
+ document.getElementById("patientCancelReason").onchange=e=>document.getElementById("patientCancelOtherWrap").style.display=e.target.value==="Other"?"block":"none";
+ document.getElementById("patientCancelApptInfo").textContent="Appointment "+token+" with "+(appt.doctorName||"your doctor");
+ document.getElementById("patientCancelModal").classList.add("show");
+}
+function closePatientCancelModal(){document.getElementById("patientCancelModal").classList.remove("show");patientCancelSelectedToken=null;}
+function submitPatientCancellation(){
+ if(!patientCancelSelectedToken)return;const choice=document.getElementById("patientCancelReason").value;
+ const reason=choice==="Other"?document.getElementById("patientCancelOther").value.trim():choice;
+ if(!choice){showToast("Please select a cancellation reason.");return;}if(!reason){showToast("Please explain your reason.");return;}
+ const token=patientCancelSelectedToken,appts=safeGetJSON("aikdoc_appointments",[]),target=appts.find(x=>x.token===token);
+ if(!target||(target.status&&target.status!=="Confirmed")){closePatientCancelModal();showToast("This appointment can no longer be cancelled.");return;}
+ target.status="Cancelled";target.cancelledBy="Patient";target.cancellationReason=reason;target.cancelledAt=new Date().toISOString();
+ safeSetJSON("aikdoc_appointments",appts);localStorage.setItem("aikdoc_last_sync",Date.now().toString());
+ closePatientCancelModal();renderAppointmentsList();updateAppointmentBadge();showToast("Appointment cancelled. Reason saved.");
+}
+function openDoctorCancellationNotice(appt){
+ if(!appt)return;
+ document.getElementById("doctorCancellationNoticeInfo").textContent=(appt.doctorName||"Your doctor")+" cancelled appointment "+appt.token+".";
+ document.getElementById("doctorCancellationNoticeReason").textContent=appt.cancellationReason||"The doctor did not provide a reason.";
+ document.getElementById("doctorCancellationNoticeWhen").textContent=appt.cancelledAt?new Date(appt.cancelledAt).toLocaleString():"";
+ document.getElementById("doctorCancellationNotice").classList.add("show");
+}
+function closeDoctorCancellationNotice(){
+ document.getElementById("doctorCancellationNotice").classList.remove("show");
+ const appts=safeGetJSON("aikdoc_appointments",[]),pending=appts.find(x=>x.status==="Cancelled"&&x.cancelledBy==="Doctor"&&!x.patientDismissedCancellationNotice);
+ if(pending){pending.patientDismissedCancellationNotice=true;safeSetJSON("aikdoc_appointments",appts);}
 }
 
 // Review Modals
@@ -3424,8 +3441,9 @@ window.addEventListener("storage", (e) => {
     renderHomeSpecialties(homeAgeGroup);
   }
   if (e.key === "aikdoc_appointments") {
-    checkDoctorLiveUpdates();
-    renderAppointmentsList();
+    checkDoctorLiveUpdates(); renderAppointmentsList();
+    const pending=safeGetJSON("aikdoc_appointments",[]).find(x=>x.status==="Cancelled"&&x.cancelledBy==="Doctor"&&!x.patientDismissedCancellationNotice);
+    if(pending)openDoctorCancellationNotice(pending);
   }
 });
 
@@ -3443,6 +3461,7 @@ renderDoctorGrid();
 checkPatientSession();
 checkDoctorLiveUpdates();
 changeLanguage(currentLang);
+setTimeout(()=>{const x=safeGetJSON('aikdoc_appointments',[]).find(v=>v.status==='Cancelled'&&v.cancelledBy==='Doctor'&&!v.patientDismissedCancellationNotice);if(x)openDoctorCancellationNotice(x);},350);
 
 if(location.hash && location.hash.startsWith("#page-") && location.hash !== "#page-home"){
   setPage(location.hash.replace("#page-", ""));

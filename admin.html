@@ -483,7 +483,7 @@ tr:hover td{background:#f7faff}
         <div class="table-responsive">
           <table id="allBookingsTable">
             <thead>
-              <tr><th>Token</th><th>Patient</th><th>Doctor & Speciality</th><th>Hospital / Venue</th><th>Date & Time</th><th>Fee & Channel</th><th>Status</th><th style="text-align:right">Action</th></tr>
+              <tr><th>Token</th><th>Patient</th><th>Doctor & Speciality</th><th>Hospital / Venue</th><th>Date & Time</th><th>Fee & Channel</th><th>Status</th><th>Cancellation Details</th><th style="text-align:right">Action</th></tr>
             </thead>
             <tbody></tbody>
           </table>
@@ -1364,6 +1364,7 @@ function renderPatientModalList() {
         <div>🗓 <strong>${a.date} at ${a.time}</strong> (${a.mode})</div>
         <div>🏷 Token: <code style="color:var(--blue);font-weight:800">${a.token}</code> · Fee: <strong>₹${a.fee}</strong> (${a.paymentStatus})</div>
       </div>
+      ${a.status === "Cancelled" ? `<div style="padding:10px 12px;border:1px solid #fecaca;background:#fff7f7;border-radius:9px;margin:8px 0;font-size:12px;line-height:1.6;overflow-wrap:anywhere"><strong>Cancellation reason:</strong> ${a.cancellationReason || "Not recorded"}<br><strong>Cancelled by:</strong> ${a.cancelledBy || "Unknown"}<br><strong>Cancelled at:</strong> ${a.cancelledAt ? new Date(a.cancelledAt).toLocaleString() : "Not recorded"}</div>` : ""}
       <div style="display:flex;justify-content:flex-end">
         <button class="btn-action delete" type="button" onclick="deleteBookingFromPatientModal('${a.token}')">Delete Appointment</button>
       </div>
@@ -1445,6 +1446,7 @@ function renderBookingsTable(appts, docs) {
       <td>${a.date} at ${a.time}<br><small style="color:var(--muted)">${a.mode}</small></td>
       <td><strong>₹${a.fee}</strong><br><small style="color:var(--muted)">${a.paymentMethod || 'Online / UPI'}</small></td>
       <td><span class="tag-pill ${a.status === 'Completed' ? 'tag-completed' : a.status === 'Cancelled' ? 'tag-cancelled' : 'tag-confirmed'}">${a.status || 'Confirmed'} ${a.cancelledBy ? `(${a.cancelledBy})` : ''}</span></td>
+      <td>${a.status === "Cancelled" ? `<div style="min-width:180px;max-width:280px;white-space:normal;line-height:1.5"><strong>Reason:</strong> ${a.cancellationReason || "Not recorded"}<br><strong>Cancelled by:</strong> ${a.cancelledBy || "Unknown"}<br><strong>At:</strong> ${a.cancelledAt ? new Date(a.cancelledAt).toLocaleString() : "Not recorded"}</div>` : "—"}</td>
       <td style="text-align:right">
         <button class="btn-action delete" type="button" onclick="deleteBooking('${a.token}')">Delete</button>
       </td>

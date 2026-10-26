@@ -1371,34 +1371,29 @@ function loadAllDoctorData() {
 }
 
 // Doctor updates status: Done or Cancelled
-window.doctorSetStatus = function(token, newStatus) {
-  let appts = JSON.parse(localStorage.getItem("aikdoc_appointments") || "[]");
-  const target = appts.find(a => a.token === token);
-  if (!target) return;
-  if (newStatus === "Cancelled") {
-    const reasons = ["Unavailable at the scheduled time","Emergency or unforeseen circumstances","Scheduling conflict","Clinic or consultation unavailable","Other"];
-    const choice = prompt("Please select a cancellation reason by number:\n1. Unavailable at the scheduled time\n2. Emergency or unforeseen circumstances\n3. Scheduling conflict\n4. Clinic or consultation unavailable\n5. Other");
-    if (choice === null) return;
-    const index = Number(choice) - 1;
-    if (!Number.isInteger(index) || index < 0 || index >= reasons.length) { showToast("Please enter a number from 1 to 5."); return; }
-    let reason = reasons[index];
-    if (reason === "Other") {
-      reason = prompt("Please enter your cancellation reason:");
-      if (reason === null) return;
-      reason = reason.trim();
-      if (!reason) { showToast("A cancellation reason is required."); return; }
-    }
-    if (!confirm("Cancel appointment " + token + "?\nReason: " + reason)) return;
-    target.cancellationReason = reason;
-    target.cancelledAt = new Date().toISOString();
-    target.cancelledBy = "Doctor";
-  }
-  target.status = newStatus;
-  target.lastUpdated = Date.now();
-  localStorage.setItem("aikdoc_appointments", JSON.stringify(appts));
-  localStorage.setItem("aikdoc_last_sync", Date.now().toString());
-  showToast(`Appointment ${token} marked as ${newStatus}.`);
-  loadAllDoctorData();
+let doctorCancelSelectedToken=null;
+window.doctorSetStatus=function(token,newStatus){
+ const appts=JSON.parse(localStorage.getItem("aikdoc_appointments")||"[]"),target=appts.find(x=>x.token===token);if(!target)return;
+ if(newStatus==="Cancelled"){
+  doctorCancelSelectedToken=token;document.getElementById("doctorCancelReason").value="";document.getElementById("doctorCancelOther").value="";
+  document.getElementById("doctorCancelOtherWrap").style.display="none";
+  document.getElementById("doctorCancelReason").onchange=e=>document.getElementById("doctorCancelOtherWrap").style.display=e.target.value==="Other"?"block":"none";
+  document.getElementById("doctorCancelApptInfo").textContent="Appointment "+token+" for "+(target.patientName||"your patient");
+  document.getElementById("doctorCancelModal").classList.add("show");return;
+ }
+ target.status=newStatus;target.lastUpdated=Date.now();localStorage.setItem("aikdoc_appointments",JSON.stringify(appts));localStorage.setItem("aikdoc_last_sync",Date.now().toString());
+ showToast("Appointment "+token+" marked as "+newStatus+".");loadAllDoctorData();
+};
+function closeDoctorCancelModal(){document.getElementById("doctorCancelModal").classList.remove("show");doctorCancelSelectedToken=null;}
+function submitDoctorCancellation(){
+ if(!doctorCancelSelectedToken)return;const choice=document.getElementById("doctorCancelReason").value;
+ const reason=choice==="Other"?document.getElementById("doctorCancelOther").value.trim():choice;
+ if(!choice){showToast("Please select a cancellation reason.");return;}if(!reason){showToast("Please explain the cancellation reason.");return;}
+ const appts=JSON.parse(localStorage.getItem("aikdoc_appointments")||"[]"),target=appts.find(x=>x.token===doctorCancelSelectedToken);
+ if(!target||(target.status&&target.status!=="Confirmed")){closeDoctorCancelModal();showToast("This appointment can no longer be cancelled.");return;}
+ target.status="Cancelled";target.cancellationReason=reason;target.cancelledAt=new Date().toISOString();target.cancelledBy="Doctor";target.lastUpdated=Date.now();target.patientDismissedCancellationNotice=false;
+ localStorage.setItem("aikdoc_appointments",JSON.stringify(appts));localStorage.setItem("aikdoc_last_sync",Date.now().toString());
+ const token=doctorCancelSelectedToken;closeDoctorCancelModal();showToast("Appointment "+token+" cancelled.");loadAllDoctorData();
 };
 
 // Storage event listener (syncs across tabs in real-time)
@@ -1662,6 +1657,13 @@ renderOwnClinicPhotoGallery();
 })();
 </script>
 
+<!-- AIKDOC website-style doctor cancellation modal -->
+<div class="modal-backdrop" id="doctorCancelModal"><div class="modal" style="width:min(100%,460px)">
+<div class="modal-header"><h2>Cancel Appointment</h2><button class="close" type="button" onclick="closeDoctorCancelModal()">×</button></div>
+<p id="doctorCancelApptInfo" style="font-size:13px;color:var(--muted);margin:0 0 14px"></p><label for="doctorCancelReason" style="display:block;font-size:12px;font-weight:800;margin-bottom:6px">Reason for cancelling *</label>
+<select id="doctorCancelReason" style="width:100%;padding:11px;border:1.5px solid var(--line);border-radius:10px;background:var(--input-bg);color:var(--ink);margin-bottom:12px"><option value="">Select a reason</option><option>Unavailable at the scheduled time</option><option>Emergency or unforeseen circumstances</option><option>Scheduling conflict</option><option>Clinic or consultation unavailable</option><option>Other</option></select>
+<div id="doctorCancelOtherWrap" style="display:none;margin-bottom:12px"><label for="doctorCancelOther">Please explain *</label><textarea id="doctorCancelOther" rows="3" maxlength="500" style="width:100%;padding:10px;border:1.5px solid var(--line);border-radius:10px;background:var(--input-bg);color:var(--ink)" placeholder="Enter the reason for the patient"></textarea></div>
+<div style="display:flex;gap:8px;justify-content:flex-end"><button type="button" class="navbtn" onclick="closeDoctorCancelModal()">Keep Appointment</button><button type="button" class="primary" style="background:var(--danger)" onclick="submitDoctorCancellation()">Confirm Cancellation</button></div></div></div>
 <!-- AIKDOC Instant Help (FAQ prototype; real AI requires a secure backend) -->
 <style>
 .aikhelp-launch{position:fixed;right:20px;bottom:20px;z-index:9998;border:0;border-radius:999px;background:#087f8c;color:#fff;padding:13px 18px;font-weight:800;box-shadow:0 8px 28px #0003;cursor:pointer}
