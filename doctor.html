@@ -202,6 +202,34 @@ tr:hover td{background:#fafcff}
   .fp-top{flex-direction:column;text-align:center}
   .fp-badges{justify-content:center}
 }
+
+/* Doctor preferences: robust dark theme overrides for hard-coded light surfaces */
+body.dark-mode{--ink:#e7edf7;--muted:#a7b4c8;--line:#33445d;--bg:#101827;--white:#172235;--navy:#d8e7ff;color:var(--ink);background:#101827;color-scheme:dark}
+body.dark-mode .topbar,body.dark-mode .portal-card,body.dark-mode .auth-box,body.dark-mode .doctor-card-preview,body.dark-mode .appointment-item-card,body.dark-mode .subtab-btn,body.dark-mode .doctor-profile-pill,body.dark-mode .panel-card,body.dark-mode .modal,body.dark-mode .fp-modal{background:#172235!important;color:#e7edf7!important;border-color:#33445d!important}
+body.dark-mode .container,body.dark-mode main,body.dark-mode .auth-wrapper,body.dark-mode .portal-grid,body.dark-mode .own-clinic-box{background:#101827!important;color:#e7edf7}
+body.dark-mode .auth-wrapper{background:radial-gradient(circle at 80% 20%,#193b42 0,transparent 40%),linear-gradient(135deg,#101827,#111c2d 60%)!important}
+body.dark-mode .form-field input,body.dark-mode .form-field select,body.dark-mode .form-field textarea,body.dark-mode input,body.dark-mode select,body.dark-mode textarea{background:#101827!important;color:#e7edf7!important;border-color:#42536d!important;color-scheme:dark}
+body.dark-mode .form-field label,body.dark-mode .card-title,body.dark-mode .doc-pill-name,body.dark-mode .appt-patient-name,body.dark-mode .appt-details-grid strong,body.dark-mode .checkbox-item,body.dark-mode h1,body.dark-mode h2,body.dark-mode h3,body.dark-mode h4,body.dark-mode p,body.dark-mode label,body.dark-mode .brand,body.dark-mode .entity-title,body.dark-mode .entity-sub,body.dark-mode .card-sub{color:#e7edf7}
+body.dark-mode .slots-config-box,body.dark-mode .upload-card,body.dark-mode .preview-slots,body.dark-mode .appt-details-grid,body.dark-mode .auth-nav,body.dark-mode .fp-note,body.dark-mode .fp-profile,body.dark-mode .fp-hosp,body.dark-mode .fp-reviews{background:#1c2a40!important;border-color:#33445d!important;color:#e7edf7!important}
+body.dark-mode .tab-btn,body.dark-mode .btn-logout-icon,body.dark-mode .muted,body.dark-mode small{color:#a7b4c8}
+body.dark-mode .tab-btn:hover,body.dark-mode .tab-btn.active,body.dark-mode .auth-nav-btn.active{background:#233a5a!important;color:#cfe2ff!important;border-color:#425c80!important}
+body.dark-mode .auth-nav-btn,body.dark-mode .pref-control{background:#1c2a40!important;color:#e7edf7!important;border-color:#42536d!important}
+body.dark-mode table,body.dark-mode th,body.dark-mode td,body.dark-mode .fp-rev{background:#172235;color:#e7edf7;border-color:#33445d}
+body.dark-mode .preview-pill{background:#233a5a;color:#d8e7ff}
+body.dark-mode .btn-view-patient{background:#1c2a40;color:#cfe2ff;border-color:#42536d}
+body.dark-mode .badge-preview{background:#174538;color:#a7f3d0}
+body.dark-mode .own-clinic-box{background:#172235!important}
+.doctor-banned-screen{position:fixed;inset:0;z-index:9999;background:#f3f6fb;display:flex;align-items:center;justify-content:center;padding:24px;font-family:Inter,ui-sans-serif,system-ui,sans-serif}
+.doctor-banned-card{width:min(100%,480px);padding:38px 30px;text-align:center;border:1px solid #e2e8f0;border-radius:22px;background:#fff;box-shadow:0 20px 70px #102b4d20}
+.doctor-banned-icon{font-size:46px;margin-bottom:10px}.doctor-banned-card h1{margin:0 0 12px;color:#b91c1c;font-size:27px}.doctor-banned-card p{color:#24364b;line-height:1.6}.doctor-banned-card .doctor-banned-sub{font-size:13px;color:#64748b;margin:10px 0 22px}
+body.dark-mode .doctor-banned-screen{background:#101827}.dark-mode .doctor-banned-card{background:#172235;border-color:#33445d}.dark-mode .doctor-banned-card p{color:#e7edf7}
+.preferences{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.pref-control{border:1px solid var(--line);border-radius:9px;padding:7px 9px;background:#fff;color:var(--ink);font-size:12px;font-weight:700}
+.own-clinic-box{display:none;border:1.5px solid var(--line);background:var(--bg);padding:15px;border-radius:14px;margin:8px 0 14px}
+.own-clinic-box.show{display:block}
+.clinic-photo-preview{max-width:100px;max-height:80px;object-fit:cover;border-radius:9px;display:none;margin-top:8px}
+@media(max-width:760px){.preferences{width:100%;justify-content:flex-end}.nav{gap:10px}}
+
 </style>
 </head>
 <body>
@@ -228,6 +256,12 @@ tr:hover td{background:#fafcff}
     </div>
 
     <div class="header-actions">
+      <div class="preferences" aria-label="Doctor preferences">
+        <button class="pref-control" id="themeToggle" type="button" aria-pressed="false">🌙 Dark mode</button>
+        <select class="pref-control" id="languageSelect" aria-label="Language">
+          <option value="en">English</option><option value="hi">हिन्दी</option><option value="bho">भोजपुरी</option>
+        </select>
+      </div>
       <a class="btn-view-patient" href="patient.html" target="_blank">
         <span>🌐 View Patient Website</span><span style="font-size:11px">↗</span>
       </a>
@@ -404,6 +438,19 @@ tr:hover td{background:#fafcff}
           <div class="form-field full">
             <label for="docHospital">Hospital / Clinic Venue *</label>
             <select id="docHospital" required></select>
+          </div>
+
+          <div class="own-clinic-box form-field full" id="ownClinicBox">
+            <h3 style="margin:0 0 10px;color:var(--navy);font-size:14px">🏥 Your Own Clinic Details</h3>
+            <div class="form-grid">
+              <div class="form-field"><label for="ownClinicName">Clinic Name *</label><input id="ownClinicName" placeholder="e.g. Sinha Clinic"></div>
+              <div class="form-field"><label for="ownClinicPhone">Clinic Phone</label><input id="ownClinicPhone" type="tel" placeholder="Clinic contact number"></div>
+              <div class="form-field"><label for="ownClinicDistrict">District / City</label><input id="ownClinicDistrict" placeholder="District or city"></div>
+              <div class="form-field"><label for="ownClinicPin">PIN Code</label><input id="ownClinicPin" inputmode="numeric" maxlength="6" placeholder="6-digit PIN code"></div>
+              <div class="form-field full"><label for="ownClinicAddress">Full Clinic Address *</label><textarea id="ownClinicAddress" rows="2" placeholder="Building, street, landmark, district"></textarea></div>
+              <div class="form-field full"><label for="ownClinicPhoto">Clinic Photo / Logo</label><input id="ownClinicPhoto" type="file" accept="image/*"><img id="ownClinicPhotoPreview" class="clinic-photo-preview" alt="Clinic photo preview"></div>
+            </div>
+            <p style="font-size:11px;color:var(--muted);margin:4px 0 0">Your clinic details will be saved with your doctor profile in this browser.</p>
           </div>
 
           <div class="form-field full">
@@ -613,6 +660,9 @@ tr:hover td{background:#fafcff}
   </div>
 </div>
 
+<section id="doctorBannedScreen" class="doctor-banned-screen" style="display:none" role="alert" aria-live="assertive">
+  <div class="doctor-banned-card"><div class="doctor-banned-icon">⛔</div><h1>Access Restricted</h1><p>You have been banned by the admin.</p><p class="doctor-banned-sub">Your AIKDOC doctor account is currently suspended. Please contact the AIKDOC administration team for further assistance.</p><button type="button" class="primary-btn" onclick="doctorBannedLogout()">Back to Login</button></div>
+</section>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -646,6 +696,7 @@ function populateSpecialityDatalists() {
   } else {
     hospSelect.innerHTML = `<option value="AIKDOC Central Medical Centre">AIKDOC Central Medical Centre</option>`;
   }
+  if (![...hospSelect.options].some(o => o.value === "__OWN_CLINIC__")) hospSelect.insertAdjacentHTML("beforeend", '<option value="__OWN_CLINIC__">＋ Own Clinic / अपना क्लिनिक</option>');
 }
 
 // Auth Session Management
@@ -694,6 +745,31 @@ regPhotoFile.addEventListener("change", (e) => {
   reader.readAsDataURL(file);
 });
 
+function findMasterDoctorForUser(user) {
+  const master = getMasterDoctors();
+  return master.find(d => (user && user.id != null && String(d.id) === String(user.id)) || (user && user.mobile && d.mobile && String(d.mobile) === String(user.mobile)) || (user && user.name && d.name && d.name.toLowerCase() === user.name.toLowerCase()));
+}
+function showDoctorBannedScreen() {
+  const gate = document.getElementById("authGateSection");
+  const dash = document.getElementById("mainDashboardSection");
+  const banned = document.getElementById("doctorBannedScreen");
+  if (gate) gate.style.display = "none";
+  if (dash) dash.style.display = "none";
+  if (navTabsWrap) navTabsWrap.style.display = "none";
+  if (docUserPill) docUserPill.style.display = "none";
+  if (banned) banned.style.display = "flex";
+}
+function doctorBannedLogout() {
+  localStorage.removeItem("aikdoc_doctor_session");
+  const banned = document.getElementById("doctorBannedScreen");
+  if (banned) banned.style.display = "none";
+  showAuthGate();
+}
+function isDoctorBanned(user) {
+  const d = findMasterDoctorForUser(user);
+  return !!(d && (d.banned === true || d.status === "banned"));
+}
+
 function checkAuthSession() {
   const sessionUser = JSON.parse(localStorage.getItem("aikdoc_doctor_session") || "null");
   if (!sessionUser) {
@@ -703,6 +779,13 @@ function checkAuthSession() {
 
   const master = getMasterDoctors();
   const exists = master.some(d => d.name === sessionUser.name || (sessionUser.mobile && d.mobile === sessionUser.mobile));
+
+  if (exists && isDoctorBanned(sessionUser)) {
+    showDoctorBannedScreen();
+    return;
+  }
+  const bannedScreen = document.getElementById("doctorBannedScreen");
+  if (bannedScreen) bannedScreen.style.display = "none";
 
   if (!exists) {
     localStorage.removeItem("aikdoc_doctor_session");
@@ -764,6 +847,11 @@ loginForm.addEventListener("submit", (e) => {
   const stillExists = master.some(d => d.name === user.name || (user.mobile && d.mobile === user.mobile));
   if (!stillExists) {
     showToast("❌ This doctor account has been deleted by administration.");
+    return;
+  }
+  if (isDoctorBanned(user)) {
+    localStorage.setItem("aikdoc_doctor_session", JSON.stringify(user));
+    showDoctorBannedScreen();
     return;
   }
 
@@ -940,6 +1028,11 @@ document.querySelectorAll("#doctorForm input:not([type='file']), #doctorForm sel
 // Save Doctor Profile
 document.getElementById("doctorForm").addEventListener("submit", (e) => {
   e.preventDefault();
+  if (document.getElementById("docHospital").value === "__OWN_CLINIC__") {
+    if (!document.getElementById("ownClinicName").value.trim() || !document.getElementById("ownClinicAddress").value.trim()) {
+      showToast("Please enter your clinic name and full address."); return;
+    }
+  }
   const sessionUser = JSON.parse(localStorage.getItem("aikdoc_doctor_session") || "{}");
   const morningArr = document.getElementById("morningSlots").value.split(",").map(s => s.trim()).filter(Boolean);
   const eveningArr = document.getElementById("eveningSlots").value.split(",").map(s => s.trim()).filter(Boolean);
@@ -961,8 +1054,14 @@ document.getElementById("doctorForm").addEventListener("submit", (e) => {
     experience: document.getElementById("docExp").value.trim(),
     rating: sessionUser.rating || "5.0 ★",
     photo: currentPhotoBase64,
-    hospital: document.getElementById("docHospital").value,
-    address: document.getElementById("docAddress").value.trim(),
+    hospital: document.getElementById("docHospital").value === "__OWN_CLINIC__" ? (document.getElementById("ownClinicName").value.trim() || "Own Clinic") : document.getElementById("docHospital").value,
+    hospitalType: document.getElementById("docHospital").value === "__OWN_CLINIC__" ? "own" : "listed",
+    ownClinic: document.getElementById("docHospital").value === "__OWN_CLINIC__" ? {
+      name: document.getElementById("ownClinicName").value.trim(), phone: document.getElementById("ownClinicPhone").value.trim(),
+      district: document.getElementById("ownClinicDistrict").value.trim(), pin: document.getElementById("ownClinicPin").value.trim(),
+      address: document.getElementById("ownClinicAddress").value.trim(), photo: localStorage.getItem("aikdoc_own_clinic_photo") || ""
+    } : null,
+    address: document.getElementById("docHospital").value === "__OWN_CLINIC__" ? document.getElementById("ownClinicAddress").value.trim() : document.getElementById("docAddress").value.trim(),
     timings: document.getElementById("docTimings").value.trim(),
     languages: "Hindi, English",
     about: document.getElementById("docAbout").value.trim(),
@@ -1244,7 +1343,7 @@ window.addEventListener("storage", (e) => {
     loadAllDoctorData();
     showToast("🔔 Real-time appointment or review update received!");
   }
-  if (e.key === "aikdoc_doctor_deleted" || e.key === "aikdoc_master_doctors") {
+  if (e.key === "aikdoc_doctor_deleted" || e.key === "aikdoc_master_doctors" || e.key === "aikdoc_last_sync") {
     checkAuthSession();
   }
   if (e.key === "aikdoc_master_specialties" || e.key === "aikdoc_master_hospitals") {
@@ -1276,8 +1375,18 @@ function loadDoctorProfileFromMaster(sessionUser) {
       document.getElementById("docExp").value = doc.experience || "10 years";
       document.getElementById("docDistrict").value = doc.district || "Patna";
       document.getElementById("docFee").value = doc.fee || 500;
-      if (doc.hospital) document.getElementById("docHospital").value = doc.hospital;
+      if (doc.hospitalType === "own" || doc.ownClinic) {
+        document.getElementById("docHospital").value = "__OWN_CLINIC__";
+        const c = doc.ownClinic || {};
+        document.getElementById("ownClinicName").value = c.name || doc.hospital || "";
+        document.getElementById("ownClinicPhone").value = c.phone || "";
+        document.getElementById("ownClinicDistrict").value = c.district || doc.district || "";
+        document.getElementById("ownClinicPin").value = c.pin || "";
+        document.getElementById("ownClinicAddress").value = c.address || doc.address || "";
+        if (c.photo) { localStorage.setItem("aikdoc_own_clinic_photo", c.photo); const im=document.getElementById("ownClinicPhotoPreview"); im.src=c.photo; im.style.display="block"; }
+      } else if (doc.hospital) document.getElementById("docHospital").value = doc.hospital;
       document.getElementById("docAddress").value = doc.address || "Bailey Road, Patna";
+      if (typeof toggleOwnClinicFields === "function") toggleOwnClinicFields();
       document.getElementById("docTimings").value = doc.timings || "Mon–Sat · 10:00 AM–2:00 PM";
       document.getElementById("docAbout").value = doc.about || "";
       if (doc.photo && doc.photo !== DEFAULT_AVATAR) {
@@ -1304,8 +1413,10 @@ function openFullPreview(){
   const exp = v("docExp") || "8 years";
   const fee = v("docFee") || "500";
   const reg = v("docReg") || "VERIFIED";
-  const hosp = v("docHospital");
-  const addr = v("docAddress");
+  const ownSelected = document.getElementById("docHospital").value === "__OWN_CLINIC__";
+  const hosp = ownSelected ? (v("ownClinicName") || "Own Clinic") : v("docHospital");
+  const addr = ownSelected ? v("ownClinicAddress") : v("docAddress");
+  const clinicPhoto = ownSelected ? (localStorage.getItem("aikdoc_own_clinic_photo") || "") : "";
   const timings = v("docTimings");
   const about = v("docAbout") || "Senior medical specialist providing trusted care on AIKDOC.";
 
@@ -1359,7 +1470,9 @@ function openFullPreview(){
         <div class="fp-title">🏥 Hospital Affiliation & Clinic</div>
         <div class="fp-hosp">
           <strong style="color:var(--navy);font-size:14px">${escHtml(hosp)}</strong>
-          <div style="font-size:12.5px;color:var(--muted);margin-top:2px">📍 ${escHtml(addr)}</div>
+          ${clinicPhoto ? `<img src="${clinicPhoto}" alt="Clinic" style="display:block;max-width:150px;max-height:100px;object-fit:cover;border-radius:9px;margin:8px 0">` : ""}
+          <div style="font-size:12.5px;color:var(--muted);margin-top:2px">📍 ${escHtml(addr)}${ownSelected && v("ownClinicDistrict") ? ", " + escHtml(v("ownClinicDistrict")) : ""}${ownSelected && v("ownClinicPin") ? " - " + escHtml(v("ownClinicPin")) : ""}</div>
+          ${ownSelected && v("ownClinicPhone") ? `<div style="font-size:12px;color:var(--muted);margin-top:3px">☎ ${escHtml(v("ownClinicPhone"))}</div>` : ""}
           <div style="font-size:12px;color:var(--teal);font-weight:750;margin-top:4px">🕒 OPD Timings: ${escHtml(timings)}</div>
         </div>
 
@@ -1408,5 +1521,42 @@ document.addEventListener("keydown", e => { if (e.key === "Escape") closeFullPre
 populateSpecialityDatalists();
 checkAuthSession();
 </script>
+
+<script>
+// Persisted doctor display preferences
+(function(){
+ const themeBtn=document.getElementById('themeToggle'), langSel=document.getElementById('languageSelect');
+ const savedTheme=localStorage.getItem('aikdoc_doctor_theme')||'light';
+ function applyTheme(theme){document.body.classList.toggle('dark-mode',theme==='dark');themeBtn.textContent=theme==='dark'?'☀️ Light mode':'🌙 Dark mode';themeBtn.setAttribute('aria-pressed',String(theme==='dark'));localStorage.setItem('aikdoc_doctor_theme',theme)}
+ applyTheme(savedTheme); themeBtn.addEventListener('click',()=>applyTheme(document.body.classList.contains('dark-mode')?'light':'dark'));
+ const translations={
+  hi:{'DOCTOR PORTAL':'डॉक्टर पोर्टल','👨‍⚕️ Profile Setup':'👨‍⚕️ प्रोफ़ाइल सेटअप','📅 Appointments':'📅 अपॉइंटमेंट','⭐ Patient Reviews':'⭐ मरीज़ों की समीक्षाएँ','💰 Revenue & Analytics':'💰 आय और विश्लेषण','🌐 View Patient Website':'🌐 मरीज़ों की वेबसाइट देखें','🚪 Logout':'🚪 लॉग आउट','Profile Setup':'प्रोफ़ाइल सेटअप','Hospital / Clinic Venue *':'अस्पताल / क्लिनिक *','Clinic Street Address *':'क्लिनिक का पता *','Consultation Fee (₹) *':'परामर्श शुल्क (₹) *','Consultation Modes Offered':'परामर्श के तरीके','OPD Days & Hours *':'ओपीडी के दिन और समय *','Save & Publish':'सेव करें और प्रकाशित करें','🚀 Save & Publish Profile to AIKDOC':'🚀 प्रोफ़ाइल सेव और प्रकाशित करें','Your Own Clinic Details':'आपके अपने क्लिनिक का विवरण','Clinic Name *':'क्लिनिक का नाम *','Full Clinic Address *':'क्लिनिक का पूरा पता *'},
+  bho:{'DOCTOR PORTAL':'डॉक्टर पोर्टल','👨‍⚕️ Profile Setup':'👨‍⚕️ प्रोफाइल सेटअप','📅 Appointments':'📅 अपॉइंटमेंट','⭐ Patient Reviews':'⭐ मरीज के समीक्षा','💰 Revenue & Analytics':'💰 कमाई आ विश्लेषण','🌐 View Patient Website':'🌐 मरीज के वेबसाइट देखीं','🚪 Logout':'🚪 लॉग आउट','Profile Setup':'प्रोफाइल सेटअप','Hospital / Clinic Venue *':'अस्पताल / क्लिनिक *','Clinic Street Address *':'क्लिनिक के पता *','Consultation Fee (₹) *':'देखावे के फीस (₹) *','Consultation Modes Offered':'देखावे के तरीका','OPD Days & Hours *':'ओपीडी के दिन आ समय *','🚀 Save & Publish Profile to AIKDOC':'🚀 प्रोफाइल सेव करीं','Your Own Clinic Details':'अपना क्लिनिक के जानकारी','Clinic Name *':'क्लिनिक के नाम *','Full Clinic Address *':'क्लिनिक के पूरा पता *'}
+ };
+ const originals=new WeakMap();
+ function applyLanguage(lang){
+   document.documentElement.lang=lang==='hi'?'hi':lang==='bho'?'bho':'en';
+   document.querySelectorAll('body *').forEach(el=>{
+     if(el.children.length) return;
+     if(!originals.has(el)) originals.set(el,el.textContent);
+     const original=originals.get(el); el.textContent=(translations[lang]&&translations[lang][original])||original;
+   });
+   document.querySelectorAll('label').forEach(el=>{const forId=el.htmlFor;if(!forId)return;const langMap=translations[lang]||{};const orig=el.dataset.originalLabel||(el.dataset.originalLabel=el.textContent);if(langMap[orig])el.textContent=langMap[orig];});
+   localStorage.setItem('aikdoc_doctor_language',lang);
+ }
+ const savedLang=localStorage.getItem('aikdoc_doctor_language')||'en';langSel.value=savedLang;applyLanguage(savedLang);langSel.addEventListener('change',()=>applyLanguage(langSel.value));
+})();
+function toggleOwnClinicFields(){
+ const own=document.getElementById('docHospital').value==='__OWN_CLINIC__';
+ document.getElementById('ownClinicBox').classList.toggle('show',own);
+ document.getElementById('ownClinicName').required=own;document.getElementById('ownClinicAddress').required=own;
+ document.getElementById('docAddress').required=!own;
+}
+document.getElementById('docHospital').addEventListener('change',()=>{toggleOwnClinicFields();if(document.getElementById('docHospital').value==='__OWN_CLINIC__'){document.getElementById('docAddress').value=document.getElementById('ownClinicAddress').value;} });
+toggleOwnClinicFields();
+['ownClinicName','ownClinicAddress','ownClinicDistrict','ownClinicPin','ownClinicPhone'].forEach(id=>document.getElementById(id).addEventListener('input',()=>{if(document.getElementById('docHospital').value==='__OWN_CLINIC__'){document.getElementById('docAddress').value=document.getElementById('ownClinicAddress').value;if(typeof updatePreview==='function')updatePreview();}}));
+document.getElementById('ownClinicPhoto').addEventListener('change',function(){const f=this.files&&this.files[0];if(!f)return;if(!f.type.startsWith('image/')){showToast('Please choose an image file.');return;}if(f.size>2*1024*1024){showToast('Please choose an image under 2 MB.');this.value='';return;}const reader=new FileReader();reader.onload=()=>{localStorage.setItem('aikdoc_own_clinic_photo',reader.result);const im=document.getElementById('ownClinicPhotoPreview');im.src=reader.result;im.style.display='block';if(typeof updatePreview==='function')updatePreview();};reader.readAsDataURL(f);});
+</script>
+
 </body>
 </html>
