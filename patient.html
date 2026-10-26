@@ -1047,7 +1047,7 @@ body.theme-dark select.chip{background:#172236;color:#f1f5f9}
       <p id="bannerSubtitleEl" data-i18n="bannerSub">We're building a simpler way for people across Bihar to discover local doctors, check hospital facilities, and book verified appointment slots with zero hassle.</p>
     </div>
     <div class="banner-actions">
-      <a class="banner-btn primary-banner-btn" id="bannerWhatsappBtn" href="https://wa.me/918527127888" target="_blank" rel="noopener noreferrer">
+      <a class="banner-btn primary-banner-btn" id="bannerWhatsappBtn" href="https://wa.me/918527127888" onclick="return handlePatientWhatsAppChat(event)">
         <span>💬</span> <span data-i18n="chatWhatsApp">Chat on WhatsApp</span>
       </a>
       <a class="banner-btn secondary-banner-btn" id="bannerCallBtn" href="tel:+918527127888">
@@ -1083,7 +1083,7 @@ body.theme-dark select.chip{background:#172236;color:#f1f5f9}
           <div class="contact-body">
             <h3>Instant WhatsApp Helpdesk</h3>
             <p>Send patient queries, check OPD token statuses, or request doctor recommendations in real-time.</p>
-            <a class="primary" id="contactWhatsappLink" href="https://wa.me/918527127888" target="_blank" style="text-decoration:none;display:inline-flex;padding:9px 16px">Chat on WhatsApp →</a>
+            <a class="primary" id="contactWhatsappLink" href="https://wa.me/918527127888" onclick="return handlePatientWhatsAppChat(event)" style="text-decoration:none;display:inline-flex;padding:9px 16px">Chat on WhatsApp →</a>
           </div>
         </div>
 
@@ -1160,7 +1160,7 @@ body.theme-dark select.chip{background:#172236;color:#f1f5f9}
 
       <div style="font-size:12.5px;color:#cbdcf2;line-height:1.7">
         <div>📞 <strong>Helpline:</strong> <a id="footerPhoneLink" href="tel:+918527127888" style="color:#60a5fa;font-weight:700">85271 27888</a></div>
-        <div>💬 <strong>WhatsApp:</strong> <a id="footerWhatsappLink" href="https://wa.me/918527127888" target="_blank" style="color:#60a5fa;font-weight:700">+91 85271 27888</a></div>
+        <div>💬 <strong>WhatsApp:</strong> <a id="footerWhatsappLink" href="https://wa.me/918527127888" onclick="return handlePatientWhatsAppChat(event)" style="color:#60a5fa;font-weight:700">+91 85271 27888</a></div>
         <div>📍 <strong>Central Desk:</strong> Bailey Road, Raja Bazar, Patna</div>
       </div>
     </div>
@@ -1955,6 +1955,122 @@ function verifyReceivedWhatsAppOTP() {
   showToast(`✅ Welcome, ${newSession.name}! Phone (+91 ${newSession.phone}) verified.`);
   checkPatientSession();
   renderAppointmentsList();
+
+  if (window.aikdocPendingSupportWhatsAppChat) {
+    window.aikdocPendingSupportWhatsAppChat = false;
+    openPatientSupportWhatsApp();
+  }
+}
+
+// WhatsApp support: require a patient session and prefill the patient's appointment summary.
+// The message is only drafted in WhatsApp; it is not sent automatically.
+function handlePatientWhatsAppChat(event) {
+  if (event) event.preventDefault();
+  const session = safeGetJSON("aikdoc_patient_session", null);
+
+  if (!session || !session.phone) {
+    window.aikdocPendingSupportWhatsAppChat = true;
+    openWhatsAppAuthModal();
+    showToast("Please sign in first to include your patient details and appointments.");
+    return false;
+  }
+
+  openPatientSupportWhatsApp();
+  return false;
+}
+
+function normalizePatientPhone(value) {
+  return String(value || "").replace(/\D/g, "").slice(-10);
+}
+
+function getAppointmentDateForSorting(value) {
+  if (!value) return null;
+  const raw = String(value).trim();
+  let parsed = new Date(raw);
+  if (!Number.isNaN(parsed.getTime())) return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
+
+  // Support common DD/MM/YYYY or DD-MM-YYYY formats too.
+  const match = raw.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/);
+  if (match) {
+    parsed = new Date(Number(match[3]), Number(match[2]) - 1, Number(match[1]));
+    if (!Number.isNaN(parsed.getTime())) return parsed;
+  }
+  return null;
+}
+
+function buildPatientAppointmentWhatsAppSummary(session) {
+  const allAppointments = safeGetJSON("aikdoc_appointments", []);
+  const phone = normalizePatientPhone(session.phone);
+  const appointments = (Array.isArray(allAppointments) ? allAppointments : [])
+    .filter(a => normalizePatientPhone(a.phone) === phone);
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const groups = { upcoming: [], past: [], cancelled: [] };
+
+  appointments.forEach(a => {
+    const status = String(a.status || "Confirmed").toLowerCase();
+    if (status === "cancelled") {
+      groups.cancelled.push(a);
+      return;
+    }
+    const apptDate = getAppointmentDateForSorting(a.date);
+    if (status === "completed" || (apptDate && apptDate < today)) {
+      groups.past.push(a);
+    } else {
+      groups.upcoming.push(a);
+    }
+  });
+
+  const describe = a => {
+    const parts = [
+      a.doctorName ? `Doctor: ${a.doctorName}` : "Doctor: Not specified",
+      a.speciality ? `Speciality: ${a.speciality}` : "",
+      a.hospital ? `Hospital: ${a.hospital}` : "",
+      [a.date, a.time].filter(Boolean).join(" at ") || "Date/time: Not specified",
+      a.mode ? `Mode: ${a.mode}` : "",
+      `Status: ${a.status || "Confirmed"}`,
+      a.cancelledBy ? `Cancelled by: ${a.cancelledBy}` : "",
+      a.token ? `Token: ${a.token}` : "",
+      a.fee !== undefined && a.fee !== null && a.fee !== "" ? `Fee: ₹${a.fee}` : ""
+    ].filter(Boolean);
+    return `• ${parts.join(" | ")}`;
+  };
+
+  const listText = list => list.length ? list.map(describe).join("\n") : "• None";
+  const defaultTemplate = `Hi AIKDOC Support, I need help with my account/appointments.\n\nPATIENT DETAILS\nName: {patientName}\nPhone: {patientPhone}\n\nUPCOMING APPOINTMENTS\n{upcomingAppointments}\n\nPAST APPOINTMENTS\n{pastAppointments}\n\nCANCELLED APPOINTMENTS\n{cancelledAppointments}\n\nPlease assist me.`;
+  const savedTemplate = localStorage.getItem("aikdoc_whatsapp_support_template");
+  const template = savedTemplate && savedTemplate.trim() ? savedTemplate : defaultTemplate;
+  const values = {
+    patientName: session.name || "Patient",
+    patientPhone: `+91 ${phone}`,
+    upcomingAppointments: listText(groups.upcoming),
+    pastAppointments: listText(groups.past),
+    cancelledAppointments: listText(groups.cancelled)
+  };
+
+  return template.replace(
+    /\{(patientName|patientPhone|upcomingAppointments|pastAppointments|cancelledAppointments)\}/g,
+    (match, key) => values[key] == null ? "" : String(values[key])
+  );
+}
+
+function openPatientSupportWhatsApp() {
+  const session = safeGetJSON("aikdoc_patient_session", null);
+  if (!session || !session.phone) {
+    window.aikdocPendingSupportWhatsAppChat = true;
+    openWhatsAppAuthModal();
+    return;
+  }
+
+  const siteConfig = safeGetJSON("aikdoc_site_config", {});
+  const supportWhatsApp = String(siteConfig.whatsapp || "918527127888").replace(/\D/g, "");
+  const message = buildPatientAppointmentWhatsAppSummary(session);
+  const deepLink = `https://wa.me/${supportWhatsApp}?text=${encodeURIComponent(message)}`;
+  const opened = window.open(deepLink, "_blank", "noopener,noreferrer");
+  if (!opened) {
+    showToast("WhatsApp could not open. Please allow pop-ups and try again.");
+  }
 }
 
 function patientLogout(e) {
