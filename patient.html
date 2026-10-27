@@ -698,6 +698,19 @@ body.theme-dark select.chip{background:#172236;color:#f1f5f9}
   cursor:pointer;
   text-decoration:underline;
 }
+/* Keep the header Sign In label and icon together on one line. */
+#patientAuthNavBtn.guest{
+  white-space:nowrap;
+  flex-shrink:0;
+  width:max-content;
+}
+#patientAuthNavBtn.guest > span{
+  display:inline-flex;
+  align-items:center;
+  gap:4px;
+  white-space:nowrap;
+}
+#patientAuthNavBtn.guest [data-i18n="signInWa"]{white-space:nowrap}
 /* Mobile drawer account pill: long emails get "..." instead of overflowing */
 .drawer-account .patient-session-pill{max-width:100%;overflow:hidden;box-sizing:border-box}
 .drawer-account .patient-session-pill > span:first-child{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -726,6 +739,26 @@ body.patient-signed-in .nav-link-item > span:first-child{display:none}
     .email-auth-card{margin-top:12px;padding:14px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
     .email-auth-card input{width:100%;box-sizing:border-box}
   </style>
+
+<style id="aikdoc-patient-responsive-v2">
+html,body{max-width:100%;overflow-x:clip}
+img,video,canvas,iframe{max-width:100%}
+input,select,textarea,button{max-width:100%}
+@media(max-width:960px){
+ .container,.main-container,.page-container,.section-container{max-width:100%;min-width:0}
+ .grid,.cards-grid,.doctor-grid,.hospital-grid{min-width:0}
+}
+@media(max-width:640px){
+ input,select,textarea{font-size:16px}
+ .modal,.modal-content,[role="dialog"]{max-width:calc(100vw - 20px);max-height:calc(100dvh - 20px);overflow-y:auto}
+ .table-responsive{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
+ .aikhelp-launch{left:12px!important;right:auto!important;bottom:max(12px,env(safe-area-inset-bottom))!important}
+ .aikhelp-panel{left:8px!important;right:auto!important;width:min(380px,calc(100vw - 16px))!important;max-height:calc(100dvh - 95px)!important}
+}
+@media(min-width:641px) and (max-width:1024px){
+ .aikhelp-panel{max-width:min(420px,calc(100vw - 32px))}
+}
+</style>
 </head>
 <body>
 
@@ -2352,9 +2385,12 @@ function syncFromSuperAdmin() {
     safeSetJSON("aikdoc_master_hospitals", hospitals);
   }
 
-  // Auto-Repair full 24 specialities
+  // Seed the initial directory only when the key has never been created.
+  // Do NOT replace an admin-managed list just because it contains fewer than 10 entries:
+  // the admin is allowed to remove or curate specialities.
+  const savedSpecialtiesRaw = localStorage.getItem("aikdoc_master_specialties");
   fullSpecialtiesDirectory = safeGetJSON("aikdoc_master_specialties", []);
-  if (!fullSpecialtiesDirectory || fullSpecialtiesDirectory.length < 10) {
+  if (savedSpecialtiesRaw === null || !Array.isArray(fullSpecialtiesDirectory)) {
     fullSpecialtiesDirectory = DEFAULT_INITIAL_SPECIALTIES;
     safeSetJSON("aikdoc_master_specialties", fullSpecialtiesDirectory);
   }
@@ -3921,12 +3957,12 @@ if(location.hash && location.hash.startsWith("#page-") && location.hash !== "#pa
 
   console.log("AIKDOC Supabase client initialized.");
 </script>
-<!-- AIKDOC Instant Help: local, multilingual guided assistant (no backend/API calls) -->
+<!-- AIKDOC AI Help: local, multilingual guided assistant (no backend/API calls) -->
 <style>
-.aikhelp-launch{position:fixed;right:20px;bottom:20px;z-index:9998;border:0;border-radius:999px;background:#087f8c;color:#fff;padding:13px 18px;font-weight:800;box-shadow:0 8px 28px #0003;cursor:pointer}
-.aikhelp-panel{position:fixed;right:20px;bottom:78px;width:min(380px,calc(100vw - 28px));height:500px;max-height:calc(100vh - 110px);z-index:9999;background:#fff;color:#17263c;border:1px solid #dbe4ee;border-radius:18px;box-shadow:0 16px 48px #0003;display:none;overflow:hidden;font:14px/1.45 Arial,sans-serif}
+.aikhelp-launch{position:fixed;left:20px;bottom:20px;z-index:9998;border:0;border-radius:999px;background:#087f8c;color:#fff;padding:13px 18px;font-weight:800;box-shadow:0 8px 28px #0003;cursor:pointer}
+.aikhelp-panel{position:fixed;left:20px;bottom:78px;width:min(380px,calc(100vw - 28px));height:500px;max-height:calc(100vh - 110px);z-index:9999;background:#fff;color:#17263c;border:1px solid #dbe4ee;border-radius:18px;box-shadow:0 16px 48px #0003;display:none;overflow:hidden;font:14px/1.45 Arial,sans-serif}
 .aikhelp-panel.open{display:flex;flex-direction:column}.aikhelp-head{background:#087f8c;color:#fff;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:8px;font-weight:800}.aikhelp-head button{background:transparent;border:0;color:#fff;font-size:22px;cursor:pointer}.aikhelp-tools{display:flex;align-items:center;gap:6px}.aikhelp-lang{max-width:125px;border:1px solid #ffffff80;border-radius:8px;background:#fff;color:#17263c;padding:6px;font-size:12px}.aikhelp-messages{padding:13px;overflow:auto;flex:1;background:#f7fafc}.aikhelp-msg{padding:10px 12px;border-radius:12px;margin:0 0 10px;max-width:92%;white-space:pre-wrap;overflow-wrap:anywhere}.aikhelp-bot{background:#e8f3f4;margin-right:auto}.aikhelp-user{background:#dbeafe;margin-left:auto}.aikhelp-suggestions{display:flex;gap:6px;flex-wrap:wrap;padding:0 10px 9px;background:#f7fafc}.aikhelp-chip{border:1px solid #b7d9dc;border-radius:999px;background:#fff;color:#075d66;padding:6px 9px;font-size:12px;cursor:pointer}.aikhelp-note{font-size:10px;color:#64748b;text-align:center;padding:0 8px 8px}
-@media(max-width:480px){.aikhelp-launch{right:12px;bottom:12px}.aikhelp-panel{right:8px;bottom:70px;height:min(500px,calc(100vh - 90px))}}
+@media(max-width:480px){.aikhelp-launch{left:12px;bottom:12px}.aikhelp-panel{left:8px;bottom:70px;height:min(500px,calc(100vh - 90px))}}
 
 /* Instant Help polish: soft glass surface, teal/blue glow, readable conversation bubbles */
 .aikhelp-launch{background:linear-gradient(115deg,#087f8c,#2563eb 58%,#7c3aed)!important;box-shadow:0 0 0 1px #ffffff35 inset,0 0 18px #14b8a655,0 8px 28px #1d4ed855!important;transition:transform .2s ease,box-shadow .2s ease;animation:aikhelpPulse 3.4s ease-in-out infinite}
@@ -3952,9 +3988,9 @@ if(location.hash && location.hash.startsWith("#page-") && location.hash !== "#pa
 @media(prefers-reduced-motion:reduce){.aikhelp-launch,.aikhelp-msg{animation:none!important;transition:none!important}}
 
 </style>
-<button type="button" class="aikhelp-launch" id="aikhelpLaunch" aria-label="Open AIKDOC Instant Help">💬 Instant Help</button>
-<section class="aikhelp-panel" id="aikhelpPanel" role="dialog" aria-label="AIKDOC Instant Help" aria-modal="false">
- <div class="aikhelp-head"><span id="aikhelpTitle">AIKDOC Instant Help</span><div class="aikhelp-tools"><select class="aikhelp-lang" id="aikhelpLang" aria-label="Chat language"><option value="en">English</option><option value="hi">हिन्दी</option><option value="bho">भोजपुरी</option></select><button type="button" id="aikhelpClose" aria-label="Minimize chat">−</button></div></div>
+<button type="button" class="aikhelp-launch" id="aikhelpLaunch" aria-label="Open AIKDOC AI Help">💬 AIKDOC AI Help</button>
+<section class="aikhelp-panel" id="aikhelpPanel" role="dialog" aria-label="AIKDOC AI Help" aria-modal="false">
+ <div class="aikhelp-head"><span id="aikhelpTitle">AIKDOC AI Help</span><div class="aikhelp-tools"><select class="aikhelp-lang" id="aikhelpLang" aria-label="Chat language"><option value="en">English</option><option value="hi">हिन्दी</option><option value="bho">भोजपुरी</option></select><button type="button" id="aikhelpClose" aria-label="Minimize chat">−</button></div></div>
  <div class="aikhelp-messages" id="aikhelpMessages" aria-live="polite"></div>
  <div class="aikhelp-suggestions" id="aikhelpSuggestions"></div>
  <div class="aikhelp-note" id="aikhelpNote">Local guided help; not medical advice. No message is sent to an AI service.</div>
@@ -4081,12 +4117,83 @@ if(location.hash && location.hash.startsWith("#page-") && location.hash !== "#pa
    labels.forEach((label,i)=>addChip(label,()=>{const q=queries[i];if(q==='__login__'){window.aikdocPendingInstantHelpAppointments=true;if(typeof openWhatsAppAuthModal==='function')openWhatsAppAuthModal();return;}if(i===4&&role==='patient'||/find a doctor|डॉक्टर खोजें|डॉक्टर खोजीं/i.test(q)){startDoctorFlow();return;}submitQuestion(q);}));
    const found=window.aikdocInstantHelpDoctorSearch;if(found)addChip('View these doctors',()=>{selectedSpeciality=found.speciality;selectedPatientType=found.ageGroup;const ss=document.getElementById('specialitySearch');if(ss)ss.value=found.speciality;const fs=document.getElementById('filterSpeciality');if(fs)fs.value=found.speciality;const age=document.getElementById('patientType');if(age)age.value=found.ageGroup;setPage('doctors');applyFilters();const section=document.getElementById('doctors');if(section)section.scrollIntoView({behavior:'smooth'});panel.classList.remove('open');});
   }
-  document.getElementById('aikhelpTitle').textContent='AIKDOC · '+roleNames[role][currentLang];document.getElementById('aikhelpNote').textContent=lang.note;
+  document.getElementById('aikhelpTitle').textContent='AIKDOC AI Help · '+roleNames[role][currentLang];document.getElementById('aikhelpNote').textContent=lang.note;
  }
  function submitQuestion(q){q=String(q||'').trim();if(!q)return;addMessage(q,'user');const lang=detectLang(q);currentLang=lang;const reply=answer(q);renderSuggestions();window.setTimeout(()=>addMessage(reply,'bot'),100);}
  window.addEventListener('aikdoc:patient-session-updated',()=>{if(role==='patient'&&window.aikdocPendingInstantHelpAppointments){window.aikdocPendingInstantHelpAppointments=false;showLoginSuggestion=false;addMessage(appointmentReply('appointments',currentLang),'bot');renderSuggestions();}});
  launch.addEventListener('click',()=>panel.classList.add('open'));close.addEventListener('click',()=>panel.classList.remove('open'));langSelect.addEventListener('change',()=>{currentLang=langSelect.value;renderSuggestions();});
  currentLang='en';renderSuggestions();addMessage(role==='patient'?'Welcome! Start with your appointments. I can show upcoming, past/completed, and cancelled bookings after you sign in.':text.en.welcome[role],'bot');
+})();
+</script>
+<script>
+/* Shared AIKDOC city directory; changes propagate through same-origin localStorage. */
+(function () {
+  const KEY = "aikdoc_master_cities";
+  const DEFAULTS = ["Patna","Muzaffarpur","Gaya","Darbhanga","Bhagalpur","Purnia","Begusarai"];
+  const clean = v => String(v ?? "").trim().replace(/\s+/g," ");
+  const escape = v => clean(v).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  function cities() {
+    let values;
+    try { values = JSON.parse(localStorage.getItem(KEY) || "null"); } catch { values = null; }
+    if (!Array.isArray(values)) values = DEFAULTS;
+    return [...new Map(values.map(v => clean(typeof v === "string" ? v : v?.name)).filter(Boolean)
+      .map(v => [v.toLocaleLowerCase(),v])).values()].sort((a,b)=>a.localeCompare(b));
+  }
+  function fill(select, names) {
+    if (!select) return;
+    const old = select.value;
+    const defaults = [...select.options].filter(o => o.value === "" || o.value === "all" || o.value === "Other district");
+    const markup = defaults.map(o => '<option value="'+escape(o.value)+'">'+escape(o.textContent)+'</option>').join("") +
+      names.map(name => '<option value="'+escape(name)+'">'+escape(name)+'</option>').join("");
+    if (select.innerHTML !== markup) select.innerHTML = markup;
+    if (old && [...select.options].some(o => o.value === old)) select.value = old;
+  }
+  function refresh() {
+    const names = cities();
+    fill(document.getElementById("mDocDistrict"),names);
+    fill(document.getElementById("mHospDistrict"),names);
+    fill(document.getElementById("location"),names);
+    fill(document.getElementById("hospCityFilter"),names);
+    const list = document.getElementById("aikdocCityList");
+    if (list) {
+      list.innerHTML = "";
+      for (const name of names) {
+        const item = document.createElement("div");
+        item.style.cssText = "display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px";
+        const text = document.createElement("strong"); text.textContent=name; item.appendChild(text);
+        const button = document.createElement("button"); button.type="button"; button.textContent="Remove";
+        button.style.cssText="background:#fff;border:1px solid #fecaca;color:#b91c1c;border-radius:8px;padding:7px;cursor:pointer";
+        button.addEventListener("click",()=>{
+          if (!confirm('Remove "'+name+'" from the available city list? Existing records will not be deleted.')) return;
+          localStorage.setItem(KEY,JSON.stringify(cities().filter(v=>v!==name)));
+          refresh();
+        });
+        item.appendChild(button); list.appendChild(item);
+      }
+      document.getElementById("aikdocCityCount").textContent="("+names.length+")";
+    }
+  }
+  const form = document.getElementById("aikdocCityForm");
+  if (form) form.addEventListener("submit", e=>{
+    e.preventDefault();
+    const input=document.getElementById("aikdocNewCity");
+    const value=clean(input.value);
+    const feedback=document.getElementById("aikdocCityFeedback");
+    if (!value) return;
+    if (cities().some(c=>c.toLocaleLowerCase()===value.toLocaleLowerCase())) {
+      feedback.textContent="This city / district already exists."; return;
+    }
+    localStorage.setItem(KEY,JSON.stringify([...cities(),value]));
+    input.value="";
+    feedback.textContent=value+" added. Changes are available in the Patient Website.";
+    refresh();
+  });
+  window.addEventListener("storage",e=>{if (!e.key || e.key===KEY) refresh();});
+  window.addEventListener("focus",refresh);
+  window.addEventListener("pageshow",refresh);
+  setInterval(()=>{const current=localStorage.getItem(KEY);if(current!==last){last=current;refresh();}},1200);
+  let last=localStorage.getItem(KEY);
+  refresh();
 })();
 </script>
 </body>
