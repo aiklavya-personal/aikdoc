@@ -387,7 +387,7 @@ img,video,canvas,iframe{max-width:100%}
 .aikdoc-password-save:hover{box-shadow:0 7px 20px rgba(37,99,235,.25);transform:translateY(-1px)}
 .aikdoc-password-actions button:focus-visible{outline:3px solid #60a5fa;outline-offset:3px}
 @media(max-width:540px){.aikdoc-password-panel{width:calc(100% - 20px)!important;padding:20px!important;margin:14px auto!important;border-radius:17px!important}.aikdoc-password-heading{gap:12px}.aikdoc-password-symbol{width:48px;height:48px;font-size:22px}.aikdoc-password-heading .card-title{font-size:19px!important}.aikdoc-password-actions{flex-direction:column-reverse}.aikdoc-password-actions button{width:100%!important;min-width:0!important}}
-</style></head>
+<style>.geo-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:8px}.geo-detect{border:1px solid #a9cdfc;background:#eff6ff;color:#1456ac;border-radius:10px;padding:9px 13px;font-size:12px;font-weight:800}.geo-detect:hover{background:#dbeafe}.geo-detect:disabled{opacity:.6;cursor:wait}.geo-status{font-size:11px;color:var(--muted);line-height:1.4}body.dark-mode .geo-detect{background:#233a5a;color:#dbeafe;border-color:#425c80}</style></head>
 <body>
 
 <header class="topbar">
@@ -636,7 +636,7 @@ img,video,canvas,iframe{max-width:100%}
               <div class="form-field"><label for="ownClinicPhone">Clinic Phone</label><input id="ownClinicPhone" type="tel" placeholder="Clinic contact number"></div>
               <div class="form-field"><label for="ownClinicDistrict">District / City</label><input id="ownClinicDistrict" placeholder="District or city"></div>
               <div class="form-field"><label for="ownClinicPin">PIN Code</label><input id="ownClinicPin" inputmode="numeric" maxlength="6" placeholder="6-digit PIN code"></div>
-              <div class="form-field full"><label for="ownClinicAddress">Full Clinic Address *</label><textarea id="ownClinicAddress" rows="2" placeholder="Building, street, landmark, district"></textarea></div>
+              <div class="form-field full"><label for="ownClinicAddress">Full Clinic Address *</label><textarea id="ownClinicAddress" rows="2" placeholder="Building, street, landmark, district"></textarea><div class="geo-actions"><button type="button" class="geo-detect" onclick="aikdocDetectClinicLocation(this)">📍 Use My Current Location</button><span class="geo-status" role="status" aria-live="polite"></span></div></div>
               <div class="form-field full"><label for="ownClinicPhoto">Clinic Photos (up to 8)</label><input id="ownClinicPhoto" type="file" accept="image/*" multiple><div id="ownClinicPhotoGallery" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"></div></div>
               <div class="form-field full" style="background:var(--input-bg);border:1px solid var(--line);padding:12px;border-radius:10px"><label style="display:flex;align-items:flex-start;gap:9px;font-weight:700"><input id="publishOwnClinic" type="checkbox" style="margin-top:3px"> Publish my clinic in the public Hospitals / Clinics directory</label><p style="font-size:11px;color:var(--muted);margin:5px 0 0 24px">If unchecked, your clinic details remain on your doctor profile but won't appear as a separate public listing.</p></div>
             </div>
@@ -645,7 +645,7 @@ img,video,canvas,iframe{max-width:100%}
 
           <div class="form-field full">
             <label for="docAddress">Clinic Street Address *</label>
-            <input id="docAddress" required placeholder="e.g. Bailey Road, Patna, Bihar" value="Bailey Road, Patna">
+            <input id="docAddress" required placeholder="e.g. Bailey Road, Patna, Bihar" value="Bailey Road, Patna"><div class="geo-actions"><button type="button" class="geo-detect" onclick="aikdocDetectClinicLocation(this)">📍 Use My Current Location</button><span class="geo-status" role="status" aria-live="polite"></span></div>
           </div>
 
           <div class="form-field full">
@@ -1243,26 +1243,20 @@ loginForm.addEventListener("submit", (e) => {
     localStorage.setItem("aikdoc_doctor_session_backup", JSON.stringify(directoryDoctor));
     showDoctorBannedScreen(); return;
   }
-  // Session records must be lightweight: photos and large profile data belong in
-  // the master doctor record, not duplicated in browser storage.
   const canonicalUser = {...directoryDoctor, password: user.password, email: user.email || directoryDoctor.email};
-  const sessionUser = {
-    id: canonicalUser.id, name: canonicalUser.name, email: canonicalUser.email,
-    mobile: canonicalUser.mobile || canonicalUser.phone || "",
-    password: canonicalUser.password, registration: canonicalUser.registration || "",
-    speciality: canonicalUser.speciality || "", hospital: canonicalUser.hospital || ""
-  };
-  // Do not rewrite the entire accounts array on every login: it can include
-  // embedded photos and may exceed the browser's storage quota.
-  try { localStorage.setItem("aikdoc_doctor_session", JSON.stringify(sessionUser)); }
-  catch (err) { console.warn("Session persistence unavailable; signing in for this tab", err); }
-  try { localStorage.setItem("aikdoc_active_doctor_name", canonicalUser.name || ""); } catch (err) {}
+  const index = accounts.findIndex(a => sameDoctorIdentity(a, canonicalUser));
+  if (index >= 0) accounts[index] = {...accounts[index], ...canonicalUser};
+  else accounts.unshift(canonicalUser);
   try {
+    localStorage.setItem("aikdoc_doctor_accounts", JSON.stringify(accounts));
+    localStorage.setItem("aikdoc_doctor_session", JSON.stringify(canonicalUser));
+    localStorage.setItem("aikdoc_doctor_session_backup", JSON.stringify(canonicalUser));
+    localStorage.setItem("aikdoc_active_doctor_name", canonicalUser.name || "");
     showDashboard(canonicalUser);
     showToast("Welcome back, " + (canonicalUser.name || "Doctor") + "!");
   } catch (err) {
-    console.error("Doctor dashboard error", err);
-    showToast("❌ Dashboard could not load. Check the browser console.");
+    console.error("Doctor login failed", err);
+    showToast("❌ Could not open the doctor dashboard. Check the browser console.");
   }
 });
 
@@ -1501,10 +1495,14 @@ document.getElementById("doctorForm").addEventListener("submit", (e) => {
     ownClinic: document.getElementById("docHospital").value === "__OWN_CLINIC__" ? {
       name: document.getElementById("ownClinicName").value.trim(), phone: document.getElementById("ownClinicPhone").value.trim(),
       district: document.getElementById("ownClinicDistrict").value.trim() || document.getElementById("docDistrict").value, pin: document.getElementById("ownClinicPin").value.trim(),
-      address: document.getElementById("ownClinicAddress").value.trim(), photo: (JSON.parse(localStorage.getItem("aikdoc_own_clinic_photos") || "[]")[0] || localStorage.getItem("aikdoc_own_clinic_photo") || ""),
+      address: document.getElementById("ownClinicAddress").value.trim(), latitude: aikdocClinicGeo.own?.latitude ?? sessionUser.ownClinic?.latitude ?? null, longitude: aikdocClinicGeo.own?.longitude ?? sessionUser.ownClinic?.longitude ?? null, lat: aikdocClinicGeo.own?.latitude ?? sessionUser.ownClinic?.lat ?? null, lng: aikdocClinicGeo.own?.longitude ?? sessionUser.ownClinic?.lng ?? null, photo: (JSON.parse(localStorage.getItem("aikdoc_own_clinic_photos") || "[]")[0] || localStorage.getItem("aikdoc_own_clinic_photo") || ""),
       photos: JSON.parse(localStorage.getItem("aikdoc_own_clinic_photos") || "[]")
     } : null,
     address: document.getElementById("docHospital").value === "__OWN_CLINIC__" ? document.getElementById("ownClinicAddress").value.trim() : document.getElementById("docAddress").value.trim(),
+    latitude: (document.getElementById("docHospital").value === "__OWN_CLINIC__" ? aikdocClinicGeo.own : aikdocClinicGeo.listed)?.latitude ?? (document.getElementById("docHospital").value === "__OWN_CLINIC__" ? sessionUser.ownClinic?.latitude : sessionUser.latitude) ?? null,
+    longitude: (document.getElementById("docHospital").value === "__OWN_CLINIC__" ? aikdocClinicGeo.own : aikdocClinicGeo.listed)?.longitude ?? (document.getElementById("docHospital").value === "__OWN_CLINIC__" ? sessionUser.ownClinic?.longitude : sessionUser.longitude) ?? null,
+    lat: (document.getElementById("docHospital").value === "__OWN_CLINIC__" ? aikdocClinicGeo.own : aikdocClinicGeo.listed)?.latitude ?? sessionUser.lat ?? null,
+    lng: (document.getElementById("docHospital").value === "__OWN_CLINIC__" ? aikdocClinicGeo.own : aikdocClinicGeo.listed)?.longitude ?? sessionUser.lng ?? null,
     timings: document.getElementById("docTimings").value.trim(),
     languages: "Hindi, English",
     about: document.getElementById("docAbout").value.trim(),
@@ -1573,21 +1571,9 @@ document.getElementById("doctorForm").addEventListener("submit", (e) => {
 
 // GET RELEVANT APPOINTMENTS FOR CURRENT DOCTOR
 function getCurrentDoctorAppointments() {
-  let sessionUser = null;
-  try { sessionUser = JSON.parse(localStorage.getItem("aikdoc_doctor_session") || "null"); } catch (e) {}
-  const inputName = document.getElementById("docName")?.value?.trim() || "";
-  const currentDocName = inputName || sessionUser?.name || sessionUser?.doctorName || localStorage.getItem("aikdoc_active_doctor_name") || "";
-  const normalize = value => String(value || "").trim().toLowerCase().replace(/^dr\.?\s*/, "").replace(/\s+/g, " ");
-  const name = normalize(currentDocName);
   let appts = [];
-  try { const parsed = JSON.parse(localStorage.getItem("aikdoc_appointments") || "[]"); appts = Array.isArray(parsed) ? parsed : []; } catch (e) { appts = []; }
-  return appts.filter(a => {
-    const assigned = normalize(a && (a.doctorName || a.doctor || a.providerName || a.assignedDoctor || a.doctor_name));
-    // First match the displayed doctor name, then fall back to the same
-    // ID/mobile-aware ownership check used by live notifications.
-    if (name && assigned && (assigned === name || assigned.includes(name) || name.includes(assigned))) return true;
-    try { return typeof doctorOwnsAppointment === "function" && doctorOwnsAppointment(a); } catch (e) { return false; }
-  });
+  try { const x = JSON.parse(localStorage.getItem("aikdoc_appointments") || "[]"); appts = Array.isArray(x) ? x : []; } catch(e) {}
+  return appts.filter(a => doctorOwnsAppointment(a));
 }
 
 // Escape saved appointment text before inserting it into HTML.
@@ -1841,7 +1827,7 @@ window.doctorSetStatus=function(token,newStatus){
 };
 function closeDoctorCancelModal(){document.getElementById("doctorCancelModal").classList.remove("show");doctorCancelSelectedToken=null;}
 document.addEventListener("keydown",e=>{if(e.key==="Escape"){const modal=document.getElementById("doctorCancelModal");if(modal&&modal.classList.contains("show"))closeDoctorCancelModal();}});
-document.getElementById("doctorCancelModal")?.addEventListener("click",e=>{if(e.target.id==="doctorCancelModal")closeDoctorCancelModal();});
+document.getElementById("doctorCancelModal").addEventListener("click",e=>{if(e.target.id==="doctorCancelModal")closeDoctorCancelModal();});
 function submitDoctorCancellation(){
  if(!doctorCancelSelectedToken)return;const choice=document.getElementById("doctorCancelReason").value;
  const reason=choice==="Other"?document.getElementById("doctorCancelOther").value.trim():choice;
@@ -1856,29 +1842,35 @@ function submitDoctorCancellation(){
 // Appointment notices are triggered by changes made in another AIKDOC tab.
 function doctorOwnsAppointment(a) {
   if (!a) return false;
-  // Use exactly the same identity sources and normalization as the live badge.
-  let u = null;
+  const clean = v => String(v ?? "").toLowerCase().normalize("NFKC")
+    .replace(/\b(?:dr|doctor)\.?\s+/g, "").replace(/[^a-z0-9]+/g, " ").trim().replace(/\s+/g," ");
+  const mobile = v => String(v || "").replace(/\D/g, "").slice(-10);
+  const candidates = [];
   for (const key of ["aikdoc_doctor_session", "aikdoc_doctor_session_backup"]) {
-    try {
-      const candidate = JSON.parse(localStorage.getItem(key) || "null");
-      if (candidate && typeof candidate === "object" && !Array.isArray(candidate) &&
-          (candidate.name || candidate.mobile || candidate.email || candidate.id != null)) { u = candidate; break; }
-    } catch (e) {}
+    try { const x=JSON.parse(localStorage.getItem(key)||"null"); if(x && typeof x==="object") candidates.push(x); } catch(e) {}
   }
-  const normalize = value => String(value || "").trim().toLowerCase()
-    .replace(/^dr\.?\s*/, "").replace(/[^a-z0-9]+/g, " ").trim().replace(/\s+/g, " ");
-  const inputName = document.getElementById("docName")?.value || "";
-  const currentName = normalize((u && (u.name || u.doctorName)) || inputName || localStorage.getItem("aikdoc_active_doctor_name") || "");
-  const assignedName = normalize(a.doctorName || a.doctor || a.providerName || a.assignedDoctor || a.doctor_name);
-  const currentId = u && (u.id ?? u.doctorId ?? u.doctor_id);
-  const assignedId = a.doctorId ?? a.doctor_id ?? a.assignedDoctorId;
-  const currentMobile = String((u && (u.mobile || u.phone)) || "").replace(/\D/g, "").slice(-10);
-  const assignedMobile = String(a.doctorMobile || a.doctorPhone || a.providerMobile || "").replace(/\D/g, "").slice(-10);
-  if (currentId != null && assignedId != null && String(currentId) === String(assignedId)) return true;
-  if (currentMobile && assignedMobile && currentMobile === assignedMobile) return true;
-  return !!(currentName && assignedName &&
-    (currentName === assignedName || currentName.includes(assignedName) || assignedName.includes(currentName)));
+  const formName = document.getElementById("docName")?.value;
+  if(formName) candidates.push({name:formName});
+  const activeName=localStorage.getItem("aikdoc_active_doctor_name");
+  if(activeName) candidates.push({name:activeName});
+  let directory=[];
+  try { directory=JSON.parse(localStorage.getItem("aikdoc_master_doctors")||"[]"); } catch(e) {}
+  for(const doc of directory) {
+    if(candidates.some(c => (c.id!=null && doc.id!=null && String(c.id)===String(doc.id)) ||
+       (mobile(c.mobile||c.phone) && mobile(c.mobile||c.phone)===mobile(doc.mobile||doc.phone)) ||
+       (c.email && doc.email && String(c.email).toLowerCase()===String(doc.email).toLowerCase()))) candidates.push(doc);
+  }
+  const assignedId=a.doctorId??a.doctor_id??a.assignedDoctorId;
+  const assignedMobile=mobile(a.doctorMobile||a.doctorPhone||a.providerMobile);
+  const assignedNames=[a.doctorName,a.doctor,a.providerName,a.assignedDoctor,a.doctor_name].map(clean).filter(Boolean);
+  return candidates.some(c => {
+    if(assignedId!=null && c.id!=null && String(assignedId)===String(c.id)) return true;
+    if(assignedMobile && mobile(c.mobile||c.phone)===assignedMobile) return true;
+    const name=clean(c.name||c.doctorName);
+    return !!(name && assignedNames.some(n=>n===name));
+  });
 }
+
 let doctorBookingNoticeTimer = null;
 function openDoctorAppointmentNotice(kind, appt) {
   const modal=document.getElementById("doctorAppointmentNotice"); if(!modal||!appt)return;
@@ -2544,14 +2536,7 @@ renderOwnClinicPhotoGallery();
     const currentMobile = String((user && (user.mobile || user.phone)) || "").replace(/\D/g, "").slice(-10);
     const appointments = safeParseArray(localStorage.getItem("aikdoc_appointments"));
     const count = appointments.filter(a => {
-      if (!a || (a.status && String(a.status).toLowerCase() !== "confirmed")) return false;
-      const assignedName = normalize(a.doctorName || a.doctor || a.providerName || a.assignedDoctor || a.doctor_name);
-      const assignedId = a.doctorId ?? a.doctor_id ?? a.assignedDoctorId;
-      const assignedMobile = String(a.doctorMobile || a.doctorPhone || a.providerMobile || "").replace(/\D/g, "").slice(-10);
-      if (currentId != null && assignedId != null && String(currentId) === String(assignedId)) return true;
-      if (currentMobile && assignedMobile && currentMobile === assignedMobile) return true;
-      return !!(currentName && assignedName &&
-        (currentName === assignedName || currentName.includes(assignedName) || assignedName.includes(currentName)));
+      return a && (!a.status || String(a.status).toLowerCase() === "confirmed") && doctorOwnsAppointment(a);
     }).length;
     badge.textContent = String(count);
     badge.style.display = count ? "inline-block" : "none";
@@ -2959,10 +2944,10 @@ renderOwnClinicPhotoGallery();
   // Require the password of the current account; do not accept stale session credentials.
   const actual=(account&&account.password)||(directory&&directory.password);
   if(!actual||actual!==oldPass){message('Current password is incorrect.',false);return;}
-  const accountCopy=accounts.map(a=>sameDoctorIdentity(a,session)?{...a,password:newPass}:a);
-  if(!account){accountCopy.push({...directory,password:newPass});}
-  const masterCopy=master.map(a=>sameDoctorIdentity(a,session)?{...a,password:newPass}:a);
-  const nextSession={...session,password:newPass};
+  const accountCopy=accounts.map(a=>sameDoctorIdentity(a,session)?{...a,password:newPass,passwordChangedByDoctor:true,mustChangePassword:false}:a);
+  if(!account){accountCopy.push({...directory,password:newPass,passwordChangedByDoctor:true,mustChangePassword:false});}
+  const masterCopy=master.map(a=>sameDoctorIdentity(a,session)?{...a,password:newPass,passwordChangedByDoctor:true,mustChangePassword:false}:a);
+  const nextSession={...session,password:newPass,passwordChangedByDoctor:true,mustChangePassword:false};
   try{
    localStorage.setItem('aikdoc_doctor_accounts',JSON.stringify(accountCopy));
    localStorage.setItem('aikdoc_master_doctors',JSON.stringify(masterCopy));
@@ -2973,6 +2958,49 @@ renderOwnClinicPhotoGallery();
   setOpen(false);window.alert('Password changed successfully. Use your new password next time you sign in.');
  });
 })();
+</script>
+
+<script id="aikdoc-clinic-geolocation">
+// Coordinates are retained in the doctor profile only after Save & Publish.
+const aikdocClinicGeo = {own:null,listed:null};
+async function aikdocDetectClinicLocation(button){
+  const own = !!button.closest('#ownClinicBox');
+  const target = document.getElementById(own ? 'ownClinicAddress' : 'docAddress');
+  const status = button.parentElement.querySelector('.geo-status');
+  if (!navigator.geolocation){ status.textContent='Location is not supported by this browser.';return; }
+  button.disabled=true; status.textContent='Requesting location permission…';
+  try {
+    const position=await new Promise((resolve,reject)=>navigator.geolocation.getCurrentPosition(resolve,reject,{enableHighAccuracy:true,timeout:20000,maximumAge:0}));
+    const latitude=position.coords.latitude,longitude=position.coords.longitude;
+    status.textContent='Finding your street address…';
+    const controller=new AbortController();
+    const timeout=setTimeout(()=>controller.abort(),12000);
+    let data;
+    try {
+      const response=await fetch('https://nominatim.openstreetmap.org/reverse?format=jsonv2&addressdetails=1&zoom=18&lat='+encodeURIComponent(latitude)+'&lon='+encodeURIComponent(longitude),{headers:{'Accept':'application/json'},signal:controller.signal});
+      if (!response.ok) throw new Error('Address lookup unavailable');
+      data=await response.json();
+    } finally {clearTimeout(timeout);}
+    if(!data || !data.display_name) throw new Error('No street address found');
+    const a=data.address||{};
+    const parts=[a.house_number&&a.road ? a.house_number+' '+a.road : (a.road||a.pedestrian||a.house_number),a.neighbourhood||a.suburb||a.residential||a.village,a.city||a.town||a.county||a.state_district,a.state,a.postcode].filter(Boolean);
+    target.value=parts.length ? [...new Set(parts)].join(', ') : data.display_name;
+    target.dispatchEvent(new Event('input',{bubbles:true}));
+    aikdocClinicGeo[own?'own':'listed']={latitude,longitude};
+    if(own){
+      const district=document.getElementById('ownClinicDistrict');
+      const pin=document.getElementById('ownClinicPin');
+      if(district && (a.city||a.town||a.county||a.state_district)) district.value=a.city||a.town||a.county||a.state_district;
+      if(pin && a.postcode && /^\d{6}$/.test(a.postcode)) pin.value=a.postcode;
+    }
+    status.textContent='✓ Address filled. Verify it, then click Save & Publish.';
+  }catch(error){
+    if(error.code===1) status.textContent='Location permission denied. Allow location in browser settings or enter address manually.';
+    else if(error.code===2) status.textContent='Location unavailable. Try again or enter address manually.';
+    else if(error.code===3) status.textContent='Location request timed out. Try again.';
+    else status.textContent='Could not retrieve the address. Check internet access or enter it manually.';
+  }finally{button.disabled=false;}
+}
 </script>
 </body>
 </html>
