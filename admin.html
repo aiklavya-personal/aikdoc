@@ -196,6 +196,74 @@ html,body{max-width:100%;overflow-x:clip}
 @media(max-width:370px){.metrics-grid{grid-template-columns:minmax(0,1fr)}}
 @media(prefers-reduced-motion:reduce){.sidebar{transition:none}}
 </style>
+<style id="aikdoc-manage-doctors-visual-refresh">
+/* Presentation only: existing account visibility and action handlers are unchanged. */
+#doctorsMasterTable{border-collapse:separate;border-spacing:0 9px;min-width:1030px}
+#doctorsMasterTable thead th{padding:13px 12px;white-space:nowrap;font-size:11px;letter-spacing:.035em;text-transform:uppercase;color:#64748b;background:#f7f9fc}
+#doctorsMasterTable tbody tr{background:#fff;box-shadow:0 2px 11px rgba(21,43,73,.065)}
+#doctorsMasterTable tbody tr:hover{background:#fafcff}
+#doctorsMasterTable tbody td{padding:15px 12px;vertical-align:middle;border-top:1px solid #e9eef5;border-bottom:1px solid #e9eef5}
+#doctorsMasterTable tbody td:first-child{border-left:1px solid #e9eef5;border-radius:12px 0 0 12px}
+#doctorsMasterTable tbody td:last-child{border-right:1px solid #e9eef5;border-radius:0 12px 12px 0}
+#doctorsMasterTable .doctor-visibility-cell{min-width:230px}
+.aikdoc-login-card{display:flex;flex-direction:column;gap:9px;min-width:210px;max-width:290px;text-align:left;background:#f8faff;border:1px solid #e6ecf5;border-radius:12px;padding:12px}
+.aikdoc-login-status{display:inline-flex;align-items:center;gap:7px;width:fit-content;max-width:100%;padding:6px 9px;border-radius:999px;font-size:11px;line-height:1.3;font-weight:800;letter-spacing:.01em}
+.aikdoc-login-status.is-shared{color:#047857;background:#dff8ec}
+.aikdoc-login-status.is-private{color:#9a5a11;background:#fff0d7}
+.aikdoc-status-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;background:currentColor}
+.aikdoc-credential-line{display:flex;flex-direction:column;gap:3px;min-width:0}
+.aikdoc-credential-label{font-size:10px;text-transform:uppercase;letter-spacing:.08em;font-weight:800;color:#7a8ba4}
+.aikdoc-credential-value{font-size:12px;font-weight:650;color:#233750;overflow-wrap:anywhere;line-height:1.45;user-select:text}
+.aikdoc-visible-password{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;color:#1557a4}
+.aikdoc-hidden-password{color:#8793a6;font-weight:600}
+.aikdoc-doctor-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;min-width:180px;max-width:230px;margin-left:auto}
+.aikdoc-doctor-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:36px;padding:8px 11px;border:1px solid transparent;border-radius:9px;font-size:12px;font-weight:800;white-space:nowrap;cursor:pointer;transition:background .15s ease,transform .15s ease,border-color .15s ease,box-shadow .15s ease}
+.aikdoc-doctor-btn:hover{transform:translateY(-1px);box-shadow:0 3px 10px rgba(20,40,70,.10)}
+.aikdoc-doctor-btn:focus-visible{outline:3px solid #93c5fd;outline-offset:2px}
+.aikdoc-doctor-btn-edit{background:#e8f0ff;border-color:#c9ddff;color:#2057ac}
+.aikdoc-doctor-btn-edit:hover{background:#dceaff}
+.aikdoc-doctor-btn-reviews{background:#fff6df;border-color:#f6dfac;color:#986009}
+.aikdoc-doctor-btn-reviews:hover{background:#ffedc3}
+.aikdoc-doctor-btn-ban{background:#fff0eb;border-color:#ffd2c6;color:#bd4934}
+.aikdoc-doctor-btn-ban:hover{background:#ffe3da}
+.aikdoc-doctor-btn-unban{background:#e6f8ed;border-color:#b9e8ca;color:#137a4b}
+.aikdoc-doctor-btn-unban:hover{background:#d7f2e3}
+.aikdoc-doctor-btn-delete{background:#fff1f3;border-color:#ffd0d7;color:#bf2945}
+.aikdoc-doctor-btn-delete:hover{background:#ffe2e7}
+@media(max-width:980px){#doctorsMasterTable{min-width:980px}#doctorsMasterTable tbody td{padding:12px 10px}.aikdoc-doctor-actions{min-width:170px}}
+@media(prefers-reduced-motion:reduce){.aikdoc-doctor-btn{transition:none}.aikdoc-doctor-btn:hover{transform:none}}
+</style>
+
+<style id="aikdoc-doctors-no-horizontal-scroll">
+/* Doctor records become readable cards before the nine-column table would overflow. */
+#tab-doctors .table-responsive{width:100%;max-width:100%;overflow-x:visible!important}
+@media(max-width:1800px){
+ #doctorsMasterTable{display:block!important;width:100%!important;min-width:0!important;border-spacing:0!important}
+ #doctorsMasterTable thead{display:none!important}
+ #doctorsMasterTable tbody{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;width:100%}
+ #doctorsMasterTable tbody tr{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 16px;min-width:0;padding:18px;border:1px solid #e5ebf4;border-radius:16px;background:white;box-shadow:0 4px 18px rgba(21,43,73,.06)}
+ #doctorsMasterTable tbody td{display:flex!important;flex-direction:column;align-items:flex-start;justify-content:center;min-width:0!important;width:auto!important;max-width:100%!important;min-height:45px;padding:0!important;border:0!important;border-radius:0!important;overflow-wrap:anywhere}
+ #doctorsMasterTable tbody td::before{content:attr(data-label);font-size:10px;font-weight:850;letter-spacing:.055em;text-transform:uppercase;color:#71829a;margin-bottom:5px}
+ #doctorsMasterTable tbody td:first-child{grid-column:1/-1;border-bottom:1px solid #e9eef5!important;padding-bottom:12px!important}
+ #doctorsMasterTable tbody td:first-child::before{display:none}
+ #doctorsMasterTable tbody td:nth-child(8),#doctorsMasterTable tbody td:nth-child(9){grid-column:1/-1}
+ #doctorsMasterTable tbody td:nth-child(8){border-top:1px solid #e9eef5!important;padding-top:12px!important}
+ #doctorsMasterTable .aikdoc-login-card{min-width:0!important;max-width:100%!important;width:100%;box-sizing:border-box}
+ #doctorsMasterTable .aikdoc-credential-line{min-width:0;max-width:100%}
+ #doctorsMasterTable .aikdoc-credential-value{overflow-wrap:anywhere;white-space:normal;min-width:0}
+ #doctorsMasterTable .aikdoc-doctor-actions{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));width:100%;max-width:none;min-width:0!important;margin:0;gap:8px}
+ #doctorsMasterTable .aikdoc-doctor-btn{min-width:0;padding:9px 6px}
+ #doctorsMasterTable tbody tr:has(td[colspan]){display:block!important}
+ #doctorsMasterTable tbody td[colspan]{display:block!important;text-align:center;padding:20px!important}
+ #doctorsMasterTable tbody td[colspan]::before{display:none}
+}
+@media(max-width:1250px){#doctorsMasterTable tbody{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:560px){
+ #doctorsMasterTable tbody tr{padding:13px;gap:10px}
+ #doctorsMasterTable .aikdoc-doctor-actions{grid-template-columns:repeat(2,minmax(0,1fr))}
+ #doctorsMasterTable .aikdoc-doctor-btn{min-height:40px}
+}
+</style>
 </head>
 <body>
 
@@ -1351,7 +1419,7 @@ function renderDoctorsTable(docs) {
 
   tbody.innerHTML = filtered.map(d => `
     <tr>
-      <td>
+      <td data-label="Doctor">
         <div class="entity-cell">
           <img class="table-img" src="${d.photo || DEFAULT_AVATAR}" onerror="this.src='${DEFAULT_AVATAR}'">
           <div>
@@ -1360,16 +1428,16 @@ function renderDoctorsTable(docs) {
           </div>
         </div>
       </td>
-      <td><strong>${d.speciality}</strong></td>
-      <td>
+      <td data-label="Speciality"><strong>${d.speciality}</strong></td>
+      <td data-label="Hospital / Venue">
         <div style="font-weight:700;color:var(--navy)">${d.hospital}</div>
         <div class="entity-sub">📍 ${d.district || 'Bihar'}</div>
       </td>
-      <td><strong style="color:var(--teal)">₹${d.fee}</strong></td>
-      <td><span class="tag-pill tag-confirmed">${d.patientGroup || 'Adult'}</span></td>
-      <td style="font-size:12px;color:var(--muted)">${d.timings || 'Mon–Sat'}</td>
-      <td><span class="tag-pill ${d.banned || d.status === 'banned' ? 'tag-cancelled' : 'tag-confirmed'}">${d.banned || d.status === 'banned' ? 'Banned' : 'Active'}</span></td>
-      <td class="doctor-visibility-cell">${(() => {
+      <td data-label="Fee (₹)"><strong style="color:var(--teal)">₹${d.fee}</strong></td>
+      <td data-label="Patient Group"><span class="tag-pill tag-confirmed">${d.patientGroup || 'Adult'}</span></td>
+      <td data-label="Timings" style="font-size:12px;color:var(--muted)">${d.timings || 'Mon–Sat'}</td>
+      <td data-label="Account Status"><span class="tag-pill ${d.banned || d.status === 'banned' ? 'tag-cancelled' : 'tag-confirmed'}">${d.banned || d.status === 'banned' ? 'Banned' : 'Active'}</span></td>
+      <td data-label="Login ID Visibility" class="doctor-visibility-cell">${(() => {
         let accounts = []; try { accounts = JSON.parse(localStorage.getItem('aikdoc_doctor_accounts') || '[]'); } catch(e) {}
         const account = (Array.isArray(accounts) ? accounts : []).find(a => (d.id != null && String(a.id) === String(d.id)) || (d.email && a.email && a.email.toLowerCase() === d.email.toLowerCase()));
         const adminCreated = d.createdByAdmin === true || (account && account.createdByAdmin === true);
@@ -1383,14 +1451,18 @@ function renderDoctorsTable(docs) {
         const passwordDetail = sharing
           ? `<div class="visibility-details">Password: <span class="admin-shared-password">${escapeHTML(String(password || 'Not available'))}</span></div>`
           : `<div class="visibility-details">Password: Hidden by doctor</div>`;
-        return `<span class="tag-pill ${sharing ? 'tag-confirmed' : 'tag-pending'}">${escapeHTML(status)}</span><div class="visibility-details">Login email: ${escapeHTML(email)}</div>${passwordDetail}`;
+        return `<div class="aikdoc-login-card">
+          <span class="aikdoc-login-status ${sharing ? 'is-shared' : 'is-private'}"><span class="aikdoc-status-dot"></span>${escapeHTML(status)}</span>
+          <div class="aikdoc-credential-line"><span class="aikdoc-credential-label">Email</span><span class="aikdoc-credential-value" title="${escapeHTML(email)}">${escapeHTML(email)}</span></div>
+          <div class="aikdoc-credential-line"><span class="aikdoc-credential-label">Password</span><span class="aikdoc-credential-value ${sharing ? 'aikdoc-visible-password' : 'aikdoc-hidden-password'}">${sharing ? escapeHTML(String(password || 'Not available')) : '••••••••  ·  Private'}</span></div>
+        </div>`;
       })()}</td>
-      <td style="text-align:right">
-        <div class="action-group" style="justify-content:flex-end;flex-wrap:wrap">
-          <button class="btn-action ${d.banned || d.status === 'banned' ? 'edit' : 'delete'}" title="${d.banned || d.status === 'banned' ? 'Restore doctor access' : 'Ban doctor access'}" type="button" onclick="toggleDoctorBan(${d.id})">${d.banned || d.status === 'banned' ? '✓ Unban' : 'Ban'}</button>
-          <button class="btn-action reviews" title="View patient reviews" type="button" onclick="viewDoctorReviews(${d.id})">Reviews</button>
-          <button class="btn-action edit" title="Edit doctor profile" type="button" onclick="editDoctor(${d.id})">Edit</button>
-          <button class="btn-action delete" title="Delete doctor account" type="button" onclick="deleteDoctorPermanent(${d.id})">Delete</button>
+      <td data-label="Actions" style="text-align:right">
+        <div class="aikdoc-doctor-actions" role="group" aria-label="Doctor account actions">
+          <button class="aikdoc-doctor-btn aikdoc-doctor-btn-edit" title="Edit doctor profile" type="button" onclick="editDoctor(${d.id})"><span aria-hidden="true">✎</span> Edit</button>
+          <button class="aikdoc-doctor-btn aikdoc-doctor-btn-reviews" title="View patient reviews" type="button" onclick="viewDoctorReviews(${d.id})"><span aria-hidden="true">★</span> Reviews</button>
+          <button class="aikdoc-doctor-btn ${d.banned || d.status === 'banned' ? 'aikdoc-doctor-btn-unban' : 'aikdoc-doctor-btn-ban'}" title="${d.banned || d.status === 'banned' ? 'Restore doctor access' : 'Ban doctor access'}" type="button" onclick="toggleDoctorBan(${d.id})">${d.banned || d.status === 'banned' ? '✓ Unban' : '⊘ Ban'}</button>
+          <button class="aikdoc-doctor-btn aikdoc-doctor-btn-delete" title="Delete doctor account" type="button" onclick="deleteDoctorPermanent(${d.id})"><span aria-hidden="true">⌫</span> Delete</button>
         </div>
       </td>
     </tr>
