@@ -302,6 +302,70 @@ body.dark-mode .doctor-banned-screen{background:#101827}.dark-mode .doctor-banne
 @media(prefers-reduced-motion:reduce){#doctorAppointmentNotice .notice-card{animation:none}}
 </style>
 
+<style id="doctorBookingToastStyle">
+#doctorAppointmentNotice[data-kind="new"]{z-index:2147483000;inset:auto 18px 18px auto;display:none;align-items:stretch;justify-content:stretch;padding:0;background:transparent;backdrop-filter:none;width:min(400px,calc(100vw - 36px));max-height:calc(100vh - 36px);pointer-events:none}
+#doctorAppointmentNotice[data-kind="new"].show{display:flex!important;visibility:visible!important;opacity:1!important}
+#doctorAppointmentNotice[data-kind="new"] .notice-card{width:100%;border-radius:16px;box-shadow:0 12px 42px #06142b38;pointer-events:auto;overflow:auto}
+#doctorAppointmentNotice[data-kind="new"] .notice-head{padding:14px 16px 10px}
+#doctorAppointmentNotice[data-kind="new"] .notice-head h2{font-size:17px!important}
+#doctorAppointmentNotice[data-kind="new"] .notice-icon{width:36px;height:36px;font-size:19px}
+#doctorAppointmentNotice[data-kind="new"] .notice-body{padding:12px 16px;font-size:13px}
+#doctorAppointmentNotice[data-kind="new"] .notice-actions{padding:0 16px 14px}
+@media(max-width:480px){#doctorAppointmentNotice[data-kind="new"]{inset:auto 12px 12px 12px;width:auto}}
+</style>
+<style id="aikdoc-doctor-responsive-v1">
+html,body{max-width:100%;overflow-x:clip}
+img,video,canvas,iframe{max-width:100%}
+.container,.portal-grid,.portal-card,.metric-card,.split-box,.review-card-item,.appointment-item-card{min-width:0}
+.table-responsive{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-inline:contain}
+.table-responsive table{min-width:620px}
+.form-field input,.form-field select,.form-field textarea{min-width:0;width:100%;max-width:100%}
+@media(max-width:1024px){
+ .nav{gap:12px;padding:12px 16px}
+ .nav-tabs{order:3;flex:0 0 100%;width:100%;max-width:100%;overflow-x:auto;overscroll-behavior-inline:contain;-webkit-overflow-scrolling:touch;scrollbar-width:thin;padding-bottom:5px;flex-wrap:nowrap}
+ .nav-tabs .tab-btn{flex:0 0 auto;white-space:nowrap;min-height:42px}
+ .header-actions{margin-left:auto;flex-wrap:wrap;justify-content:flex-end;min-width:0}
+ .hero-portal{padding:24px;gap:16px}
+ .portal-grid{grid-template-columns:minmax(0,1fr)}
+ .preview-sticky{position:static}
+ .container{padding:20px 16px}
+ .metrics-row{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .subtabs-bar{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;white-space:nowrap}
+ .subtab-btn{flex-shrink:0;min-height:42px}
+}
+@media(max-width:640px){
+ .nav{padding:10px 12px;gap:10px}
+ .brand{font-size:18px}.logo{width:34px;height:34px}
+ .partner-tag{font-size:9px;padding:4px 6px}
+ .header-actions{width:100%;margin-left:0;justify-content:space-between;gap:8px}
+ .preferences{min-width:0;flex-wrap:wrap;justify-content:flex-start!important;gap:6px}
+ .pref-control{max-width:100%;min-height:40px}
+ .btn-view-patient{padding:9px;min-height:40px}
+ .doctor-profile-pill{min-width:0;max-width:100%}
+ .doc-pill-name{max-width:85px}
+ .container{padding:14px 12px}
+ .auth-wrapper{padding:18px 12px;min-height:calc(100dvh - 90px)}
+ .auth-box{padding:22px 16px;border-radius:18px}
+ .hero-portal{padding:20px 16px;border-radius:18px;flex-direction:column;align-items:flex-start}
+ .portal-card{padding:16px;border-radius:16px}
+ .form-grid{grid-template-columns:minmax(0,1fr)}
+ .form-field.full{grid-column:auto}
+ input,select,textarea{font-size:16px!important}
+ .metrics-row{gap:9px}
+ .metric-card{padding:13px;border-radius:13px}
+ .metric-card strong{font-size:clamp(18px,6vw,24px)}
+ .revenue-split-grid,.reviews-hero-card{grid-template-columns:minmax(0,1fr)}
+ .appt-details-grid{grid-template-columns:minmax(0,1fr);gap:8px}
+ .appt-top,.appt-actions,.review-header-flex{flex-wrap:wrap}
+ .action-btn-group{flex-wrap:wrap}
+ .fp-modal{max-height:calc(100dvh - 12px);overflow-y:auto}
+ .aikhelp-launch{left:12px!important;right:auto!important;bottom:max(12px,env(safe-area-inset-bottom))!important}
+ .aikhelp-panel{left:8px!important;right:auto!important;width:min(380px,calc(100vw - 16px))!important;max-height:calc(100dvh - 95px)!important}
+ #aikdocIncomingBookingToast{left:12px!important;right:12px!important;bottom:12px!important;width:auto!important;max-width:none!important}
+}
+@media(max-width:380px){.metrics-row{grid-template-columns:minmax(0,1fr)}.btn-view-patient span:last-child{display:none}}
+@media(prefers-reduced-motion:reduce){.nav-tabs{scroll-behavior:auto}}
+</style>
 </head>
 <body>
 
@@ -406,9 +470,18 @@ body.dark-mode .doctor-banned-screen{background:#101827}.dark-mode .doctor-banne
       </div>
 
       <div class="form-field">
-        <label for="regDocSpecialityInput">Speciality (Select or Type) *</label>
-        <input list="adminSpecialitiesDatalist" id="regDocSpecialityInput" required placeholder="Type or select speciality...">
-        <datalist id="adminSpecialitiesDatalist"></datalist>
+        <label for="regDocPatientGroup">Select Patient Group *</label>
+        <select id="regDocPatientGroup" required>
+          <option value="Adult">Adult</option>
+          <option value="Paediatric">Paediatric</option>
+          <option value="All">Both (Adult & Paediatric)</option>
+        </select>
+      </div>
+
+      <div class="form-field">
+        <label for="regDocSpecialityInput">Speciality (Select) *</label>
+        <select id="regDocSpecialityInput" required><option value="">Loading specialities…</option></select>
+        <datalist id="adminSpecialitiesDatalist" hidden></datalist>
       </div>
 
       <div class="form-field">
@@ -477,18 +550,19 @@ body.dark-mode .doctor-banned-screen{background:#101827}.dark-mode .doctor-banne
           </div>
 
           <div class="form-field">
-            <label for="docSpecialityInput">Speciality (Select or Type) *</label>
-            <input list="adminSpecialitiesDatalist" id="docSpecialityInput" required placeholder="Type or select speciality...">
-          </div>
-
-          <div class="form-field">
-            <label for="docPatientGroup">Primary Patient Group</label>
+            <label for="docPatientGroup">Select Patient Group</label>
             <select id="docPatientGroup">
               <option value="Adult">Adult Care (18+ yrs)</option>
               <option value="Paediatric">Paediatric Care (0–18 yrs)</option>
-              <option value="All">All Ages (Adult & Child)</option>
+              <option value="All">Both (Adult & Paediatric)</option>
             </select>
           </div>
+
+          <div class="form-field">
+            <label for="docSpecialityInput">Speciality (Select) *</label>
+            <select id="docSpecialityInput" required><option value="">Loading specialities…</option></select>
+          </div>
+
 
           <div class="form-field">
             <label for="docQual">Degrees & Qualifications *</label>
@@ -520,7 +594,7 @@ body.dark-mode .doctor-banned-screen{background:#101827}.dark-mode .doctor-banne
 
           <div class="form-field full">
             <label for="docHospital">Hospital / Clinic Venue *</label>
-            <select id="docHospital" required></select>
+            <select id="docHospital" required><option value="">Select hospital / clinic…</option><option value="__OWN_CLINIC__">＋ Own Clinic / अपना क्लिनिक</option></select>
           </div>
 
           <div class="own-clinic-box form-field full" id="ownClinicBox">
@@ -750,7 +824,7 @@ body.dark-mode .doctor-banned-screen{background:#101827}.dark-mode .doctor-banne
 
 <div id="doctorAppointmentNotice" role="dialog" aria-modal="true" aria-labelledby="doctorAppointmentNoticeTitle" data-kind="new">
  <div class="notice-card"><div class="notice-head"><div class="notice-icon" id="doctorAppointmentNoticeIcon">✚</div><div><div id="doctorAppointmentNoticeEyebrow" style="font-size:11px;letter-spacing:.8px;text-transform:uppercase;font-weight:900;color:#64748b">Appointment update</div><h2 id="doctorAppointmentNoticeTitle" style="margin:3px 0 0;font-size:21px;line-height:1.25">New appointment booked</h2></div></div>
- <div class="notice-body" id="doctorAppointmentNoticeBody"></div><div class="notice-actions"><button type="button" class="secondary" onclick="closeDoctorAppointmentNotice(false)">Dismiss</button><button type="button" onclick="closeDoctorAppointmentNotice(true)">View appointments</button></div></div>
+ <div class="notice-body" id="doctorAppointmentNoticeBody"></div><div class="notice-actions"><button type="button" class="secondary" onclick="closeDoctorAppointmentNotice(false)">Dismiss</button><button type="button" onclick="closeDoctorAppointmentNotice(true)">View</button></div></div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -773,22 +847,83 @@ function getDoctorAccounts() {
   try { const value = JSON.parse(localStorage.getItem("aikdoc_doctor_accounts") || "[]"); return Array.isArray(value) ? value : []; } catch (e) { return []; }
 }
 
+function doctorSpecialityLabel(s) {
+  // Match the public site and Super Admin's doctor filters: use the saved tag,
+  // falling back to the displayed name for older records without a tag.
+  return String((s && (s.tag || s.name || s.speciality || s.specialty)) || "").trim();
+}
+function doctorEscapeHtml(value) {
+  return String(value == null ? "" : value).replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;", "'":"&#39;"}[ch]));
+}
+function normalizeDoctorEmail(value) {
+  return String(value || "").trim().toLowerCase();
+}
+function normalizeDoctorMobile(value) {
+  const digits = String(value || "").replace(/\D/g, "");
+  return digits.length >= 10 ? digits.slice(-10) : digits;
+}
+function sameDoctorIdentity(a, b) {
+  if (!a || !b) return false;
+  const am = normalizeDoctorMobile(a.mobile || a.phone);
+  const bm = normalizeDoctorMobile(b.mobile || b.phone);
+  const ae = normalizeDoctorEmail(a.email);
+  const be = normalizeDoctorEmail(b.email);
+  return (!!am && !!bm && am === bm) || (!!ae && !!be && ae === be) ||
+    (a.id != null && b.id != null && String(a.id) === String(b.id));
+}
 function populateSpecialityDatalists() {
   const specs = getMasterSpecialties();
+  const unique = [...new Set(specs.map(doctorSpecialityLabel).filter(Boolean))];
   const datalist = document.getElementById("adminSpecialitiesDatalist");
-  const unique = [...new Set(specs.map(s => s.tag || s.name))];
-  datalist.innerHTML = unique.map(s => `<option value="${s}">`).join("");
+  if (datalist) datalist.innerHTML = unique.map(s => `<option value="${doctorEscapeHtml(s)}"></option>`).join("");
 
-  const hosps = getMasterHospitals();
-  const hospSelect = document.getElementById("docHospital");
-  if (hosps.length) {
-    hospSelect.innerHTML = hosps.map(h => `<option value="${h.name}">${h.name} (${h.district})</option>`).join("");
-  } else {
-    hospSelect.innerHTML = `<option value="AIKDOC Central Medical Centre">AIKDOC Central Medical Centre</option>`;
-  }
-  if (![...hospSelect.options].some(o => o.value === "__OWN_CLINIC__")) hospSelect.insertAdjacentHTML("beforeend", '<option value="__OWN_CLINIC__">＋ Own Clinic / अपना क्लिनिक</option>');
+  // Use real <select> controls (not <datalist>, which has no guaranteed dropdown arrow).
+  // Preserve the selected value during a live refresh, and preserve an existing
+  // profile value if an administrator has since removed that speciality.
+  ["regDocSpecialityInput", "docSpecialityInput"].forEach(id => {
+    const select = document.getElementById(id);
+    if (!select) return;
+    const previous = String(select.value || "").trim();
+    const isProfile = id === "docSpecialityInput";
+    const groupSelect = document.getElementById(isProfile ? "docPatientGroup" : "regDocPatientGroup");
+    const group = groupSelect ? groupSelect.value : "All";
+    const allowed = specs.filter(item => {
+      const g = String(item && item.group || "").toLowerCase();
+      return group === "All" || !g || (group === "Paediatric" ? g.includes("paed") || g.includes("ped") : g.includes("adult"));
+    }).map(doctorSpecialityLabel).filter(Boolean);
+    const options = ['<option value="">Select a speciality…</option>'];
+    [...new Set(allowed)].forEach(label => options.push(`<option value="${doctorEscapeHtml(label)}">${doctorEscapeHtml(label)}</option>`));
+    if (isProfile && previous && !unique.some(label => label.toLowerCase() === previous.toLowerCase())) {
+      options.push(`<option value="${doctorEscapeHtml(previous)}">${doctorEscapeHtml(previous)} (current profile)</option>`);
+    }
+    select.innerHTML = options.join("");
+    if (previous && [...select.options].some(option => option.value === previous)) select.value = previous;
+  });
+
+  populateDoctorHospitalDropdown();
+
 }
 
+function populateDoctorHospitalDropdown() {
+  const hospSelect = document.getElementById("docHospital");
+  if (!hospSelect) return;
+  const previousVenue = hospSelect.value;
+  const hospitals = getMasterHospitals();
+  const options = ['<option value="">Select hospital / clinic…</option>'];
+  const names = new Set();
+  hospitals.forEach(h => {
+    if (!h || !h.name || names.has(String(h.name))) return;
+    names.add(String(h.name));
+    options.push(`<option value="${doctorEscapeHtml(h.name)}">${doctorEscapeHtml(h.name)}${h.district ? " (" + doctorEscapeHtml(h.district) + ")" : ""}</option>`);
+  });
+  if (previousVenue && previousVenue !== "__OWN_CLINIC__" && !names.has(previousVenue)) {
+    options.push(`<option value="${doctorEscapeHtml(previousVenue)}">${doctorEscapeHtml(previousVenue)} (current venue)</option>`);
+  }
+  options.push('<option value="__OWN_CLINIC__">＋ Own Clinic / अपना क्लिनिक</option>');
+  hospSelect.innerHTML = options.join("");
+  if (previousVenue && [...hospSelect.options].some(o => o.value === previousVenue)) hospSelect.value = previousVenue;
+  if (typeof toggleOwnClinicFields === "function") toggleOwnClinicFields();
+}
 // Auth Session Management
 const authGateSection = document.getElementById("authGateSection");
 const mainDashboardSection = document.getElementById("mainDashboardSection");
@@ -837,7 +972,8 @@ regPhotoFile.addEventListener("change", (e) => {
 
 function findMasterDoctorForUser(user) {
   const master = getMasterDoctors();
-  return master.find(d => (user && user.id != null && String(d.id) === String(user.id)) || (user && user.mobile && d.mobile && String(d.mobile) === String(user.mobile)) || (user && user.name && d.name && d.name.toLowerCase() === user.name.toLowerCase()));
+  return master.find(d => sameDoctorIdentity(d, user) ||
+    (user && user.name && d.name && String(d.name).trim().toLowerCase() === String(user.name).trim().toLowerCase()));
 }
 function showDoctorBannedScreen() {
   const gate = document.getElementById("authGateSection");
@@ -859,7 +995,27 @@ function doctorBannedLogout() {
 }
 function isDoctorBanned(user) {
   const d = findMasterDoctorForUser(user);
-  return !!(d && (d.banned === true || d.status === "banned"));
+  return !!(d && (d.banned === true || String(d.status || "").trim().toLowerCase() === "banned"));
+}
+
+function refreshLiveDoctorAccess() {
+  let user = null;
+  try { user = JSON.parse(localStorage.getItem("aikdoc_doctor_session") || localStorage.getItem("aikdoc_doctor_session_backup") || "null"); } catch (e) {}
+  if (!user) return;
+  const directoryDoctor = findMasterDoctorForUser(user);
+  if (!directoryDoctor) return;
+  const bannedScreen = document.getElementById("doctorBannedScreen");
+  const currentlyRestricted = !!(bannedScreen && bannedScreen.style.display !== "none");
+  if (directoryDoctor.banned === true || String(directoryDoctor.status || "").trim().toLowerCase() === "banned") {
+    if (!currentlyRestricted) showDoctorBannedScreen();
+    return;
+  }
+  // If the admin restores access while this doctor tab is open, restore the dashboard too.
+  if (currentlyRestricted) {
+    const bannedScreen = document.getElementById("doctorBannedScreen");
+    if (bannedScreen) bannedScreen.style.display = "none";
+    showDashboard({ ...directoryDoctor, password: user.password });
+  }
 }
 
 function checkAuthSession() {
@@ -959,37 +1115,56 @@ function showDashboard(doctor) {
 
 loginForm.addEventListener("submit", (e) => {
   e.preventDefault();
-  const identifier = document.getElementById("loginIdentifier").value.trim().toLowerCase();
+  const rawIdentifier = document.getElementById("loginIdentifier").value.trim();
+  const identifierEmail = normalizeDoctorEmail(rawIdentifier);
+  const identifierMobile = normalizeDoctorMobile(rawIdentifier);
   const pass = document.getElementById("loginPassword").value;
 
+  // Older versions wrote doctor records to both arrays, and some records may
+  // exist in only one. Search both, but always require the exact password.
   const accounts = getDoctorAccounts();
-  const user = accounts.find(a => 
-    (a.mobile === identifier || (a.email && a.email.toLowerCase() === identifier)) && 
-    a.password === pass
-  );
+  const master = getMasterDoctors();
+  const candidates = [...accounts, ...master];
+  const user = candidates.find(a => {
+    if (!a || a.password !== pass) return false;
+    const email = normalizeDoctorEmail(a.email);
+    const mobile = normalizeDoctorMobile(a.mobile || a.phone);
+    return (identifierEmail.includes("@") && email && email === identifierEmail) ||
+      (!identifierEmail.includes("@") && identifierMobile.length >= 10 && mobile === identifierMobile);
+  });
 
   if (!user) {
     showToast("❌ Invalid mobile/email or password.");
     return;
   }
 
-  const master = getMasterDoctors();
-  const stillExists = master.some(d => d.name === user.name || (user.mobile && d.mobile === user.mobile));
-  if (!stillExists) {
-    showToast("❌ This doctor account has been deleted by administration.");
+  // Match by stable ID first, then normalized mobile/email. If a matching
+  // directory entry exists, use it as the current profile; don't reject a valid
+  // account simply because one list contains a differently formatted phone.
+  let directoryDoctor = master.find(d => sameDoctorIdentity(d, user)) || null;
+  if (!directoryDoctor) {
+    showToast("❌ This doctor account is not present in the active directory. Please contact the administrator.");
     return;
   }
-  if (isDoctorBanned(user)) {
-    localStorage.setItem("aikdoc_doctor_session", JSON.stringify(user));
-    localStorage.setItem("aikdoc_doctor_session_backup", JSON.stringify(user));
+  if (directoryDoctor.banned === true || String(directoryDoctor.status || "").toLowerCase() === "banned") {
+    localStorage.setItem("aikdoc_doctor_session", JSON.stringify(directoryDoctor));
+    localStorage.setItem("aikdoc_doctor_session_backup", JSON.stringify(directoryDoctor));
     showDoctorBannedScreen();
     return;
   }
 
-  localStorage.setItem("aikdoc_doctor_session", JSON.stringify(user));
-    localStorage.setItem("aikdoc_doctor_session_backup", JSON.stringify(user));
-  showToast(`Welcome back, ${user.name}!`);
-  showDashboard(user);
+  // Repair the account index from the authoritative directory record while
+  // retaining the password from the successfully authenticated account.
+  const canonicalUser = { ...directoryDoctor, password: user.password };
+  const accountIndex = accounts.findIndex(a => sameDoctorIdentity(a, canonicalUser));
+  if (accountIndex >= 0) accounts[accountIndex] = { ...accounts[accountIndex], ...canonicalUser };
+  else accounts.unshift(canonicalUser);
+  try { localStorage.setItem("aikdoc_doctor_accounts", JSON.stringify(accounts)); } catch (err) { console.warn("Could not refresh doctor account index", err); }
+  localStorage.setItem("aikdoc_doctor_session", JSON.stringify(canonicalUser));
+  localStorage.setItem("aikdoc_doctor_session_backup", JSON.stringify(canonicalUser));
+  localStorage.setItem("aikdoc_active_doctor_name", canonicalUser.name || "");
+  showToast(`Welcome back, ${canonicalUser.name || "Doctor"}!`);
+  showDashboard(canonicalUser);
 });
 
 registerForm.addEventListener("submit", (e) => {
@@ -1005,9 +1180,27 @@ registerForm.addEventListener("submit", (e) => {
     return;
   }
 
-  const accounts = getDoctorAccounts();
-  if (accounts.some(a => a.mobile === mobile || (a.email && a.email.toLowerCase() === email))) {
-    showToast("⚠️ An account with this mobile/email already exists. Please Sign In.");
+  let accounts = getDoctorAccounts();
+  const masterDoctors = getMasterDoctors();
+  // Remove orphaned account-index entries left by an interrupted older signup.
+  // A real active doctor must have a matching master-directory record; otherwise
+  // that stale account can incorrectly block a genuinely new registration.
+  const reconciledAccounts = accounts.filter(a => masterDoctors.some(d => sameDoctorIdentity(d, a)));
+  if (reconciledAccounts.length !== accounts.length) {
+    accounts = reconciledAccounts;
+    try { localStorage.setItem("aikdoc_doctor_accounts", JSON.stringify(accounts)); } catch (e) {}
+  }
+  const mobileKey = normalizeDoctorMobile(mobile);
+  const emailKey = normalizeDoctorEmail(email);
+  const duplicate = [...accounts, ...masterDoctors].some(a => {
+    if (!a) return false;
+    const savedMobile = normalizeDoctorMobile(a.mobile || a.phone);
+    const savedEmail = normalizeDoctorEmail(a.email);
+    return (!!mobileKey && !!savedMobile && savedMobile === mobileKey) ||
+      (!!emailKey && !!savedEmail && savedEmail === emailKey);
+  });
+  if (duplicate) {
+    showToast("⚠️ This mobile number or email is already registered. Check the details or sign in.");
     authTabLogin.click();
     return;
   }
@@ -1019,7 +1212,7 @@ registerForm.addEventListener("submit", (e) => {
     email: email,
     password: pass,
     speciality: spec,
-    patientGroup: "Adult",
+    patientGroup: document.getElementById("regDocPatientGroup").value,
     qualification: "MBBS",
     registration: "BMRC-" + Math.floor(10000 + Math.random() * 90000),
     district: "Patna",
@@ -1035,16 +1228,30 @@ registerForm.addEventListener("submit", (e) => {
     about: "Verified practitioner listed on AIKDOC."
   };
 
-  accounts.unshift(newDoc);
-  localStorage.setItem("aikdoc_doctor_accounts", JSON.stringify(accounts));
-
-  let master = getMasterDoctors();
-  master.unshift(newDoc);
-  localStorage.setItem("aikdoc_master_doctors", JSON.stringify(master));
-  localStorage.setItem("aikdoc_last_sync", Date.now().toString());
-
-  localStorage.setItem("aikdoc_doctor_session", JSON.stringify(newDoc));
-  localStorage.setItem("aikdoc_doctor_session_backup", JSON.stringify(newDoc));
+  // Persist account + public directory together. If storage is full, don't
+  // continue into a session that appears registered but cannot log in later.
+  try {
+    accounts.unshift(newDoc);
+    localStorage.setItem("aikdoc_doctor_accounts", JSON.stringify(accounts));
+    const master = getMasterDoctors();
+    master.unshift(newDoc);
+    localStorage.setItem("aikdoc_master_doctors", JSON.stringify(master));
+    localStorage.setItem("aikdoc_last_sync", Date.now().toString());
+    localStorage.setItem("aikdoc_doctor_session", JSON.stringify(newDoc));
+    localStorage.setItem("aikdoc_doctor_session_backup", JSON.stringify(newDoc));
+    localStorage.setItem("aikdoc_active_doctor_name", newDoc.name);
+  } catch (storageError) {
+    // Roll back partial writes so the next registration attempt is not falsely
+    // reported as a duplicate if the browser rejected a write.
+    try {
+      const latestAccounts = getDoctorAccounts().filter(a => !sameDoctorIdentity(a, newDoc));
+      const latestMaster = getMasterDoctors().filter(a => !sameDoctorIdentity(a, newDoc));
+      localStorage.setItem("aikdoc_doctor_accounts", JSON.stringify(latestAccounts));
+      localStorage.setItem("aikdoc_master_doctors", JSON.stringify(latestMaster));
+    } catch (rollbackError) {}
+    showToast("⚠️ Registration could not be saved in browser storage. Free some storage space and try again.");
+    return;
+  }
   showToast(`🎉 Practice registered! Welcome, ${name}.`);
   showDashboard(newDoc);
 });
@@ -1217,7 +1424,13 @@ document.getElementById("doctorForm").addEventListener("submit", (e) => {
 
   if (existingIdx >= 0) {
     docProfile.id = masterDocs[existingIdx].id;
-    masterDocs[existingIdx] = docProfile;
+    // Doctor profile edits must not erase admin-controlled access/status flags.
+    masterDocs[existingIdx] = { ...masterDocs[existingIdx], ...docProfile,
+      banned: masterDocs[existingIdx].banned,
+      status: masterDocs[existingIdx].status,
+      verified: masterDocs[existingIdx].verified,
+      approved: masterDocs[existingIdx].approved
+    };
   } else {
     docProfile.id = Date.now();
     masterDocs.unshift(docProfile);
@@ -1239,6 +1452,12 @@ document.getElementById("doctorForm").addEventListener("submit", (e) => {
   }
   localStorage.setItem("aikdoc_master_hospitals", JSON.stringify(masterHospitals));
   localStorage.setItem("aikdoc_master_doctors", JSON.stringify(masterDocs));
+  // Keep the login index aligned with the profile directory without changing passwords.
+  const accountList = getDoctorAccounts();
+  const accountIndex = accountList.findIndex(a => sameDoctorIdentity(a, docProfile) || sameDoctorIdentity(a, sessionUser));
+  if (accountIndex >= 0) accountList[accountIndex] = { ...accountList[accountIndex], ...docProfile, password: accountList[accountIndex].password };
+  else if (sessionUser.password) accountList.unshift({ ...docProfile, password: sessionUser.password });
+  localStorage.setItem("aikdoc_doctor_accounts", JSON.stringify(accountList));
   localStorage.setItem("aikdoc_last_sync", Date.now().toString());
 
   sessionUser.name = docProfile.name;
@@ -1561,6 +1780,7 @@ function doctorOwnsAppointment(a) {
   return !!(currentName && assignedName &&
     (currentName === assignedName || currentName.includes(assignedName) || assignedName.includes(currentName)));
 }
+let doctorBookingNoticeTimer = null;
 function openDoctorAppointmentNotice(kind, appt) {
   const modal=document.getElementById("doctorAppointmentNotice"); if(!modal||!appt)return;
   modal.dataset.kind=kind;
@@ -1575,8 +1795,18 @@ function openDoctorAppointmentNotice(kind, appt) {
   modal.style.setProperty("display", "flex", "important");
   modal.classList.add("show");
   modal.setAttribute("aria-live", "assertive");
+  // New booking notifications disappear after five seconds; View remains clickable.
+  if (doctorBookingNoticeTimer !== null) clearTimeout(doctorBookingNoticeTimer);
+  doctorBookingNoticeTimer = kind === "new" ? setTimeout(() => {
+    doctorBookingNoticeTimer = null;
+    closeDoctorAppointmentNotice(false);
+  }, 5000) : null;
 }
 window.closeDoctorAppointmentNotice=function(view){
+  if (doctorBookingNoticeTimer !== null) {
+    clearTimeout(doctorBookingNoticeTimer);
+    doctorBookingNoticeTimer = null;
+  }
   const modal=document.getElementById("doctorAppointmentNotice");
   const kind=modal&&modal.dataset.kind;
   if(modal){modal.classList.remove("show");modal.style.setProperty("display","none","important");}
@@ -1628,7 +1858,13 @@ function syncDoctorAppointmentChanges(previousRaw, currentRaw) {
   const oldList = safeDoctorParse(prevRaw), newList = safeDoctorParse(nextRaw);
   const oldByKey = new Map(oldList.map(a => [doctorApptKey(a), a]).filter(([k]) => k));
   const owned = a => {
-    try { return doctorOwnsAppointment(a); } catch (e) { return false; }
+    try {
+      if (doctorOwnsAppointment(a)) return true;
+      const session = JSON.parse(localStorage.getItem("aikdoc_doctor_session") || "null");
+      const norm = v => String(v || "").toLowerCase().replace(/^dr\.?\s*/, "").replace(/[^a-z0-9]+/g, " ").trim();
+      const doctor = norm(document.getElementById("docName")?.value || session?.name);
+      return !!(doctor && doctor === norm(a.doctorName || a.doctor));
+    } catch (e) { return false; }
   };
   const isConfirmed = a => !a.status || String(a.status).trim().toLowerCase() === "confirmed";
   // Notify both when a record is newly added and when an existing pending record
@@ -1665,25 +1901,62 @@ function syncDoctorAppointmentChanges(previousRaw, currentRaw) {
 window.addEventListener("storage", (e) => {
   if (e.key === "aikdoc_appointments") syncDoctorAppointmentChanges(e.oldValue, e.newValue);
   if (e.key === "aikdoc_doctor_deleted" || e.key === "aikdoc_master_doctors") {
-    // Directory updates are data updates, not authentication events. Never hide
-    // the active dashboard just because another tab changes the doctor directory.
-    try { if (document.getElementById("mainDashboardSection")?.style.display !== "none") { loadAllDoctorData(); } } catch (err) { console.warn("Doctor directory refresh skipped", err); }
+    // Immediately reflect admin edits, bans and unbans in this already-open tab.
+    try { if (document.getElementById("mainDashboardSection")?.style.display !== "none") loadAllDoctorData(); } catch (err) { console.warn("Doctor directory refresh skipped", err); }
+    try { refreshLiveDoctorAccess(); } catch (err) { console.warn("Live access refresh skipped", err); }
   }
-  if (e.key === "aikdoc_master_specialties" || e.key === "aikdoc_master_hospitals") { try { populateSpecialityDatalists(); } catch(err) {} }
+  if (e.key === "aikdoc_master_specialties" || e.key === "aikdoc_master_hospitals") { try { populateSpecialityDatalists(); } catch(err) {} try { populateDoctorHospitalDropdown(); } catch(err) {} }
   if (e.key === "aikdoc_doctor_session" && e.newValue) { try { localStorage.setItem("aikdoc_doctor_session_backup", e.newValue); } catch(err) {} }
 });
+// Dedicated ban/unban signal complements storage events for same-origin tabs.
+// Never trust the message payload as authorization: always re-read the directory.
+try {
+  const doctorAccessChannel = new BroadcastChannel("aikdoc_doctor_access");
+  doctorAccessChannel.onmessage = () => {
+    try {
+      refreshLiveDoctorAccess();
+      doctorDirectorySnapshot = localStorage.getItem("aikdoc_master_doctors") || "[]";
+    } catch (err) { console.warn("Doctor access notification failed", err); }
+  };
+} catch (err) { /* Storage event and polling remain available. */ }
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden) refreshLiveDoctorAccess();
+});
 // Poll even when a storage event is missed; this is still same-browser/same-origin sync.
+let doctorSpecialtiesSnapshot = localStorage.getItem("aikdoc_master_specialties") || "[]";
+let doctorHospitalsSnapshot = localStorage.getItem("aikdoc_master_hospitals") || "[]";
+let doctorDirectorySnapshot = localStorage.getItem("aikdoc_master_doctors") || "[]";
 window.setInterval(() => {
   try {
+    refreshLiveDoctorAccess();
+    const latestDirectory = localStorage.getItem("aikdoc_master_doctors") || "[]";
+    if (latestDirectory !== doctorDirectorySnapshot) {
+      doctorDirectorySnapshot = latestDirectory;
+      try { refreshLiveDoctorAccess(); } catch (e) {}
+      if (document.getElementById("mainDashboardSection")?.style.display !== "none") {
+        try { loadAllDoctorData(); } catch (e) {}
+      }
+    }
+    const latestHospitals = localStorage.getItem("aikdoc_master_hospitals") || "[]";
+    if (latestHospitals !== doctorHospitalsSnapshot) {
+      doctorHospitalsSnapshot = latestHospitals;
+      populateDoctorHospitalDropdown();
+    }
+    const latestSpecialties = localStorage.getItem("aikdoc_master_specialties") || "[]";
+    if (latestSpecialties !== doctorSpecialtiesSnapshot) {
+      doctorSpecialtiesSnapshot = latestSpecialties;
+      populateSpecialityDatalists();
+    }
     const latest = localStorage.getItem("aikdoc_appointments") || "[]";
     if (latest !== doctorAppointmentsSnapshot) syncDoctorAppointmentChanges(doctorAppointmentsSnapshot, latest);
     else if (document.visibilityState !== "hidden" && document.getElementById("mainDashboardSection")?.style.display !== "none") loadAllDoctorData();
   } catch (err) { console.warn("Background doctor refresh skipped", err); }
 }, 1000);
-window.addEventListener("focus", () => { try { const latest=localStorage.getItem("aikdoc_appointments")||"[]"; if(latest!==doctorAppointmentsSnapshot)syncDoctorAppointmentChanges(doctorAppointmentsSnapshot,latest); else loadAllDoctorData(); } catch(e){} });
+window.addEventListener("focus", () => { try { populateSpecialityDatalists(); refreshLiveDoctorAccess(); doctorDirectorySnapshot = localStorage.getItem("aikdoc_master_doctors") || "[]"; doctorSpecialtiesSnapshot = localStorage.getItem("aikdoc_master_specialties") || "[]"; const latest=localStorage.getItem("aikdoc_appointments")||"[]"; if(latest!==doctorAppointmentsSnapshot)syncDoctorAppointmentChanges(doctorAppointmentsSnapshot,latest); else loadAllDoctorData(); } catch(e){} });
 window.addEventListener("pageshow", () => { try {
+  populateSpecialityDatalists(); refreshLiveDoctorAccess(); doctorDirectorySnapshot = localStorage.getItem("aikdoc_master_doctors") || "[]";
   const session = JSON.parse(localStorage.getItem("aikdoc_doctor_session") || localStorage.getItem("aikdoc_doctor_session_backup") || "null");
-  if (session && typeof session === "object" && (session.name || session.mobile || session.email || session.id != null) && document.getElementById("mainDashboardSection")?.style.display === "none") showDashboard(session);
+  if (session && typeof session === "object" && (session.name || session.mobile || session.email || session.id != null) && !isDoctorBanned(session) && document.getElementById("mainDashboardSection")?.style.display === "none") showDashboard(session);
   const latest=localStorage.getItem("aikdoc_appointments")||"[]";
   if(latest!==doctorAppointmentsSnapshot) syncDoctorAppointmentChanges(doctorAppointmentsSnapshot,latest); else loadAllDoctorData();
 } catch(e){} });
@@ -1708,11 +1981,15 @@ function loadDoctorProfileFromMaster(sessionUser) {
       document.getElementById("docReg").value = doc.registration || "";
       document.getElementById("docSpecialityInput").value = doc.speciality;
       document.getElementById("docPatientGroup").value = doc.patientGroup || "Adult";
+      window.dispatchEvent(new Event("aikdoc-profile-group-loaded"));
       document.getElementById("docQual").value = doc.qualification || "MBBS";
       document.getElementById("docExp").value = doc.experience || "10 years";
       document.getElementById("docDistrict").value = doc.district || "Patna";
       document.getElementById("docFee").value = doc.fee || 500;
       if (doc.hospitalType === "own" || doc.ownClinic) {
+        if (![...document.getElementById("docHospital").options].some(o => o.value === "__OWN_CLINIC__")) {
+          document.getElementById("docHospital").add(new Option("＋ Own Clinic / अपना क्लिनिक", "__OWN_CLINIC__"));
+        }
         document.getElementById("docHospital").value = "__OWN_CLINIC__";
         const c = doc.ownClinic || {};
         document.getElementById("ownClinicName").value = c.name || doc.hospital || "";
@@ -1859,6 +2136,16 @@ function closeFullPreview(){
 document.addEventListener("keydown", e => { if (e.key === "Escape") closeFullPreview(); });
 
 // Startup must continue to authentication even if optional dropdown setup fails.
+// Synchronize both admin-managed lists immediately, without touching doctor authentication.
+window.addEventListener("storage", event => {
+  if (event.key === "aikdoc_master_hospitals" || event.key === null) {
+    try { populateDoctorHospitalDropdown(); } catch (error) { console.warn("Hospital sync:", error); }
+  }
+  if (event.key === "aikdoc_master_specialties" || event.key === null) {
+    try { populateSpecialityDatalists(); } catch (error) { console.warn("Speciality sync:", error); }
+  }
+});
+try { populateDoctorHospitalDropdown(); } catch (hospitalError) { console.warn("Hospital dropdown setup:", hospitalError); }
 try { populateSpecialityDatalists(); } catch (startupError) {
   console.warn("Optional doctor dropdown setup skipped:", startupError);
 }
@@ -1963,12 +2250,12 @@ renderOwnClinicPhotoGallery();
     </div>
   </div>
 </div>
-<!-- AIKDOC Instant Help: local, multilingual guided assistant (no backend/API calls) -->
+<!-- AIKDOC AI Help: local, multilingual guided assistant (no backend/API calls) -->
 <style>
-.aikhelp-launch{position:fixed;right:20px;bottom:20px;z-index:9998;border:0;border-radius:999px;background:#087f8c;color:#fff;padding:13px 18px;font-weight:800;box-shadow:0 8px 28px #0003;cursor:pointer}
-.aikhelp-panel{position:fixed;right:20px;bottom:78px;width:min(380px,calc(100vw - 28px));height:500px;max-height:calc(100vh - 110px);z-index:9999;background:#fff;color:#17263c;border:1px solid #dbe4ee;border-radius:18px;box-shadow:0 16px 48px #0003;display:none;overflow:hidden;font:14px/1.45 Arial,sans-serif}
+.aikhelp-launch{position:fixed;left:20px;bottom:20px;z-index:9998;border:0;border-radius:999px;background:#087f8c;color:#fff;padding:13px 18px;font-weight:800;box-shadow:0 8px 28px #0003;cursor:pointer}
+.aikhelp-panel{position:fixed;left:20px;bottom:78px;width:min(380px,calc(100vw - 28px));height:500px;max-height:calc(100vh - 110px);z-index:9999;background:#fff;color:#17263c;border:1px solid #dbe4ee;border-radius:18px;box-shadow:0 16px 48px #0003;display:none;overflow:hidden;font:14px/1.45 Arial,sans-serif}
 .aikhelp-panel.open{display:flex;flex-direction:column}.aikhelp-head{background:#087f8c;color:#fff;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:8px;font-weight:800}.aikhelp-head button{background:transparent;border:0;color:#fff;font-size:22px;cursor:pointer}.aikhelp-tools{display:flex;align-items:center;gap:6px}.aikhelp-lang{max-width:125px;border:1px solid #ffffff80;border-radius:8px;background:#fff;color:#17263c;padding:6px;font-size:12px}.aikhelp-messages{padding:13px;overflow:auto;flex:1;background:#f7fafc}.aikhelp-msg{padding:10px 12px;border-radius:12px;margin:0 0 10px;max-width:92%;white-space:pre-wrap;overflow-wrap:anywhere}.aikhelp-bot{background:#e8f3f4;margin-right:auto}.aikhelp-user{background:#dbeafe;margin-left:auto}.aikhelp-suggestions{display:flex;gap:6px;flex-wrap:wrap;padding:0 10px 9px;background:#f7fafc}.aikhelp-chip{border:1px solid #b7d9dc;border-radius:999px;background:#fff;color:#075d66;padding:6px 9px;font-size:12px;cursor:pointer}.aikhelp-form{display:flex;gap:7px;padding:10px;border-top:1px solid #e2e8f0}.aikhelp-form input{min-width:0;flex:1;border:1px solid #cbd5e1;border-radius:999px;padding:10px}.aikhelp-form button{border:0;border-radius:999px;background:#087f8c;color:#fff;padding:0 14px;font-weight:700;cursor:pointer}.aikhelp-form button:disabled{opacity:.55;cursor:wait}.aikhelp-note{font-size:10px;color:#64748b;text-align:center;padding:0 8px 8px}
-@media(max-width:480px){.aikhelp-launch{right:12px;bottom:12px}.aikhelp-panel{right:8px;bottom:70px;height:min(500px,calc(100vh - 90px))}}
+@media(max-width:480px){.aikhelp-launch{left:12px;bottom:12px}.aikhelp-panel{left:8px;bottom:70px;height:min(500px,calc(100vh - 90px))}}
 
 /* Instant Help polish: soft glass surface, teal/blue glow, readable conversation bubbles */
 .aikhelp-launch{background:linear-gradient(115deg,#087f8c,#2563eb 58%,#7c3aed)!important;box-shadow:0 0 0 1px #ffffff35 inset,0 0 18px #14b8a655,0 8px 28px #1d4ed855!important;transition:transform .2s ease,box-shadow .2s ease;animation:aikhelpPulse 3.4s ease-in-out infinite}
@@ -1994,9 +2281,9 @@ renderOwnClinicPhotoGallery();
 @media(prefers-reduced-motion:reduce){.aikhelp-launch,.aikhelp-msg{animation:none!important;transition:none!important}}
 
 </style>
-<button type="button" class="aikhelp-launch" id="aikhelpLaunch" aria-label="Open AIKDOC Instant Help">💬 Instant Help</button>
-<section class="aikhelp-panel" id="aikhelpPanel" role="dialog" aria-label="AIKDOC Instant Help" aria-modal="false">
- <div class="aikhelp-head"><span id="aikhelpTitle">AIKDOC Instant Help</span><div class="aikhelp-tools"><select class="aikhelp-lang" id="aikhelpLang" aria-label="Chat language"><option value="en">English</option><option value="hi">हिन्दी</option><option value="bho">भोजपुरी</option></select><button type="button" id="aikhelpClose" aria-label="Minimize chat">−</button></div></div>
+<button type="button" class="aikhelp-launch" id="aikhelpLaunch" aria-label="Open AIKDOC AI Help">💬 AIKDOC AI Help</button>
+<section class="aikhelp-panel" id="aikhelpPanel" role="dialog" aria-label="AIKDOC AI Help" aria-modal="false">
+ <div class="aikhelp-head"><span id="aikhelpTitle">AIKDOC AI Help</span><div class="aikhelp-tools"><select class="aikhelp-lang" id="aikhelpLang" aria-label="Chat language"><option value="en">English</option><option value="hi">हिन्दी</option><option value="bho">भोजपुरी</option></select><button type="button" id="aikhelpClose" aria-label="Minimize chat">−</button></div></div>
  <div class="aikhelp-messages" id="aikhelpMessages" aria-live="polite"></div>
  <div class="aikhelp-suggestions" id="aikhelpSuggestions"></div>
  <form class="aikhelp-form" id="aikhelpForm" aria-hidden="true" style="display:none!important"><input id="aikhelpInput" type="hidden" maxlength="500" autocomplete="off" aria-label="Quick action query"><button id="aikhelpSend" type="submit" tabindex="-1">Send</button></form>
@@ -2036,7 +2323,7 @@ renderOwnClinicPhotoGallery();
   return '';
  }
  function answer(q){const intent=getIntent(q);if(intent)lastIntent=intent;const lang=detectLang(q);currentLang=lang;langSelect.value=lang;const pack=text[lang]||text.en;let key=intent||'fallback';let reply=pack[key]||text.en[key]||text.en.fallback;if(key==='fallback')reply=reply.replace('{topics}',pack.topics||text.en.topics);if(key==='doctor'&&role!=='admin')reply=pack.finddoctor;if(key==='hospital'&&role!=='admin')reply=pack.profile;return reply;}
- function renderSuggestions(){const sets={en:['My appointments','Upcoming appointments','Completed appointments','Cancelled appointments','My profile','Availability','Reviews','Revenue'],hi:['मेरे अपॉइंटमेंट','आने वाले अपॉइंटमेंट','पूरे हुए अपॉइंटमेंट','रद्द अपॉइंटमेंट','मेरी प्रोफ़ाइल','उपलब्धता','रिव्यू','कमाई'],bho:['हमार अपॉइंटमेंट','आवे वाला अपॉइंटमेंट','पूरा भइल अपॉइंटमेंट','रद्द अपॉइंटमेंट','हमार प्रोफाइल','उपलब्धता','रिव्यू','कमाई']};const queries={en:['My appointments','Upcoming appointments','Completed appointments','Cancelled appointments','My profile','Availability','Reviews','Revenue'],hi:['मेरे अपॉइंटमेंट','आने वाले अपॉइंटमेंट','पूरे हुए अपॉइंटमेंट','रद्द अपॉइंटमेंट','मेरी प्रोफ़ाइल','उपलब्धता','रिव्यू','कमाई'],bho:['हमार अपॉइंटमेंट','आवे वाला अपॉइंटमेंट','पूरा भइल अपॉइंटमेंट','रद्द अपॉइंटमेंट','हमार प्रोफाइल','उपलब्धता','रिव्यू','कमाई']};suggestions.replaceChildren();(sets[currentLang]||sets.en).forEach((label,i)=>{const b=document.createElement('button');b.type='button';b.className='aikhelp-chip';b.textContent=label;b.addEventListener('click',()=>submitQuestion((queries[currentLang]||queries.en)[i]));suggestions.appendChild(b)});document.getElementById('aikhelpTitle').textContent='AIKDOC · '+roleNames[role][currentLang];input.placeholder=(text[currentLang]||text.en).placeholder;input.setAttribute('aria-label',input.placeholder);send.textContent=(text[currentLang]||text.en).send;document.getElementById('aikhelpNote').textContent=(text[currentLang]||text.en).note+' Choose a topic above to open its section.';}
+ function renderSuggestions(){const sets={en:['My appointments','Upcoming appointments','Completed appointments','Cancelled appointments','My profile','Availability','Reviews','Revenue'],hi:['मेरे अपॉइंटमेंट','आने वाले अपॉइंटमेंट','पूरे हुए अपॉइंटमेंट','रद्द अपॉइंटमेंट','मेरी प्रोफ़ाइल','उपलब्धता','रिव्यू','कमाई'],bho:['हमार अपॉइंटमेंट','आवे वाला अपॉइंटमेंट','पूरा भइल अपॉइंटमेंट','रद्द अपॉइंटमेंट','हमार प्रोफाइल','उपलब्धता','रिव्यू','कमाई']};const queries={en:['My appointments','Upcoming appointments','Completed appointments','Cancelled appointments','My profile','Availability','Reviews','Revenue'],hi:['मेरे अपॉइंटमेंट','आने वाले अपॉइंटमेंट','पूरे हुए अपॉइंटमेंट','रद्द अपॉइंटमेंट','मेरी प्रोफ़ाइल','उपलब्धता','रिव्यू','कमाई'],bho:['हमार अपॉइंटमेंट','आवे वाला अपॉइंटमेंट','पूरा भइल अपॉइंटमेंट','रद्द अपॉइंटमेंट','हमार प्रोफाइल','उपलब्धता','रिव्यू','कमाई']};suggestions.replaceChildren();(sets[currentLang]||sets.en).forEach((label,i)=>{const b=document.createElement('button');b.type='button';b.className='aikhelp-chip';b.textContent=label;b.addEventListener('click',()=>submitQuestion((queries[currentLang]||queries.en)[i]));suggestions.appendChild(b)});document.getElementById('aikhelpTitle').textContent='AIKDOC AI Help · '+roleNames[role][currentLang];input.placeholder=(text[currentLang]||text.en).placeholder;input.setAttribute('aria-label',input.placeholder);send.textContent=(text[currentLang]||text.en).send;document.getElementById('aikhelpNote').textContent=(text[currentLang]||text.en).note+' Choose a topic above to open its section.';}
  function safeArray(key){try{const v=JSON.parse(localStorage.getItem(key)||'[]');return Array.isArray(v)?v:[]}catch(e){return []}}
  function fmtDate(a){return a.date||a.appointmentDate||a.slotDate||a.createdAt||'date not listed'}
  function statusOf(a){return String(a.status||'Confirmed').toLowerCase()}
@@ -2171,10 +2458,31 @@ renderOwnClinicPhotoGallery();
     badge.style.display = count ? "inline-block" : "none";
   }
   let lastAppointmentsRaw = localStorage.getItem("aikdoc_appointments") || "[]";
+  // Update the review badge independently of the Reviews tab.
+  // This must run even if appointment reconciliation fails or the tab is inactive.
+  function updateReviewBadge() {
+    const badge = document.getElementById("docReviewBadge");
+    if (!badge) return;
+    try {
+      const reviewed = getCurrentDoctorAppointments().filter(a => {
+        const review = a && (a.review || a.patientReview || a.feedback);
+        return review && (review.rating != null || review.stars != null);
+      }).length;
+      badge.textContent = String(reviewed);
+      badge.style.display = reviewed > 0 ? "inline-block" : "none";
+    } catch (error) {
+      console.warn("Review badge refresh skipped:", error);
+    }
+  }
+  let lastReviewBadgeRaw = null;
   function refreshPanels(checkForChanges) {
     updateBadge();
-    if (document.visibilityState === "hidden") return;
     const latest = localStorage.getItem("aikdoc_appointments") || "[]";
+    if (latest !== lastReviewBadgeRaw) {
+      lastReviewBadgeRaw = latest;
+      updateReviewBadge();
+    }
+    if (document.visibilityState === "hidden") return;
     if (checkForChanges && latest !== lastAppointmentsRaw) {
       const previous = lastAppointmentsRaw;
       lastAppointmentsRaw = latest;
@@ -2188,19 +2496,339 @@ renderOwnClinicPhotoGallery();
     }
   }
   window.addEventListener("storage", function (event) {
+    if (event.key !== "aikdoc_appointments") lastReviewBadgeRaw = null;
     if (!event.key || event.key === "aikdoc_appointments" ||
         event.key === "aikdoc_doctor_session" ||
         event.key === "aikdoc_doctor_session_backup" ||
         event.key === "aikdoc_active_doctor_name") refreshPanels(true);
   });
-  window.addEventListener("focus", () => refreshPanels(true));
-  window.addEventListener("pageshow", () => refreshPanels(true));
+  window.addEventListener("focus", () => { lastReviewBadgeRaw = null; refreshPanels(true); });
+  window.addEventListener("pageshow", () => { lastReviewBadgeRaw = null; refreshPanels(true); });
   document.addEventListener("DOMContentLoaded", () => refreshPanels(true));
   window.setInterval(() => refreshPanels(true), 500);
   refreshPanels(true);
 })();
 </script>
 
+
+<script>
+/* AIKDOC live doctor ban/unban guard.
+   Reads the same master directory as the Super Admin; no session is cleared. */
+(function () {
+  "use strict";
+  const DIRECTORY = "aikdoc_master_doctors";
+  const SESSION = "aikdoc_doctor_session";
+  const BACKUP = "aikdoc_doctor_session_backup";
+  let lastRestricted = null;
+  let running = false;
+
+  function readJSON(key, fallback) {
+    try { return JSON.parse(localStorage.getItem(key) || "null") ?? fallback; }
+    catch (_) { return fallback; }
+  }
+  function normalizedPhone(value) {
+    const digits = String(value || "").replace(/\D/g, "");
+    return digits.length >= 10 ? digits.slice(-10) : digits;
+  }
+  function samePerson(a, b) {
+    if (!a || !b) return false;
+    if (a.id != null && b.id != null && String(a.id) === String(b.id)) return true;
+    if (a.email && b.email && String(a.email).trim().toLowerCase() === String(b.email).trim().toLowerCase()) return true;
+    const ap = normalizedPhone(a.mobile || a.phone), bp = normalizedPhone(b.mobile || b.phone);
+    if (ap && bp && ap === bp) return true;
+    return !!(a.name && b.name && String(a.name).trim().toLowerCase() === String(b.name).trim().toLowerCase());
+  }
+  function checkAccess() {
+    if (running) return;
+    running = true;
+    try {
+      const user = readJSON(SESSION, null) || readJSON(BACKUP, null);
+      if (!user || typeof user !== "object") { lastRestricted = null; return; }
+      const doctors = readJSON(DIRECTORY, []);
+      if (!Array.isArray(doctors)) return;
+      const match = doctors.find(d => samePerson(d, user));
+      if (!match) return;
+      const restricted = match.banned === true || String(match.status || "").trim().toLowerCase() === "banned";
+      const screen = document.getElementById("doctorBannedScreen");
+      if (!screen) return;
+      const visible = getComputedStyle(screen).display !== "none";
+      if (restricted) {
+        if (!visible) {
+          if (typeof window.showDoctorBannedScreen === "function") window.showDoctorBannedScreen();
+          else {
+            screen.style.display = "flex";
+            for (const id of ["mainDashboardSection", "authGateSection", "navTabsWrap", "docUserPill"]) {
+              const el = document.getElementById(id);
+              if (el) el.style.display = "none";
+            }
+          }
+        }
+      } else if (visible && lastRestricted !== false) {
+        screen.style.display = "none";
+        if (typeof window.showDashboard === "function") window.showDashboard({...match, password: user.password});
+        else if (typeof window.checkAuthSession === "function") window.checkAuthSession();
+      }
+      lastRestricted = restricted;
+    } catch (error) { console.warn("AIKDOC access monitor:", error); }
+    finally { running = false; }
+  }
+
+  window.addEventListener("storage", e => {
+    if (e.key === DIRECTORY || e.key === SESSION || e.key === BACKUP || e.key === "aikdoc_last_sync" || e.key === null)
+      checkAccess();
+  });
+  window.addEventListener("focus", checkAccess);
+  window.addEventListener("pageshow", checkAccess);
+  document.addEventListener("visibilitychange", checkAccess);
+  try {
+    const channel = new BroadcastChannel("aikdoc_doctor_access");
+    channel.addEventListener("message", checkAccess);
+  } catch (_) {}
+  document.addEventListener("DOMContentLoaded", checkAccess);
+  setInterval(checkAccess, 350);
+  window.AIKDOC_checkDoctorAccess = checkAccess;
+})();
+</script>
+
+
+<script>
+/* Admin-directory bridge: independent of login/session and other optional UI startup. */
+(function () {
+  const hospitalKey = "aikdoc_master_hospitals";
+  const specialtyKey = "aikdoc_master_specialties";
+  const esc = value => String(value == null ? "" : value).replace(/[&<>"']/g, ch =>
+    ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
+  function read(key) {
+    try {
+      const rows = JSON.parse(localStorage.getItem(key) || "[]");
+      return Array.isArray(rows) ? rows : [];
+    } catch (error) {
+      console.error("AIKDOC: Cannot parse admin directory", key, error);
+      return [];
+    }
+  }
+  let previousSignature = "";
+  function refresh(force) {
+    const rawH = localStorage.getItem(hospitalKey) || "[]";
+    const rawS = localStorage.getItem(specialtyKey) || "[]";
+    const signature = rawH + "\u0001" + rawS;
+    const hospitalSelect = document.getElementById("docHospital");
+    const specialitySelects = ["regDocSpecialityInput", "docSpecialityInput"]
+      .map(id => document.getElementById(id)).filter(Boolean);
+    if (!force && signature === previousSignature &&
+        hospitalSelect && hospitalSelect.options.length > 2 &&
+        specialitySelects.every(el => !el.textContent.includes("Loading specialities"))) return;
+    const hospitals = read(hospitalKey);
+    const specialties = read(specialtyKey);
+    const hospitalNames = [...new Map(hospitals.filter(h => h && h.name)
+      .map(h => [String(h.name).trim(), h])).values()];
+    const getSpecialtyName = item => typeof item === "string" ? item :
+      (item && (item.tag || item.name || item.speciality || item.specialty)) || "";
+    const getSpecialtiesForGroup = group => [...new Set(specialties.filter(item => {
+      const category = String(item && item.group || "").toLowerCase();
+      return group === "All" || !category ||
+        (group === "Paediatric" ? category.includes("paed") || category.includes("ped") : category.includes("adult"));
+    }).map(getSpecialtyName).map(v => String(v).trim()).filter(Boolean))];
+    if (hospitalSelect) {
+      const selected = hospitalSelect.value;
+      const options = ['<option value="">Select hospital / clinic…</option>'];
+      for (const hospital of hospitalNames) {
+        const name = String(hospital.name).trim();
+        options.push('<option value="' + esc(name) + '">' + esc(name) +
+          (hospital.district ? ' (' + esc(hospital.district) + ')' : '') + '</option>');
+      }
+      if (selected && selected !== "__OWN_CLINIC__" &&
+          !hospitalNames.some(h => String(h.name).trim() === selected)) {
+        options.push('<option value="' + esc(selected) + '">' + esc(selected) + ' (current venue)</option>');
+      }
+      options.push('<option value="__OWN_CLINIC__">＋ Own Clinic / अपना क्लिनिक</option>');
+      const markup = options.join("");
+      if (hospitalSelect.innerHTML !== markup) hospitalSelect.innerHTML = markup;
+      if (selected && [...hospitalSelect.options].some(o => o.value === selected)) hospitalSelect.value = selected;
+      if (typeof toggleOwnClinicFields === "function") toggleOwnClinicFields();
+    }
+    for (const select of specialitySelects) {
+      const selected = select.value;
+      const groupElement = document.getElementById(select.id === "regDocSpecialityInput" ? "regDocPatientGroup" : "docPatientGroup");
+      const group = groupElement ? groupElement.value : "All";
+      const specialtyNames = getSpecialtiesForGroup(group);
+      const options = ['<option value="">Select a speciality…</option>'];
+      for (const name of specialtyNames) options.push('<option value="' + esc(name) + '">' + esc(name) + '</option>');
+      // Never display a speciality from the wrong patient group.
+      // Previously saved choices are kept only when they still match this group.
+      const markup = options.join("");
+      if (select.innerHTML !== markup) select.innerHTML = markup;
+      if (selected && [...select.options].some(o => o.value === selected)) select.value = selected;
+    }
+    previousSignature = signature;
+  }
+  ["regDocPatientGroup", "docPatientGroup"].forEach(id => {
+    const control = document.getElementById(id);
+    if (control) control.addEventListener("change", () => {
+      const target = document.getElementById(id === "regDocPatientGroup" ? "regDocSpecialityInput" : "docSpecialityInput");
+      if (target) target.value = "";
+      refresh(true);
+    });
+  });
+  window.addEventListener("storage", event => {
+    if (!event.key || event.key === hospitalKey || event.key === specialtyKey) refresh(true);
+  });
+  window.addEventListener("aikdoc-profile-group-loaded", () => refresh(true));
+  window.addEventListener("focus", () => refresh(true));
+  window.addEventListener("pageshow", () => refresh(true));
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) refresh(true); });
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", () => refresh(true));
+  else refresh(true);
+  setInterval(() => refresh(false), 1500);
+})();
+</script>
+
+<script>
+/* Live patient booking and cancellation notifications, matching My Appointments. */
+(function () {
+  const KEY = "aikdoc_appointments";
+  const read = raw => { try { const x = JSON.parse(raw || "[]"); return Array.isArray(x) ? x : []; } catch { return []; } };
+  const identity = a => String(a?.id ?? a?.token ?? a?.bookingId ?? a?.appointmentId ??
+    [a?.doctorName,a?.patientName,a?.date,a?.time].join("|"));
+  const escape = v => String(v ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  let previous = read(localStorage.getItem(KEY));
+  let active = null, timer = null;
+  const queue = [];
+  const seen = new Set();
+  function isMine(a) {
+    try {
+      if (typeof doctorOwnsAppointment === "function" && doctorOwnsAppointment(a)) return true;
+      const own = getCurrentDoctorAppointments();
+      return own.some(x => identity(x) === identity(a));
+    } catch { return false; }
+  }
+  function build() {
+    let node = document.getElementById("aikdocIncomingBookingToast");
+    if (node) return node;
+    node = document.createElement("section");
+    node.id = "aikdocIncomingBookingToast";
+    node.setAttribute("role","alertdialog");
+    node.setAttribute("aria-label","Appointment notification");
+    node.style.cssText = "position:fixed;right:22px;bottom:22px;width:min(410px,calc(100vw - 32px));z-index:2147483647;background:#fff;color:#142338;border:1px solid #dbe6f0;border-radius:20px;box-shadow:0 22px 65px rgba(13,36,62,.22),0 4px 16px rgba(13,36,62,.09);overflow:hidden;font:14px system-ui,-apple-system,Segoe UI,Arial,sans-serif;display:none";
+    node.innerHTML = '<div id="aikdocToastStripe" style="height:5px;background:#0d9488"></div>'+
+      '<div style="padding:19px 20px 17px">'+
+      '<div style="display:flex;align-items:flex-start;gap:12px">'+
+      '<div id="aikdocToastSymbol" style="width:44px;height:44px;flex-shrink:0;display:grid;place-items:center;border-radius:13px;background:#dcfce7;color:#047857;font-size:23px;font-weight:800">✓</div>'+
+      '<div style="flex:1;min-width:0"><div id="aikdocToastLabel" style="font-size:11px;font-weight:800;letter-spacing:.11em;text-transform:uppercase;color:#0f766e;margin-bottom:4px">New booking</div>'+
+      '<div id="aikdocToastTitle" style="font-size:18px;font-weight:800;line-height:1.3">Appointment booked</div></div>'+
+      '<button type="button" id="aikdocToastClose" aria-label="Dismiss notification" style="border:0;background:#f1f5f9;color:#64748b;border-radius:9px;width:30px;height:30px;font-size:21px;cursor:pointer">×</button></div>'+
+      '<div id="aikdocIncomingBookingDetails" style="margin-top:15px;background:#f8fafc;border:1px solid #e8edf4;border-radius:13px;padding:13px 14px;line-height:1.85;font-size:13px"></div>'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:15px">'+
+      '<span id="aikdocToastDuration" style="font-size:11px;color:#64748b">Closes in 5 seconds</span>'+
+      '<button type="button" id="aikdocIncomingBookingView" style="border:0;border-radius:10px;background:#0f766e;color:white;padding:10px 21px;font-size:13px;font-weight:750;cursor:pointer">View appointment →</button></div></div>';
+    document.body.appendChild(node);
+    node.querySelector("#aikdocToastClose").addEventListener("click", dismiss);
+    node.querySelector("#aikdocIncomingBookingView").addEventListener("click", () => {
+      const kind = active?.kind;
+      dismiss();
+      try {
+        switchMainTab("appointments");
+        activeApptSubtab = kind === "cancelled" ? "Cancelled" : "Upcoming";
+        loadDoctorAppointments();
+      } catch (error) { console.error("Opening My Appointments:",error); }
+    });
+    return node;
+  }
+  function dismiss() {
+    clearTimeout(timer); timer = null;
+    const node = document.getElementById("aikdocIncomingBookingToast");
+    if (node) node.style.display = "none";
+    active = null;
+    if (queue.length) setTimeout(next, 150);
+  }
+  function next() {
+    if (active || !queue.length) return;
+    active = queue.shift();
+    const {kind, appointment:a} = active;
+    const cancelled = kind === "cancelled";
+    const node = build();
+    node.querySelector("#aikdocToastStripe").style.background = cancelled ? "#e11d48" : "#0d9488";
+    const symbol = node.querySelector("#aikdocToastSymbol");
+    symbol.textContent = cancelled ? "!" : "✓";
+    symbol.style.background = cancelled ? "#ffe4e6" : "#dcfce7";
+    symbol.style.color = cancelled ? "#be123c" : "#047857";
+    const label = node.querySelector("#aikdocToastLabel");
+    label.textContent = cancelled ? "Patient cancellation" : "New booking";
+    label.style.color = cancelled ? "#be123c" : "#0f766e";
+    node.querySelector("#aikdocToastTitle").textContent = cancelled ? "Appointment cancelled" : "New appointment booked!";
+    node.querySelector("#aikdocIncomingBookingDetails").innerHTML =
+      '<div><b>Patient:</b> '+escape(a.patientName || a.name || "Patient")+'</div>'+
+      '<div><b>Token:</b> '+escape(a.token || a.id || "—")+'</div>'+
+      '<div><b>Date:</b> '+escape(a.date || "—")+'</div>'+
+      '<div><b>Time:</b> '+escape(a.time || a.slot || "—")+'</div>'+
+      (cancelled ? '<div style="margin-top:9px;padding:10px 12px;background:#fff1f2;border-left:3px solid #e11d48;border-radius:7px;color:#9f1239"><b>Cancellation reason:</b> '+escape(a.cancellationReason || a.cancelReason || a.cancellation_reason || "No reason provided")+'</div>' : "");
+    node.querySelector("#aikdocToastDuration").textContent = cancelled ? "Stays open until dismissed" : "Closes in 5 seconds";
+    node.querySelector("#aikdocIncomingBookingView").style.background = cancelled ? "#be123c" : "#0f766e";
+    node.style.display = "block";
+    clearTimeout(timer);
+    if (!cancelled) timer = setTimeout(dismiss, 5000);
+  }
+  function notify(kind,a) {
+    const marker = kind+":"+identity(a)+":"+(kind === "cancelled" ? (a.cancelledAt || a.lastUpdated || "") : (a.createdAt || ""));
+    if (seen.has(marker)) return;
+    seen.add(marker);
+    queue.push({kind,appointment:a});
+    next();
+  }
+  function scan() {
+    const latest = read(localStorage.getItem(KEY));
+    const priorById = new Map(previous.map(a => [identity(a),a]));
+    previous = latest;
+    for (const a of latest) {
+      const old = priorById.get(identity(a));
+      const status = String(a.status || "").toLowerCase();
+      if (!isMine(a)) continue;
+      const wasCancelled = old && /cancelled|canceled/.test(String(old.status || "").toLowerCase());
+      const nowCancelled = /cancelled|canceled/.test(status);
+      if (old && !wasCancelled && nowCancelled &&
+          /patient/i.test(String(a.cancelledBy || a.cancelled_by || ""))) notify("cancelled",a);
+      else if (!old && (!status || status === "confirmed")) notify("new",a);
+    }
+  }
+  window.addEventListener("storage",e => {if (!e.key || e.key === KEY) scan();});
+  window.addEventListener("focus",scan);
+  window.addEventListener("pageshow",scan);
+  setInterval(scan,500);
+})();
+</script>
+<script>
+/* Keep doctor profile city choices in sync with Super Admin Manage Cities. */
+(function () {
+  const KEY = "aikdoc_master_cities";
+  const fallback = ["Patna","Muzaffarpur","Gaya","Darbhanga","Bhagalpur","Purnia","Begusarai"];
+  let last = null;
+  function update() {
+    const select = document.getElementById("docDistrict");
+    if (!select) return;
+    const raw = localStorage.getItem(KEY);
+    if (raw === last && select.dataset.citiesSynced === "yes") return;
+    let list;
+    try { list = raw === null ? fallback : JSON.parse(raw); } catch { list = fallback; }
+    if (!Array.isArray(list)) list = fallback;
+    const names = [...new Map(list.map(x => String(typeof x === "string" ? x : x?.name || "").trim())
+      .filter(Boolean).map(x => [x.toLocaleLowerCase(),x])).values()];
+    const current = select.value;
+    // Keep a previously saved city available even if admin removes it.
+    if (current && !names.some(x => x.toLocaleLowerCase() === current.toLocaleLowerCase())) names.push(current);
+    select.replaceChildren();
+    for (const name of names) select.add(new Option(name,name));
+    if (current) select.value = current;
+    select.dataset.citiesSynced = "yes";
+    last = raw;
+  }
+  window.addEventListener("storage", e => { if (!e.key || e.key === KEY) update(); });
+  window.addEventListener("focus", update);
+  window.addEventListener("pageshow", update);
+  document.addEventListener("DOMContentLoaded", update);
+  setInterval(update, 1200);
+  update();
+})();
+</script>
 </body>
 </html>
 
@@ -2216,6 +2844,10 @@ renderOwnClinicPhotoGallery();
       const dashboard = document.getElementById("mainDashboardSection");
       const gate = document.getElementById("authGateSection");
       if (!dashboard || !gate) return;
+      if (typeof isDoctorBanned === "function" && isDoctorBanned(doctor)) {
+        if (typeof showDoctorBannedScreen === "function") showDoctorBannedScreen();
+        return;
+      }
       if (dashboard.style.display === "none" || getComputedStyle(dashboard).display === "none" || gate.style.display !== "none") {
         if (typeof window.checkAuthSession === "function") {
           window.checkAuthSession();
