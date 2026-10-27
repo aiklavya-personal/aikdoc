@@ -759,6 +759,30 @@ input,select,textarea,button{max-width:100%}
  .aikhelp-panel{max-width:min(420px,calc(100vw - 32px))}
 }
 </style>
+<style id="aikdoc-nearby-styles">
+.hero-nearby{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:12px;font-size:12px;color:var(--muted)}
+.nearby-panel{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:16px 18px;margin:0 0 14px;border:1.5px solid rgba(23,105,224,.25);background:linear-gradient(115deg,rgba(23,105,224,.07),rgba(16,169,154,.07));border-radius:16px}
+.nearby-copy{display:flex;flex-direction:column;gap:4px;flex:1;min-width:210px}.nearby-copy strong{font-size:14px;color:var(--navy)}.nearby-copy span{font-size:12px;color:var(--muted);line-height:1.5}
+.nearby-btn{background:var(--blue);border:0;color:#fff;border-radius:11px;padding:11px 15px;font-weight:800;font-size:12.5px;cursor:pointer}.nearby-btn:disabled{opacity:.65;cursor:wait}
+.nearby-reset{background:var(--surface);border:1px solid var(--line);border-radius:10px;color:var(--ink);padding:10px 12px;font-weight:750;cursor:pointer}
+.nearby-status{margin:0 0 14px;padding:11px 14px;border-radius:11px;background:var(--input-bg);border:1px solid var(--line);color:var(--muted);font-size:12.5px;line-height:1.5}
+.nearby-distance{display:inline-block;background:rgba(16,169,154,.12);color:var(--teal);border-radius:8px;padding:5px 8px;font-size:11px;font-weight:800}
+@media(max-width:640px){.nearby-panel{align-items:stretch}.nearby-btn{width:100%}.hero-nearby{align-items:stretch;flex-direction:column}.nearby-reset{width:100%}}
+/* Refined homepage location discovery card */
+.hero-nearby{display:flex;align-items:center;gap:13px;margin-top:16px;padding:13px 14px;border:1px solid rgba(23,105,224,.16);border-radius:17px;background:linear-gradient(110deg,var(--surface),rgba(16,169,154,.065));box-shadow:0 7px 24px rgba(18,52,91,.045);color:var(--ink);font-size:inherit;flex-wrap:nowrap}
+.hero-nearby-icon{width:44px;height:44px;flex:0 0 44px;display:grid;place-items:center;border-radius:13px;background:linear-gradient(140deg,rgba(23,105,224,.13),rgba(16,169,154,.13));font-size:21px}
+.hero-nearby-copy{display:flex;flex:1;min-width:0;flex-direction:column;gap:3px}
+.hero-nearby-copy strong{font-size:13.5px;color:var(--navy);font-weight:850;line-height:1.3}
+.hero-nearby-copy span{font-size:11.5px;color:var(--muted);line-height:1.45}
+.hero-nearby .hero-nearby-action{flex-shrink:0;border-radius:11px;padding:12px 15px;display:inline-flex;align-items:center;justify-content:center;gap:9px;box-shadow:0 4px 12px rgba(23,105,224,.15);white-space:nowrap}
+.hero-nearby-action span{font-size:17px;line-height:1}
+@media(max-width:640px){.hero-nearby{display:grid;grid-template-columns:44px minmax(0,1fr);gap:10px;padding:13px}.hero-nearby-icon{grid-row:1}.hero-nearby-copy{grid-column:2}.hero-nearby .hero-nearby-action{grid-column:1 / -1;width:100%;margin-top:2px}.hero-nearby-copy span{font-size:11px}}
+
+/* Nearby distance and map link */
+.nearby-location-row{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
+.nearby-map-link{display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:6px 10px;border:1px solid var(--blue);border-radius:8px;color:var(--blue);background:var(--surface);font-size:11px;font-weight:800;text-decoration:none;transition:background .15s}
+.nearby-map-link:hover{background:rgba(23,105,224,.1)}
+</style>
 </head>
 <body>
 
@@ -919,6 +943,14 @@ input,select,textarea,button{max-width:100%}
         <button class="primary" type="submit" data-i18n="btnSearch">Find doctors →</button>
       </form>
 
+      <div class="hero-nearby" aria-label="Nearby doctor search">
+        <div class="hero-nearby-icon" aria-hidden="true">📍</div>
+        <div class="hero-nearby-copy">
+          <strong>Care closer to you</strong>
+          <span>Discover doctors around your current location.</span>
+        </div>
+        <button type="button" class="nearby-btn hero-nearby-action" onclick="findDoctorsNearMe()">Find doctors near me <span aria-hidden="true">↗</span></button>
+      </div>
       <div class="trustline">
         <span>✓ <span data-i18n="trust1">Instant slot booking</span></span>
         <span>✓ <span data-i18n="trust2">Adult & paediatric specialists</span></span>
@@ -1083,6 +1115,12 @@ input,select,textarea,button{max-width:100%}
       </select>
     </div>
 
+    <div class="nearby-panel" id="nearbyPanel">
+      <div class="nearby-copy"><strong>📍 Find Doctors Near Me</strong><span>Allow location access to see nearby doctors. Distances based on district centres are estimates.</span></div>
+      <button class="nearby-btn" id="nearbyBtn" type="button" onclick="findDoctorsNearMe()">◎ Use my location</button>
+      <button class="nearby-reset" id="nearbyReset" type="button" style="display:none" onclick="resetNearbyDoctors()">✕ Clear nearby</button>
+    </div>
+    <div class="nearby-status" id="nearbyStatus" role="status" aria-live="polite" style="display:none"></div>
     <div class="doctor-grid" id="doctorGrid"></div>
     <div class="empty" id="emptyState">No doctor profiles match those filters.</div>
   </div>
@@ -1718,6 +1756,8 @@ let district = "", selectedSpeciality = "", docNameQuery = "", selectedPatientTy
 let selectedHospitalCity = "";
 let selectedHospitalType = "all";
 let hospitalPhotoIndices = {};
+let nearbyLocation = null;
+let nearbyOnly = false;
 
 let selectedDoctor = null;
 let selectedSlotDate = "", selectedSlotTime = "";
@@ -2609,6 +2649,59 @@ function clearHospitalFilter() {
   applyFilters();
 }
 
+// District-centre coordinates are approximate; exact coordinates on a doctor or hospital take precedence.
+const AIKDOC_DISTRICT_CENTRES = {
+  patna:[25.5941,85.1376], muzaffarpur:[26.1209,85.3647], gaya:[24.7914,85.0002],
+  darbhanga:[26.1542,85.8918], bhagalpur:[25.2425,86.9842],
+  purnia:[25.7771,87.4753], purnea:[25.7771,87.4753], begusarai:[25.4182,86.1272]
+};
+function nearbyPointForDoctor(d){
+  const h = hospitals.find(x => x.name === d.hospital) || {};
+  for(const obj of [d,h]){
+    const lat = Number(obj.latitude ?? obj.lat);
+    const lon = Number(obj.longitude ?? obj.lng ?? obj.lon);
+    if(Number.isFinite(lat)&&Number.isFinite(lon)&&Math.abs(lat)<=90&&Math.abs(lon)<=180 && (lat!==0||lon!==0)) return {lat,lon,exact:true};
+  }
+  const city = String(d.district || h.district || d.city || h.city || '').trim().toLowerCase();
+  const p = AIKDOC_DISTRICT_CENTRES[city];
+  return p ? {lat:p[0],lon:p[1],exact:false} : null;
+}
+function nearbyDistanceKm(a,b){
+  const rad = Math.PI/180, dLat=(b.lat-a.lat)*rad, dLon=(b.lon-a.lon)*rad;
+  const v=Math.sin(dLat/2)**2+Math.cos(a.lat*rad)*Math.cos(b.lat*rad)*Math.sin(dLon/2)**2;
+  return 6371*2*Math.atan2(Math.sqrt(v),Math.sqrt(1-v));
+}
+function setNearbyStatus(message){
+  const el=document.getElementById('nearbyStatus');
+  if(el){el.textContent=message;el.style.display=message?'block':'none';}
+}
+function findDoctorsNearMe(){
+  setPage('doctors');
+  document.getElementById('doctors')?.scrollIntoView({behavior:'smooth'});
+  if(!navigator.geolocation){setNearbyStatus('Location is unavailable in this browser. You can still search doctors by district.');return;}
+  const btn=document.getElementById('nearbyBtn');
+  if(btn){btn.disabled=true;btn.textContent='Locating…';}
+  setNearbyStatus('Requesting your location. Please allow access in your browser.');
+  navigator.geolocation.getCurrentPosition(position=>{
+    if(btn){btn.disabled=false;btn.textContent='◎ Update my location';}
+    nearbyLocation={lat:position.coords.latitude,lon:position.coords.longitude};
+    nearbyOnly=true;
+    district='';selectedHospital='';
+    const loc=document.getElementById('location');if(loc)loc.value='';
+    const reset=document.getElementById('nearbyReset');if(reset)reset.style.display='inline-block';
+    renderDoctorGrid();
+  },error=>{
+    if(btn){btn.disabled=false;btn.textContent='◎ Use my location';}
+    const message=error.code===1?'Location permission was denied. Enable it in your browser settings, or search by district.':error.code===3?'Location request timed out. Please try again.':'Your location could not be determined. Please try again or search by district.';
+    setNearbyStatus(message);
+  },{enableHighAccuracy:false,timeout:12000,maximumAge:60000});
+}
+function resetNearbyDoctors(){
+  nearbyOnly=false;nearbyLocation=null;
+  const reset=document.getElementById('nearbyReset');if(reset)reset.style.display='none';
+  const btn=document.getElementById('nearbyBtn');if(btn)btn.textContent='◎ Use my location';
+  setNearbyStatus('');renderDoctorGrid();
+}
 function renderDoctorGrid(){
   let list = doctors.filter(d => {
     const matchHospital = !selectedHospital || d.hospital === selectedHospital;
@@ -2628,10 +2721,15 @@ function renderDoctorGrid(){
     return matchHospital && matchDistrict && matchSpeciality && matchDocName && matchPatientType && matchMode;
   });
 
+  if(nearbyOnly && nearbyLocation){
+    list=list.map(d=>({doctor:d,point:nearbyPointForDoctor(d)})).filter(x=>x.point).sort((a,b)=>nearbyDistanceKm(nearbyLocation,a.point)-nearbyDistanceKm(nearbyLocation,b.point)).map(x=>x.doctor);
+    const unknown=doctors.filter(d=>!nearbyPointForDoctor(d)).length;
+    setNearbyStatus(list.length?`Showing ${list.length} doctor(s), nearest first. Distances marked “district estimate” are approximate straight-line distances, not travel distances.${unknown?' '+unknown+' doctor(s) without location information are excluded.':''}`:'No matching doctors have usable location information. Try searching by district instead.');
+  }
   const sortEl = document.getElementById("sortFee");
   const sort = sortEl ? sortEl.value : "recommended";
-  if(sort === "low") list.sort((a,b) => a.fee - b.fee);
-  if(sort === "high") list.sort((a,b) => b.fee - a.fee);
+  if(!nearbyOnly && sort === "low") list.sort((a,b) => a.fee - b.fee);
+  if(!nearbyOnly && sort === "high") list.sort((a,b) => b.fee - a.fee);
 
   const dGrid = document.getElementById("doctorGrid");
   if (!dGrid) return;
@@ -2647,6 +2745,7 @@ function renderDoctorGrid(){
         </div>
       </div>
       <div class="muted">📍 ${d.hospital}, ${d.district || 'Bihar'}</div>
+      ${nearbyOnly && nearbyLocation && nearbyPointForDoctor(d) ? (() => { const point=nearbyPointForDoctor(d); const mapsUrl=`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(point.lat+','+point.lon)}`; return `<div class="nearby-location-row"><span class="nearby-distance">📍 ${nearbyDistanceKm(nearbyLocation,point).toFixed(1)} km · ${point.exact?'straight-line distance':'district estimate'}</span><a class="nearby-map-link" href="${mapsUrl}" target="_blank" rel="noopener noreferrer" title="${point.exact?'View saved doctor or hospital coordinates on Google Maps':'View approximate district centre on Google Maps (not the doctor’s exact clinic)'}">🗺️ View location ↗</a></div>`; })() : ''}
       <div class="doc-meta">
         ${(d.modes || ["Clinic visit"]).map(m => `<span class="meta-pill">${m}</span>`).join("")}
         <span class="meta-pill" style="background:rgba(23,105,224,.12);color:var(--blue)">Age: ${d.patientGroup || 'Adult'}</span>
@@ -2734,6 +2833,7 @@ function setModeFilter(newMode) {
 }
 
 function clearAllDoctorFilters() {
+  resetNearbyDoctors();
   mode = "All";
   selectedSpeciality = "";
   docNameQuery = "";
@@ -3197,6 +3297,8 @@ function confirmPaymentAndBook() {
       id: Date.now(),
       token: bookingToken,
       doctorName: pendingBooking.doctor.name,
+      doctorId: pendingBooking.doctor.id ?? pendingBooking.doctor.doctorId ?? null,
+      doctorMobile: pendingBooking.doctor.mobile || pendingBooking.doctor.phone || "",
       speciality: pendingBooking.doctor.speciality,
       qualification: pendingBooking.doctor.qualification || "MBBS",
       hospital: pendingBooking.doctor.hospital,
@@ -3216,8 +3318,13 @@ function confirmPaymentAndBook() {
 
     let appts = safeGetJSON("aikdoc_appointments", []);
     appts.unshift(newAppointment);
-    safeSetJSON("aikdoc_appointments", appts);
-    localStorage.setItem("aikdoc_last_sync", Date.now().toString());
+    try {
+      localStorage.setItem("aikdoc_appointments", JSON.stringify(appts));
+      localStorage.setItem("aikdoc_last_sync", Date.now().toString());
+    } catch (error) {
+      alert("Booking could not be saved. Check browser storage and try again.");
+      return;
+    }
 
     updateAppointmentBadge();
 
