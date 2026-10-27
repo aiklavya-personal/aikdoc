@@ -264,7 +264,7 @@ html,body{max-width:100%;overflow-x:clip}
  #doctorsMasterTable .aikdoc-doctor-btn{min-height:40px}
 }
 </style>
-</head>
+<style id="aikdoc-admin-gps-style">.aikdoc-gps-tools{display:flex;flex-wrap:wrap;align-items:center;gap:9px;margin-top:8px}.aikdoc-gps-btn{border:1px solid #b9d8ff;background:#edf5ff;color:#1459b3;border-radius:9px;padding:9px 12px;font-size:12px;font-weight:800}.aikdoc-gps-btn:hover{background:#dcecff}.aikdoc-gps-btn:disabled{opacity:.6;cursor:wait}.aikdoc-map-link{font-size:12px;font-weight:750;color:#087b69;text-decoration:none}.aikdoc-gps-status{font-size:11px;color:var(--muted);line-height:1.5}.aikdoc-coords{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}.aikdoc-coords label{display:block;font-size:11px;font-weight:750;color:var(--muted);margin-bottom:4px}.aikdoc-coords input{width:100%}@media(max-width:480px){.aikdoc-coords{grid-template-columns:1fr}}</style></head>
 <body>
 
 <!-- 0. ADMIN LOGIN GATE -->
@@ -414,7 +414,10 @@ html,body{max-width:100%;overflow-x:clip}
           <h1>Doctor Directory Master</h1>
           <p>Inspect doctor credentials, view patient reviews, edit profiles, ban or unban access, or delete accounts.</p>
         </div>
-        <button class="btn-primary" type="button" onclick="openDoctorModal()">+ Add New Doctor</button>
+        <div style="display:flex;flex-wrap:wrap;gap:9px">
+          <button class="btn-primary" type="button" onclick="openDoctorModal()">+ Add New Doctor</button>
+          <button class="btn-primary" type="button" id="bulkDoctorsOpen" style="background:#126b9d">⬆ Bulk Upload Doctors</button>
+        </div>
       </div>
 
       <div class="panel-card">
@@ -898,6 +901,7 @@ html,body{max-width:100%;overflow-x:clip}
         <div class="form-field full">
           <label for="mDocAddress">Clinic Address</label>
           <input type="text" id="mDocAddress" placeholder="e.g. Bailey Road, Near Pillar 64, Patna">
+          <div class="aikdoc-gps-tools"><button class="aikdoc-gps-btn" type="button" id="mDocUseGPS">📍 Use My Current Location</button><a class="aikdoc-map-link" id="mDocMapLink" target="_blank" rel="noopener noreferrer" hidden>🗺 View on Google Maps ↗</a></div><span class="aikdoc-gps-status" id="mDocGPSStatus" role="status" aria-live="polite">Detect the clinic location or enter coordinates manually. Confirm the address before saving.</span><div class="aikdoc-coords"><div><label for="mDocLatitude">Latitude</label><input type="number" id="mDocLatitude" step="any" min="-90" max="90" placeholder="e.g. 25.5941"></div><div><label for="mDocLongitude">Longitude</label><input type="number" id="mDocLongitude" step="any" min="-180" max="180" placeholder="e.g. 85.1376"></div></div>
         </div>
         <div class="form-field full">
           <label for="mDocTimings">OPD Timings</label>
@@ -967,6 +971,7 @@ html,body{max-width:100%;overflow-x:clip}
         <div class="form-field full">
           <label for="mHospAddress">Full Street Address *</label>
           <input type="text" id="mHospAddress" required placeholder="e.g. Bailey Road, Raja Bazar, Patna, Bihar">
+          <div class="aikdoc-gps-tools"><button class="aikdoc-gps-btn" type="button" id="mHospUseGPS">📍 Use My Current Location</button><a class="aikdoc-map-link" id="mHospMapLink" target="_blank" rel="noopener noreferrer" hidden>🗺 View on Google Maps ↗</a></div><span class="aikdoc-gps-status" id="mHospGPSStatus" role="status" aria-live="polite">Detect the clinic location or enter coordinates manually. Confirm the address before saving.</span><div class="aikdoc-coords"><div><label for="mHospLatitude">Latitude</label><input type="number" id="mHospLatitude" step="any" min="-90" max="90" placeholder="e.g. 25.5941"></div><div><label for="mHospLongitude">Longitude</label><input type="number" id="mHospLongitude" step="any" min="-180" max="180" placeholder="e.g. 85.1376"></div></div>
         </div>
         <div class="form-field full">
           <label for="mHospFacilities">Amenities (comma-separated)</label>
@@ -1441,7 +1446,7 @@ function renderDoctorsTable(docs) {
         let accounts = []; try { accounts = JSON.parse(localStorage.getItem('aikdoc_doctor_accounts') || '[]'); } catch(e) {}
         const account = (Array.isArray(accounts) ? accounts : []).find(a => (d.id != null && String(a.id) === String(d.id)) || (d.email && a.email && a.email.toLowerCase() === d.email.toLowerCase()));
         const adminCreated = d.createdByAdmin === true || (account && account.createdByAdmin === true);
-        const doctorChanged = d.passwordChangedByDoctor === true || (account && account.passwordChangedByDoctor === true);
+        const doctorChanged = d.passwordChangedByDoctor === true || (account && account.passwordChangedByDoctor === true) || (account && d.password && account.password && account.password !== d.password && account.adminCanViewLogin === true);
         // Doctor's explicit preference takes priority. Never expose a password unless sharing is enabled.
         const explicitlyPrivate = account?.adminCanViewLogin === false || d.adminCanViewLogin === false;
         const sharing = !explicitlyPrivate && (account?.adminCanViewLogin === true || d.adminCanViewLogin === true || (adminCreated && !doctorChanged));
@@ -1919,6 +1924,7 @@ document.getElementById("modalDocPhotoFile").addEventListener("change", e => {
 
 function openDoctorModal(doc = null) {
   document.getElementById("doctorModalForm").reset();
+  aikdocSetAdminCoordinates("Doc", null);
   document.getElementById("editDoctorId").value = doc ? doc.id : "";
   document.getElementById("doctorModalTitle").textContent = doc ? "Edit Doctor Profile" : "Add New Doctor";
   
@@ -1941,6 +1947,7 @@ function openDoctorModal(doc = null) {
     document.getElementById("mDocDistrict").value = doc.district || "Patna";
     document.getElementById("mDocHospital").value = doc.hospital || getMasterHospitals()[0]?.name;
     document.getElementById("mDocAddress").value = doc.address || "Bailey Road, Patna";
+    aikdocSetAdminCoordinates("Doc", doc);
     document.getElementById("mDocTimings").value = doc.timings || "Mon–Sat · 10:00 AM–2:00 PM";
     document.getElementById("mDocSlots").value = (doc.quickSlots || []).join(", ");
     document.getElementById("mDocAbout").value = doc.about || "";
@@ -1981,6 +1988,8 @@ document.getElementById("doctorModalForm").addEventListener("submit", e => {
     district: document.getElementById("mDocDistrict").value,
     hospital: document.getElementById("mDocHospital").value,
     address: document.getElementById("mDocAddress").value.trim() || "Main Road, Bihar",
+    latitude: aikdocAdminCoord("mDocLatitude"),
+    longitude: aikdocAdminCoord("mDocLongitude"),
     timings: document.getElementById("mDocTimings").value.trim() || "Mon–Sat · 10:00 AM–2:00 PM",
     quickSlots: slots.length ? slots : ["09:30 AM", "11:00 AM", "04:30 PM"],
     about: document.getElementById("mDocAbout").value.trim() || "Verified clinical practitioner on AIKDOC.",
@@ -2103,6 +2112,7 @@ document.getElementById("modalHospPhotoFile").addEventListener("change", async e
 
 function openHospitalModal(hosp = null) {
   document.getElementById("hospitalModalForm").reset();
+  aikdocSetAdminCoordinates("Hosp", null);
   document.getElementById("editHospId").value = hosp ? hosp.id : "";
   document.getElementById("hospitalModalTitle").textContent = hosp ? "Edit Hospital / Clinic Information" : "Add New Hospital";
 
@@ -2116,6 +2126,7 @@ function openHospitalModal(hosp = null) {
     document.getElementById("mHospPhone").value = hosp.phone || "";
     document.getElementById("mHospEmergency").value = hosp.emergency || "";
     document.getElementById("mHospAddress").value = hosp.address || "";
+    aikdocSetAdminCoordinates("Hosp", hosp);
     document.getElementById("mHospFacilities").value = (hosp.facilities || []).join(", ");
     document.getElementById("mHospAbout").value = hosp.about || "";
   } else {
@@ -2142,6 +2153,8 @@ document.getElementById("hospitalModalForm").addEventListener("submit", e => {
     phone: document.getElementById("mHospPhone").value.trim(),
     emergency: document.getElementById("mHospEmergency").value.trim() || "24x7 Emergency",
     address: document.getElementById("mHospAddress").value.trim(),
+    latitude: aikdocAdminCoord("mHospLatitude"),
+    longitude: aikdocAdminCoord("mHospLongitude"),
     facilities: facArr.length ? facArr : ["24x7 Emergency", "ICU", "Pharmacy"],
     photo: modalHospPhotos[0] || HOSP_DEFAULT_PHOTO,
     photos: modalHospPhotos.length ? modalHospPhotos.slice() : [HOSP_DEFAULT_PHOTO],
@@ -2597,6 +2610,315 @@ checkAdminAuth();
  sidebar.addEventListener("click",e=>{if(e.target.closest("[data-tab],a"))toggle(false)});
  window.addEventListener("keydown",e=>{if(e.key==="Escape")toggle(false)});
  window.matchMedia("(min-width:981px)").addEventListener("change",e=>{if(e.matches)toggle(false)});
+})();
+</script>
+<style id="aikdoc-bulk-modal-styles">
+#bulkDoctorsModal{backdrop-filter:blur(6px);background:rgba(8,24,48,.68)!important;padding:16px!important}
+#bulkDoctorsModal .bulk-shell{width:min(840px,100%);max-height:min(92dvh,900px);overflow:auto;background:#fff;border-radius:24px;box-shadow:0 28px 90px #051a405c;color:#172b45}
+#bulkDoctorsModal .bulk-header{padding:26px 30px;background:linear-gradient(115deg,#0b3158,#0b7095);color:#fff;display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+#bulkDoctorsModal .bulk-heading{display:flex;align-items:center;gap:15px}
+#bulkDoctorsModal .bulk-icon{width:52px;height:52px;display:grid;place-items:center;border-radius:15px;background:#ffffff26;font-size:27px;flex-shrink:0}
+#bulkDoctorsModal h2{margin:0;font-size:23px;line-height:1.25;color:white}
+#bulkDoctorsModal .bulk-subtitle{margin:6px 0 0;color:#dcecf7;font-size:13px;line-height:1.5}
+#bulkDoctorsModal .bulk-close{border:1px solid #ffffff55;background:#ffffff1f;color:#fff;border-radius:12px;width:40px;height:40px;font-size:22px;cursor:pointer;flex-shrink:0}
+#bulkDoctorsModal .bulk-close:hover{background:#ffffff38}
+#bulkDoctorsModal .bulk-body{padding:25px 30px}
+#bulkDoctorsModal .bulk-steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:22px}
+#bulkDoctorsModal .bulk-step{background:#f2f7fb;border:1px solid #e0eaf2;border-radius:12px;padding:12px 10px;color:#35516a;font-size:12px;font-weight:700;display:flex;align-items:center;gap:9px}
+#bulkDoctorsModal .bulk-step span{background:#d7eaf8;color:#0b5b86;width:25px;height:25px;border-radius:50%;display:grid;place-items:center;flex-shrink:0}
+#bulkDoctorsModal .bulk-template{border:1px solid #d5e9f7;background:#f3faff;border-radius:15px;padding:17px 18px;display:flex;align-items:center;justify-content:space-between;gap:15px;margin-bottom:20px}
+#bulkDoctorsModal .bulk-template strong{display:block;font-size:14px;color:#143b5b}
+#bulkDoctorsModal .bulk-template small{display:block;margin-top:4px;color:#667d8e;line-height:1.4}
+#bulkDoctorsModal .bulk-template a{background:#e0f1ff;border:1px solid #b8dff7;border-radius:10px;padding:10px 14px;color:#0b598c;font-size:13px;font-weight:800;text-decoration:none;white-space:nowrap}
+#bulkDoctorsModal .bulk-upload{display:block;border:2px dashed #a6c8e2;background:#fbfdff;border-radius:17px;padding:25px 16px;text-align:center;cursor:pointer;transition:.15s}
+#bulkDoctorsModal .bulk-upload:hover{border-color:#147cae;background:#f1faff}
+#bulkDoctorsModal .bulk-upload-icon{font-size:30px;display:block;margin-bottom:6px}
+#bulkDoctorsModal .bulk-upload strong{display:block;font-size:15px;color:#173f60}
+#bulkDoctorsModal .bulk-upload small{display:block;margin-top:6px;color:#6e8292}
+#bulkDoctorsModal #bulkDoctorsFile{width:100%;max-width:380px;margin:15px auto 0;font-size:13px;display:block}
+#bulkDoctorsModal #bulkDoctorsMessage{font-size:13px;line-height:1.5;color:#245777;margin:14px 0}
+#bulkDoctorsModal #bulkDoctorsPreview{overflow:auto;max-height:285px;border-radius:12px}
+#bulkDoctorsModal #bulkDoctorsPreview:not(:empty){border:1px solid #dce8f1}
+#bulkDoctorsModal #bulkDoctorsPreview table{width:100%;border-collapse:collapse}
+#bulkDoctorsModal #bulkDoctorsPreview th{background:#eff6fb;text-align:left;padding:11px 9px;white-space:nowrap;color:#36566e}
+#bulkDoctorsModal #bulkDoctorsPreview td{padding:11px 9px;border-bottom:1px solid #e9eff4}
+#bulkDoctorsModal .bulk-footer{display:flex;flex-wrap:wrap;gap:10px;justify-content:flex-end;border-top:1px solid #e9eef3;margin-top:21px;padding-top:19px}
+#bulkDoctorsModal .bulk-footer button{border-radius:11px;padding:11px 17px;min-height:43px;font-size:13px;font-weight:750}
+#bulkDoctorsModal #bulkDoctorsCancel{background:#f0f4f8;color:#40576a;border:1px solid #d7e2e9}
+#bulkDoctorsModal #bulkDoctorsImport{background:#126c9e;color:#fff;border:0}
+#bulkDoctorsModal #bulkDoctorsImport:disabled{opacity:.5;cursor:not-allowed}
+#bulkDoctorsModal #bulkDoctorsExport{background:#158052;color:#fff;border:0}
+@media(max-width:600px){#bulkDoctorsModal{padding:9px!important}#bulkDoctorsModal .bulk-shell{border-radius:17px;max-height:96dvh}#bulkDoctorsModal .bulk-header{padding:19px 16px}#bulkDoctorsModal h2{font-size:19px}#bulkDoctorsModal .bulk-icon{width:42px;height:42px;font-size:22px}#bulkDoctorsModal .bulk-body{padding:18px 14px}#bulkDoctorsModal .bulk-steps{grid-template-columns:1fr;gap:6px}#bulkDoctorsModal .bulk-step{padding:8px 11px}#bulkDoctorsModal .bulk-template{align-items:stretch;flex-direction:column}#bulkDoctorsModal .bulk-template a{text-align:center}#bulkDoctorsModal .bulk-footer button{flex:1 1 100%}}
+</style>
+<div id="bulkDoctorsModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="bulkDoctorsTitle" style="display:none;position:fixed;inset:0;z-index:9999;align-items:center;justify-content:center">
+ <div class="bulk-shell">
+  <div class="bulk-header"><div class="bulk-heading"><div class="bulk-icon">⇧</div><div><h2 id="bulkDoctorsTitle">Bulk Upload Doctors</h2><p class="bulk-subtitle">Import multiple doctors from Excel in a few simple steps.</p></div></div><button type="button" id="bulkDoctorsClose" class="bulk-close" aria-label="Close bulk upload">×</button></div>
+  <div class="bulk-body">
+    <div id="bulkModeHome">
+      <p class="bulk-intro">Choose how you want to add doctors to AIKDOC.</p>
+      <div class="bulk-mode-grid">
+        <button type="button" class="bulk-mode-card" data-bulk-mode="excel"><span class="bulk-mode-emoji">📊</span><strong>Excel Template</strong><small>Import doctors from one Excel file</small><span class="bulk-mode-link">Continue →</span></button>
+        <button type="button" class="bulk-mode-card" data-bulk-mode="speciality"><span class="bulk-mode-emoji">🩺</span><strong>By Speciality</strong><small>Choose a speciality, then add doctors</small><span class="bulk-mode-link">Continue →</span></button>
+        <button type="button" class="bulk-mode-card" data-bulk-mode="hospital"><span class="bulk-mode-emoji">🏥</span><strong>By Hospital</strong><small>Choose a hospital, then add doctors</small><span class="bulk-mode-link">Continue →</span></button>
+      </div>
+    </div>
+    <div id="bulkModeWork" hidden>
+      <button type="button" id="bulkBack" class="bulk-back">← Back to upload options</button>
+      <div id="bulkContext" hidden>
+        <label id="bulkContextLabel" for="bulkContextSelect"></label>
+        <select id="bulkContextSelect"></select>
+        <p class="bulk-hint">The selected value will be assigned to every doctor in this batch.</p>
+      </div>
+      <div id="bulkMethodOptions" class="bulk-method-options" hidden>
+        <button type="button" data-bulk-method="website">✍️ <strong>Upload via Website</strong><small>Add multiple doctor forms</small></button>
+        <button type="button" data-bulk-method="excel">📄 <strong>Upload via Excel</strong><small>Import from an Excel template</small></button>
+      </div>
+      <div id="bulkWebsite" hidden>
+        <div class="bulk-section-heading"><div><h3>Doctor details</h3><p>Add as many doctors as needed. Each receives a generated initial password.</p></div><button type="button" id="bulkAddDoctor">+ Add Another Doctor</button></div>
+        <div id="bulkDoctorForms"></div>
+        <button type="button" id="bulkReviewWebsite" class="bulk-primary">Review Doctors</button>
+      </div>
+      <div id="bulkExcel" hidden>
+        <div class="bulk-steps"><div class="bulk-step"><span>1</span> Download template</div><div class="bulk-step"><span>2</span> Upload &amp; review</div><div class="bulk-step"><span>3</span> Import doctors</div></div>
+        <div class="bulk-template"><div><strong>Start with our Excel template</strong><small>Remove example rows. For grouped uploads, the selected speciality or hospital is assigned automatically.</small></div><a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,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" download="AIKDOC_Doctor_Bulk_Upload_Template.xlsx">↓ Download Template</a></div>
+        <label class="bulk-upload" for="bulkDoctorsFile"><span class="bulk-upload-icon">📄</span><strong>Select your completed Excel file</strong><small>Supports .xlsx files · Initial passwords generated automatically</small><input type="file" id="bulkDoctorsFile" accept=".xlsx"></label>
+      </div>
+      <p id="bulkDoctorsMessage" role="status"></p><div id="bulkDoctorsPreview"></div>
+      <div class="bulk-footer"><button type="button" id="bulkDoctorsCancel">Cancel</button><button type="button" id="bulkDoctorsImport" disabled>Import Valid Doctors</button><button type="button" id="bulkDoctorsExport" style="display:none">↓ Download Login Credentials</button></div>
+    </div>
+  
+  </div>
+ </div>
+</div>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<script id="aikdoc-bulk-doctor-upload">
+(function(){
+ const $=id=>document.getElementById(id);
+ const modal=$("bulkDoctorsModal"),file=$("bulkDoctorsFile"),message=$("bulkDoctorsMessage");
+ const preview=$("bulkDoctorsPreview"),importBtn=$("bulkDoctorsImport"),exportBtn=$("bulkDoctorsExport");
+ const headers=["Doctor Name","Login Email","Mobile Number","Speciality","Hospital","City / District","Consultation Fee","Experience","Qualification","Patient Group","Timings","Quick Slots","About"];
+ const required=new Set(headers.slice(0,7));
+ let mode="",method="",rows=[],credentials=[],batch=0;
+ const norm=v=>String(v??"").trim().toLowerCase();
+ const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+ function list(k){try{let x=JSON.parse(localStorage.getItem(k)||"[]");return Array.isArray(x)?x:[]}catch{return []}}
+ function names(key){return [...new Set(list(key).map(x=>typeof x==="string"?x:(x.tag||x.name||"")).filter(Boolean))]}
+ function reset(){
+   batch++;rows=[];credentials=[];mode="";method="";file.value="";message.textContent="";preview.replaceChildren();
+   importBtn.disabled=true;exportBtn.style.display="none";$("bulkDoctorForms").replaceChildren();
+   ["bulkModeWork","bulkContext","bulkMethodOptions","bulkWebsite","bulkExcel"].forEach(id=>$(id).hidden=true);
+   $("bulkModeHome").hidden=false;$("bulkContextSelect").replaceChildren();
+ }
+ function close(){modal.style.display="none";reset()}
+ $("bulkDoctorsOpen").addEventListener("click",()=>{reset();modal.style.display="flex"});
+ $("bulkDoctorsClose").addEventListener("click",close);
+ $("bulkDoctorsCancel").addEventListener("click",close);
+ modal.addEventListener("click",e=>{if(e.target===modal)close()});
+ document.addEventListener("keydown",e=>{if(e.key==="Escape"&&modal.style.display==="flex")close()});
+ $("bulkBack").addEventListener("click",reset);
+ function clearBatch(){batch++;rows=[];credentials=[];file.value="";message.textContent="";preview.replaceChildren();importBtn.disabled=true;exportBtn.style.display="none"}
+ function chooseMode(m){
+   clearBatch();mode=m;method="";
+   $("bulkModeHome").hidden=true;$("bulkModeWork").hidden=false;
+   $("bulkContext").hidden=m==="excel";$("bulkMethodOptions").hidden=m==="excel";
+   $("bulkWebsite").hidden=true;$("bulkExcel").hidden=m!=="excel";
+   if(m!=="excel"){
+     const vals=names(m==="speciality"?"aikdoc_master_specialties":"aikdoc_master_hospitals");
+     $("bulkContextLabel").textContent=m==="speciality"?"Select speciality":"Select hospital";
+     $("bulkContextSelect").innerHTML='<option value="">Select '+m+'</option>'+vals.map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>').join("");
+     if(!vals.length)message.textContent="No "+m+" entries found. Add one in Manage "+(m==="hospital"?"Hospitals":"Specialities")+" first.";
+   }else method="excel";
+ }
+ document.querySelectorAll("[data-bulk-mode]").forEach(b=>b.addEventListener("click",()=>chooseMode(b.dataset.bulkMode)));
+ function chooseMethod(m){
+   if(!$("bulkContextSelect").value){message.textContent="Please select a "+mode+" first.";return}
+   clearBatch();method=m;$("bulkMethodOptions").hidden=true;
+   $("bulkWebsite").hidden=m!=="website";$("bulkExcel").hidden=m!=="excel";
+   if(m==="website")addForm();
+ }
+ document.querySelectorAll("[data-bulk-method]").forEach(b=>b.addEventListener("click",()=>chooseMethod(b.dataset.bulkMethod)));
+ $("bulkContextSelect").addEventListener("change",()=>{
+   clearBatch();method="";$("bulkMethodOptions").hidden=false;$("bulkWebsite").hidden=true;$("bulkExcel").hidden=true;$("bulkDoctorForms").replaceChildren();
+ });
+ function addForm(){
+   const card=document.createElement("section");card.className="bulk-doctor-card";
+   card.innerHTML='<div class="bulk-doctor-title"><strong>Doctor '+($("bulkDoctorForms").children.length+1)+'</strong><button type="button" class="bulk-remove">Remove</button></div><div class="bulk-form-grid">'+headers.map(h=>{
+     if((mode==="speciality"&&h==="Speciality")||(mode==="hospital"&&h==="Hospital"))return "";
+     const opts=h==="Speciality"?names("aikdoc_master_specialties"):h==="Hospital"?names("aikdoc_master_hospitals"):[];
+     const field=opts.length?'<select data-field="'+esc(h)+'"><option value="">Select '+esc(h)+'</option>'+opts.map(x=>'<option value="'+esc(x)+'">'+esc(x)+'</option>').join("")+'</select>':'<input data-field="'+esc(h)+'" '+(h==="Login Email"?'type="email"':h==="Consultation Fee"?'type="number" min="0"':"")+' placeholder="'+esc(h)+'">';
+     return '<label>'+esc(h)+(required.has(h)?' <em>*</em>':"")+field+'</label>';
+   }).join("")+'</div>';
+   card.querySelector(".bulk-remove").addEventListener("click",()=>{card.remove();[...$("bulkDoctorForms").children].forEach((x,i)=>x.querySelector("strong").textContent="Doctor "+(i+1))});
+   $("bulkDoctorForms").append(card);
+ }
+ $("bulkAddDoctor").addEventListener("click",addForm);
+ function contextValue(){return $("bulkContextSelect").value}
+ function applyContext(data){if(mode==="speciality")data.Speciality=contextValue();if(mode==="hospital")data.Hospital=contextValue();return data}
+ function validate(raw){
+   const docs=list("aikdoc_master_doctors"),accounts=list("aikdoc_doctor_accounts");
+   const existing=new Set([...docs,...accounts].map(x=>norm(x.email)));
+   const specs=names("aikdoc_master_specialties").map(norm),hosps=names("aikdoc_master_hospitals").map(norm);
+   const seen=new Set();
+   return raw.map((entry,i)=>{
+     const data=applyContext(Object.fromEntries(headers.map(h=>[h,String(entry.data[h]??"").trim()])));
+     const errors=[],email=norm(data["Login Email"]);
+     if(!data["Doctor Name"])errors.push("Missing name");
+     if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))errors.push("Invalid email");
+     if(!data["Mobile Number"])errors.push("Missing mobile");
+     if(!data.Speciality)errors.push("Missing speciality");
+     else if(specs.length&&!specs.includes(norm(data.Speciality)))errors.push("Unknown speciality");
+     if(!data.Hospital)errors.push("Missing hospital");
+     else if(hosps.length&&!hosps.includes(norm(data.Hospital)))errors.push("Unknown hospital");
+     if(!data["City / District"])errors.push("Missing city");
+     if(data["Consultation Fee"]===""||!Number.isFinite(Number(data["Consultation Fee"]))||Number(data["Consultation Fee"])<0)errors.push("Invalid fee");
+     if(seen.has(email))errors.push("Duplicate in batch");seen.add(email);
+     if(existing.has(email))errors.push("Email already registered");
+     return {data,errors,row:entry.row||i+1};
+   });
+ }
+ function showReview(raw){
+   rows=validate(raw);
+   const good=rows.filter(x=>!x.errors.length).length;
+   message.textContent=rows.length+" doctors reviewed · "+good+" ready · "+(rows.length-good)+" with errors. Invalid entries will be skipped.";
+   preview.innerHTML='<table><thead><tr><th>Row</th><th>Doctor</th><th>Email</th><th>Speciality</th><th>Hospital</th><th>Status</th></tr></thead><tbody>'+rows.map(r=>'<tr><td>'+r.row+'</td><td>'+esc(r.data["Doctor Name"])+'</td><td>'+esc(r.data["Login Email"])+'</td><td>'+esc(r.data.Speciality)+'</td><td>'+esc(r.data.Hospital)+'</td><td style="color:'+(r.errors.length?'#b91c1c':'#15803d')+'">'+esc(r.errors.join("; ")||"Ready")+'</td></tr>').join("")+'</tbody></table>';
+   importBtn.disabled=!good;
+ }
+ $("bulkReviewWebsite").addEventListener("click",()=>{
+   const cards=[...$("bulkDoctorForms").children];
+   if(!cards.length){message.textContent="Add at least one doctor form.";return}
+   showReview(cards.map((card,i)=>({row:i+1,data:Object.fromEntries([...card.querySelectorAll("[data-field]")].map(el=>[el.dataset.field,el.value]))})));
+ });
+ file.addEventListener("change",async()=>{
+   const token=++batch;rows=[];importBtn.disabled=true;preview.replaceChildren();message.textContent="";
+   if(!file.files[0])return;
+   if(!window.XLSX){message.textContent="Excel reader unavailable. Connect to the internet and reload.";return}
+   try{
+     const book=XLSX.read(await file.files[0].arrayBuffer(),{type:"array",raw:false});
+     if(token!==batch)return;
+     const parsed=XLSX.utils.sheet_to_json(book.Sheets[book.SheetNames[0]],{defval:"",raw:false});
+     showReview(parsed.map((data,i)=>({row:i+2,data})));
+   }catch(err){message.textContent="Unable to read Excel: "+err.message}
+ });
+ function password(){
+   const bytes=new Uint8Array(18);crypto.getRandomValues(bytes);
+   const alphabet="ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#";
+   return "AiK!"+Array.from(bytes,b=>alphabet[b%alphabet.length]).join("");
+ }
+ importBtn.addEventListener("click",()=>{
+   // Revalidate against latest storage and current selected context before committing.
+   const checked=validate(rows.map(r=>({row:r.row,data:r.data})));
+   const valid=checked.filter(r=>!r.errors.length);
+   if(!valid.length){showReview(rows.map(r=>({row:r.row,data:r.data})));return}
+   if(!confirm("Import "+valid.length+" valid doctors?"))return;
+   const doctors=list("aikdoc_master_doctors"),accounts=list("aikdoc_doctor_accounts");
+   const created=[],logins=[];let id=Date.now();
+   for(const r of valid){
+     const v=r.data,pw=password(),email=norm(v["Login Email"]);
+     const d={id:++id,name:v["Doctor Name"],email,mobile:v["Mobile Number"],password:pw,
+       speciality:v.Speciality,hospital:v.Hospital,district:v["City / District"],
+       fee:Number(v["Consultation Fee"]),experience:v.Experience||"Not specified",
+       qualification:v.Qualification||"MBBS",patientGroup:v["Patient Group"]||"Adult",
+       timings:v.Timings||"By appointment",
+       quickSlots:v["Quick Slots"]?v["Quick Slots"].split(",").map(x=>x.trim()).filter(Boolean):[],
+       about:v.About||"",photo:DEFAULT_AVATAR,modes:["Clinic visit","Online consultation"],
+       createdByAdmin:true,adminCanViewLogin:true,passwordChangedByDoctor:false,
+       mustChangePassword:true,rating:"5.0 ★"};
+     created.push(d);logins.push({"Doctor Name":d.name,"Login Email":email,"Initial Password":pw});
+   }
+   const oldD=localStorage.getItem("aikdoc_master_doctors"),oldA=localStorage.getItem("aikdoc_doctor_accounts");
+   try{
+     localStorage.setItem("aikdoc_master_doctors",JSON.stringify([...created,...doctors]));
+     localStorage.setItem("aikdoc_doctor_accounts",JSON.stringify([...created,...accounts]));
+     localStorage.setItem("aikdoc_last_sync",String(Date.now()));
+   }catch(err){
+     try{
+       if(oldD===null)localStorage.removeItem("aikdoc_master_doctors");else localStorage.setItem("aikdoc_master_doctors",oldD);
+       if(oldA===null)localStorage.removeItem("aikdoc_doctor_accounts");else localStorage.setItem("aikdoc_doctor_accounts",oldA);
+     }catch{}
+     message.textContent="Import failed. Browser storage may be full.";return;
+   }
+   credentials=logins;rows=[];importBtn.disabled=true;exportBtn.style.display="inline-flex";
+   message.textContent="Successfully imported "+created.length+" doctors. Download their initial login credentials before closing.";
+   try{renderAll()}catch(e){console.warn("Doctor directory refresh:",e)}
+ });
+ exportBtn.addEventListener("click",()=>{
+   if(!credentials.length)return;
+   if(window.XLSX){
+     const book=XLSX.utils.book_new();
+     XLSX.utils.book_append_sheet(book,XLSX.utils.json_to_sheet(credentials),"Initial Credentials");
+     XLSX.writeFile(book,"AIKDOC_Imported_Doctor_Credentials.xlsx");
+   }else message.textContent="Excel export requires the online Excel library.";
+ });
+})();
+</script>
+<style id="aikdoc-bulk-three-modes">
+#bulkDoctorsModal .bulk-shell{width:min(940px,100%);max-height:94dvh}
+#bulkDoctorsModal .bulk-intro{color:#627b8e;margin:0 0 17px}
+#bulkDoctorsModal .bulk-mode-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+#bulkDoctorsModal .bulk-mode-card{display:flex;flex-direction:column;align-items:flex-start;text-align:left;gap:10px;padding:22px 17px;border:1px solid #dce8f3;border-radius:17px;background:linear-gradient(155deg,#fff,#f3f9ff);cursor:pointer;min-height:215px;transition:transform .15s,box-shadow .15s}
+#bulkDoctorsModal .bulk-mode-card:hover{transform:translateY(-3px);box-shadow:0 12px 30px #0b4b7a1c;border-color:#77b7df}
+#bulkDoctorsModal .bulk-mode-emoji{font-size:33px;background:#e6f3fc;border-radius:13px;padding:8px}
+#bulkDoctorsModal .bulk-mode-card strong{font-size:17px;color:#153c5e}
+#bulkDoctorsModal .bulk-mode-card small{font-size:12px;line-height:1.5;color:#6b8091}
+#bulkDoctorsModal .bulk-mode-link{margin-top:auto;font-size:12px;font-weight:800;color:#0875b3}
+#bulkDoctorsModal .bulk-back{background:none;border:0;color:#1675a7;font-weight:800;padding:4px 0 15px;cursor:pointer}
+#bulkDoctorsModal #bulkContext{padding:18px;background:#f1f8fe;border:1px solid #d6e9f7;border-radius:14px;margin-bottom:15px}
+#bulkDoctorsModal #bulkContext label{display:block;font-weight:800;margin-bottom:9px;color:#244d69}
+#bulkDoctorsModal #bulkContext select{width:100%;padding:12px;border:1px solid #c4d9e8;border-radius:10px;background:white}
+#bulkDoctorsModal .bulk-hint{font-size:12px;color:#6a8397;margin:8px 0 0}
+#bulkDoctorsModal .bulk-method-options{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+#bulkDoctorsModal .bulk-method-options button{border:1px solid #d8e7f2;background:white;border-radius:14px;padding:22px 12px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:10px;font-size:22px}
+#bulkDoctorsModal .bulk-method-options button:hover{border-color:#1680bb;background:#f3faff}
+#bulkDoctorsModal .bulk-method-options strong{font-size:15px;color:#1b4767}
+#bulkDoctorsModal .bulk-method-options small{font-size:12px;color:#7890a0}
+#bulkDoctorsModal .bulk-section-heading{display:flex;justify-content:space-between;align-items:center;gap:15px;flex-wrap:wrap;margin-bottom:15px}
+#bulkDoctorsModal .bulk-section-heading h3{font-size:18px;margin:0;color:#163e5c}
+#bulkDoctorsModal .bulk-section-heading p{font-size:12px;color:#668295;margin:5px 0}
+#bulkDoctorsModal #bulkAddDoctor{background:#e4f3fc;border:1px solid #b7dff3;color:#126b9d;border-radius:10px;padding:11px 14px;font-weight:800;cursor:pointer}
+#bulkDoctorsModal .bulk-doctor-card{background:#f9fcff;border:1px solid #dceaf3;border-radius:15px;padding:17px;margin-bottom:13px}
+#bulkDoctorsModal .bulk-doctor-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;color:#164768}
+#bulkDoctorsModal .bulk-remove{background:#fff1f1;border:1px solid #ffd2d2;border-radius:8px;color:#b42318;padding:7px 12px;cursor:pointer}
+#bulkDoctorsModal .bulk-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+#bulkDoctorsModal .bulk-form-grid label{display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:700;color:#395e77}
+#bulkDoctorsModal .bulk-form-grid em{color:#d22;font-style:normal}
+#bulkDoctorsModal .bulk-form-grid input,#bulkDoctorsModal .bulk-form-grid select{min-width:0;width:100%;box-sizing:border-box;padding:11px;border:1px solid #cedee9;border-radius:9px;background:white;font-size:13px;color:#1c405b}
+#bulkDoctorsModal .bulk-primary{background:#137eae;color:white;border:0;border-radius:11px;padding:12px 20px;font-weight:800;cursor:pointer}
+#bulkDoctorsModal #bulkDoctorsPreview table{width:100%;border-collapse:collapse;font-size:12px}
+#bulkDoctorsModal #bulkDoctorsPreview td{padding:10px 8px}
+#bulkDoctorsModal [hidden]{display:none!important}
+@media(max-width:670px){#bulkDoctorsModal .bulk-mode-grid{grid-template-columns:1fr}#bulkDoctorsModal .bulk-mode-card{min-height:0;padding:15px}#bulkDoctorsModal .bulk-method-options{grid-template-columns:1fr}#bulkDoctorsModal .bulk-form-grid{grid-template-columns:1fr}}
+</style>
+<script id="aikdoc-admin-gps-script">
+(function(){
+  function el(id){return document.getElementById(id)}
+  window.aikdocAdminCoord=function(id){const v=el(id).value.trim();return v===""?null:Number(v)};
+  function coordsValid(lat,lng){return Number.isFinite(lat)&&Number.isFinite(lng)&&lat>=-90&&lat<=90&&lng>=-180&&lng<=180}
+  function updateLink(type){const lat=aikdocAdminCoord('m'+type+'Latitude'),lng=aikdocAdminCoord('m'+type+'Longitude'),a=el('m'+type+'MapLink');if(coordsValid(lat,lng)){a.href='https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(lat+','+lng);a.hidden=false}else{a.hidden=true;a.removeAttribute('href')}}
+  window.aikdocSetAdminCoordinates=function(type,record){const lat=record?.latitude??record?.lat;const lng=record?.longitude??record?.lng??record?.lon;el('m'+type+'Latitude').value=lat??'';el('m'+type+'Longitude').value=lng??'';el('m'+type+'GPSStatus').textContent='Confirm the clinic address and map pin before saving.';updateLink(type)};
+  for(const type of ['Doc','Hosp']){
+    for(const axis of ['Latitude','Longitude'])el('m'+type+axis).addEventListener('input',()=>updateLink(type));
+    el('m'+type+'UseGPS').addEventListener('click',function(){
+      const btn=this,status=el('m'+type+'GPSStatus');
+      if(!navigator.geolocation){status.textContent='This browser does not support location detection.';return}
+      btn.disabled=true;status.textContent='Requesting your location…';
+      navigator.geolocation.getCurrentPosition(async pos=>{
+        const lat=pos.coords.latitude,lng=pos.coords.longitude;
+        el('m'+type+'Latitude').value=lat.toFixed(7);el('m'+type+'Longitude').value=lng.toFixed(7);updateLink(type);
+        status.textContent='Location detected. Looking up the street address…';
+        try{
+          const response=await fetch('https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat='+encodeURIComponent(lat)+'&lon='+encodeURIComponent(lng)+'&addressdetails=1&zoom=18',{headers:{'Accept':'application/json'}});
+          if(!response.ok)throw new Error('Address service unavailable');
+          const data=await response.json();
+          if(!data.display_name)throw new Error('No address returned');
+          const address=data.address||{};
+          const parts=[address.house_number&&address.road?[address.house_number,address.road].join(' '):address.road||address.pedestrian||address.building,address.suburb||address.neighbourhood||address.village||address.hamlet,address.city||address.town||address.county||address.state_district,address.state,address.postcode].filter(Boolean);
+          el('m'+type+'Address').value=parts.length?parts.join(', '):data.display_name;
+          status.textContent='✓ Address filled. Please verify the clinic entrance and adjust the address if needed.';
+        }catch(err){status.textContent='✓ Coordinates saved in the form, but address lookup failed. Enter the address manually before saving.'}
+        finally{btn.disabled=false}
+      },err=>{btn.disabled=false;status.textContent=err.code===1?'Location permission denied. Allow location in browser settings.':err.code===3?'Location request timed out. Try again.':'Could not detect your location. Check GPS and try again.'},{enableHighAccuracy:true,timeout:20000,maximumAge:0});
+    });
+  }
 })();
 </script>
 </body>
