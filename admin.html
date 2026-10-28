@@ -350,7 +350,8 @@ html,body{max-width:100%;overflow-x:clip}
         <span>🩺 Manage Specialities</span>
         <span class="nav-pill-count" id="badgeSpecCount">0</span>
       </button>
-      <button type="button" class="nav-item" data-tab="tab-cities">📍 Manage Cities / Districts</button>
+      <button type="button" class="nav-item" data-tab="tab-symptoms"><span>🩹 Manage Symptoms</span><span class="nav-pill-count" id="badgeSymptomCount">0</span></button>
+       <button type="button" class="nav-item" data-tab="tab-cities">📍 Manage Cities / Districts</button>
       <button type="button" class="nav-item" data-tab="tab-patients">
         <span>👥 Registered Patients</span>
         <span class="nav-pill-count" id="badgePatientCount" style="background:#059669">0</span>
@@ -537,7 +538,10 @@ html,body{max-width:100%;overflow-x:clip}
       </div>
     </section>
 
-    <section id="tab-cities" class="admin-tab" style="display:none">
+    <section id="tab-symptoms" class="admin-tab" style="display:none">
+<div class="content-header"><div><h1>Symptoms Master</h1><p>Manage symptoms and link each symptom to a medical speciality. Selecting a symptom displays doctors in the linked speciality.</p></div><button class="btn-primary" type="button" onclick="aikOpenSymptomModal()">+ Add Symptom</button></div>
+<div class="panel-card"><div class="table-responsive"><table id="symptomsMasterTable"><thead><tr><th>Icon</th><th>Symptom</th><th>Linked speciality</th><th style="text-align:right">Actions</th></tr></thead><tbody></tbody></table></div></div></section>
+<section id="tab-cities" class="admin-tab" style="display:none">
       <div class="content-header"><div><h2>Manage Cities / Districts</h2><p>Add or remove locations used across Admin and Patient Website.</p></div></div>
       <div class="card" style="padding:24px;margin-bottom:20px">
         <form id="aikdocCityForm" style="display:flex;gap:12px;flex-wrap:wrap;align-items:end">
@@ -1052,6 +1056,7 @@ html,body{max-width:100%;overflow-x:clip}
   </div>
 </div>
 
+<div class="modal-overlay" id="aikSymptomModal" style="display:none;position:fixed;inset:0;z-index:100000;background:rgba(5,20,45,.7);align-items:center;justify-content:center;padding:18px"><div class="modal" style="width:min(100%,470px);background:#fff;border-radius:16px;padding:22px;color:#18324c;max-height:90vh;overflow:auto"><div class="modal-header"><h2 id="aikSymptomModalTitle">Add Symptom</h2><button type="button" class="close" onclick="aikCloseSymptomModal()">×</button></div><form id="aikSymptomForm"><input type="hidden" id="aikSymptomEditIndex" value="-1"><div class="form-field"><label for="aikSymptomName">Symptom name *</label><input id="aikSymptomName" maxlength="100" required placeholder="e.g. Body ache"></div><div class="form-field"><label for="aikSymptomIcon">Emoji icon</label><input id="aikSymptomIcon" maxlength="12" value="🩹"></div><div class="form-field"><label for="aikSymptomSpec">Linked speciality *</label><select id="aikSymptomSpec" required style="width:100%;padding:12px;border:1px solid #cbd5e1;border-radius:9px"></select></div><p style="font-size:12px;color:#64748b">Only existing specialities can be linked. Create a speciality first if it is missing.</p><button class="btn-primary" type="submit" style="width:100%;padding:12px">Save Symptom</button></form></div></div>
 <div class="toast" id="toast"></div>
 
 <script id="aikdoc-admin-default-directory">
@@ -3016,7 +3021,9 @@ window.aikAdminViewRxByToken=function(token){
  const safeImage=/^data:image\/(?:png|jpeg|jpg|webp);base64,[a-z0-9+/=]+$/i.test(image)?'<h3>Attached handwritten prescription</h3><img alt="Handwritten prescription" src="'+image+'">':'';
  show(header('Doctor-issued consultation & prescription record')+
  '<div class="aik-document-grid">'+field('Patient',a.patientName)+field('Doctor',a.doctorName)+field('Appointment',String(a.date||'')+' '+String(a.time||''))+field('Booking token',a.token)+field('Hospital / Clinic',a.hospital)+field('Consultation mode',a.mode)+'</div>'+
- '<h3 style="margin-top:22px">Prescription / consultation notes</h3><div class="aik-document-notes">'+esc(r.notes||'No typed notes attached.')+'</div>'+safeImage+
+ '<h3 style="margin-top:22px">Prescription / consultation notes</h3><div class="aik-document-notes">'+esc(r.notes||'No typed notes attached.')+'</div>'+
+ (Array.isArray(r.medicines)&&r.medicines.length?'<h3 style="margin-top:24px">💊 Prescribed medicines ('+r.medicines.length+')</h3>'+r.medicines.map((m,i)=>'<div style="border:1px solid #d7e4f1;background:#f5f9ff;border-radius:11px;padding:13px 16px;margin:10px 0;break-inside:avoid"><div style="font-weight:700;color:#174c80">'+(i+1)+'. '+esc(m.name||'Medicine')+'</div>'+(m.strength?'<div style="font-size:13px;margin-top:4px">'+esc(m.strength)+'</div>':'')+(m.instructions?'<div style="font-size:13px;margin-top:7px"><strong>Doctor’s instructions:</strong> '+esc(m.instructions)+'</div>':'')+'</div>').join(''):'<p style="margin-top:20px;color:#66788c">No medicines attached to this appointment.</p>')+
+ safeImage+
  '<p style="font-size:12px;color:#6b7d90;margin-top:22px">Read-only copy of the prescription stored with this appointment.</p>');
 };
 window.aikAdminPrintDocument=function(){
@@ -3030,5 +3037,33 @@ document.getElementById('aikAdminDocumentOverlay').addEventListener('click',e=>{
 })();
 </script>
 
+<script id="aik-symptom-management">
+(function(){
+const KEY='aikdoc_master_symptoms';
+const AIK_SYMPTOM_DEFAULTS=[{"name": "Body ache", "speciality": "Rheumatology", "icon": "🦴"}, {"name": "Joint pain", "speciality": "Orthopaedics", "icon": "🦵"}, {"name": "Back pain", "speciality": "Orthopaedics", "icon": "🦴"}, {"name": "Knee pain", "speciality": "Orthopaedics", "icon": "🦵"}, {"name": "Fracture or injury", "speciality": "Orthopaedics", "icon": "🩼"}, {"name": "Skin rash", "speciality": "Dermatology", "icon": "🩹"}, {"name": "Acne", "speciality": "Dermatology", "icon": "🧴"}, {"name": "Itchy skin", "speciality": "Dermatology", "icon": "🩹"}, {"name": "Hair loss", "speciality": "Dermatology", "icon": "💇"}, {"name": "Breathing difficulty", "speciality": "Pulmonology", "icon": "🫁"}, {"name": "Persistent cough", "speciality": "Pulmonology", "icon": "🫁"}, {"name": "Wheezing", "speciality": "Pulmonology", "icon": "🌬️"}, {"name": "Chest discomfort", "speciality": "Cardiology", "icon": "❤️"}, {"name": "Palpitations", "speciality": "Cardiology", "icon": "💓"}, {"name": "High blood pressure", "speciality": "Cardiology", "icon": "🩺"}, {"name": "Headache", "speciality": "Neurology", "icon": "🧠"}, {"name": "Migraine", "speciality": "Neurology", "icon": "🧠"}, {"name": "Dizziness", "speciality": "Neurology", "icon": "💫"}, {"name": "Stomach pain", "speciality": "Gastroenterology", "icon": "🫃"}, {"name": "Acidity or heartburn", "speciality": "Gastroenterology", "icon": "🍽️"}, {"name": "Constipation", "speciality": "Gastroenterology", "icon": "🍽️"}, {"name": "Ear pain", "speciality": "ENT", "icon": "👂"}, {"name": "Sore throat", "speciality": "ENT", "icon": "🗣️"}, {"name": "Blocked nose", "speciality": "ENT", "icon": "👃"}, {"name": "Fever", "speciality": "General Medicine", "icon": "🌡️"}, {"name": "Fatigue", "speciality": "General Medicine", "icon": "😴"}, {"name": "Nausea", "speciality": "General Medicine", "icon": "🤢"}, {"name": "Frequent urination", "speciality": "Urology", "icon": "🚻"}, {"name": "Painful urination", "speciality": "Urology", "icon": "🚻"}, {"name": "Menstrual concerns", "speciality": "Gynaecology", "icon": "🌸"}, {"name": "Eye redness", "speciality": "Ophthalmology", "icon": "👁️"}, {"name": "Blurred vision", "speciality": "Ophthalmology", "icon": "👁️"}, {"name": "Toothache", "speciality": "Dentistry", "icon": "🦷"}, {"name": "Blood sugar concerns", "speciality": "Endocrinology", "icon": "🩸"}];
+// Populate a new installation only. Never overwrite or restore symptoms deleted by an admin.
+try{if(localStorage.getItem(KEY)===null){localStorage.setItem(KEY,JSON.stringify(AIK_SYMPTOM_DEFAULTS));localStorage.setItem('aikdoc_last_sync',String(Date.now()));}}catch(e){}
+
+const read=()=>{try{const v=JSON.parse(localStorage.getItem(KEY)||'[]');return Array.isArray(v)?v:[]}catch(e){return[]}};
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function render(){const symptoms=read(),body=document.querySelector('#symptomsMasterTable tbody');if(!body)return;
+ document.getElementById('badgeSymptomCount').textContent=symptoms.length;
+ body.innerHTML=symptoms.length?symptoms.map((s,i)=>'<tr><td style="font-size:23px">'+esc(s.icon||'🩹')+'</td><td><strong>'+esc(s.name)+'</strong></td><td>'+esc(s.speciality)+'</td><td style="text-align:right"><button class="btn-action" onclick="aikOpenSymptomModal('+i+')">✏️ Edit</button> <button class="btn-action delete" onclick="aikDeleteSymptom('+i+')">🗑️ Remove</button></td></tr>').join(''):'<tr><td colspan="4" style="text-align:center;padding:22px">No symptoms added. Choose + Add Symptom to begin.</td></tr>';
+}
+window.aikOpenSymptomModal=function(index=-1){const select=document.getElementById('aikSymptomSpec');const specs=getMasterSpecialties();const unique=[...new Set(specs.map(s=>String(s.tag||s.name||'').trim()).filter(Boolean))];
+ select.innerHTML='<option value="">Choose speciality</option>'+unique.map(s=>'<option value="'+esc(s)+'">'+esc(s)+'</option>').join('');
+ if(!unique.length){alert('Please create a speciality in Manage Specialities first.');return;}
+ const item=index>=0?read()[index]:null;document.getElementById('aikSymptomForm').reset();document.getElementById('aikSymptomEditIndex').value=index;document.getElementById('aikSymptomModalTitle').textContent=item?'Edit Symptom':'Add Symptom';document.getElementById('aikSymptomName').value=item?.name||'';document.getElementById('aikSymptomIcon').value=item?.icon||'🩹';select.value=item?.speciality||'';
+ const modal=document.getElementById('aikSymptomModal');modal.style.display='flex';};
+window.aikCloseSymptomModal=function(){document.getElementById('aikSymptomModal').style.display='none'};
+window.aikDeleteSymptom=function(index){if(!confirm('Delete this symptom?'))return;const items=read();items.splice(index,1);localStorage.setItem(KEY,JSON.stringify(items));localStorage.setItem('aikdoc_last_sync',String(Date.now()));render();};
+document.getElementById('aikSymptomForm').addEventListener('submit',e=>{e.preventDefault();const items=read(),name=document.getElementById('aikSymptomName').value.trim(),icon=document.getElementById('aikSymptomIcon').value.trim()||'🩹',speciality=document.getElementById('aikSymptomSpec').value,index=Number(document.getElementById('aikSymptomEditIndex').value);if(!name||!speciality)return;
+ if(items.some((x,i)=>i!==index&&x.name.toLowerCase()===name.toLowerCase())){alert('This symptom already exists.');return;}
+ const entry={name,icon,speciality};if(index>=0&&index<items.length)items[index]=entry;else items.unshift(entry);localStorage.setItem(KEY,JSON.stringify(items));localStorage.setItem('aikdoc_last_sync',String(Date.now()));aikCloseSymptomModal();render();});
+document.getElementById('aikSymptomModal').addEventListener('click',e=>{if(e.target.id==='aikSymptomModal')aikCloseSymptomModal()});
+const original=window.renderAll;if(typeof original==='function')window.renderAll=function(...args){const result=original.apply(this,args);render();return result};
+render();window.addEventListener('storage',e=>{if(e.key===KEY)render()});
+})();
+</script>
 </body>
 </html>
