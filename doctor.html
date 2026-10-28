@@ -494,7 +494,7 @@ body.dark-mode .topbar .brand span:not(.logo) {color:#f8fbff!important;opacity:1
 body.dark-mode .topbar .partner-tag {background:#28476c!important;color:#f8fbff!important;border:1px solid #7094c4!important;opacity:1!important;box-shadow:inset 0 0 0 1px rgba(255,255,255,.04)!important}
 body.dark-mode .topbar .logo {color:#fff!important}
 </style>
-</head>
+<style id="aik-meds-style">.aik-meds-box{margin:17px 0;padding:17px;border:1px solid #cbdcf0;border-radius:13px;background:#f7faff;color:#193553}.aik-meds-box h3{margin:0 0 8px;font-size:17px}.aik-meds-row{display:grid;grid-template-columns:1.5fr 1fr 1fr;gap:9px;margin:10px 0}.aik-meds-box input{width:100%;min-width:0;padding:10px;border:1px solid #b7cbe2;border-radius:8px;box-sizing:border-box;background:white;color:#18324f}.aik-meds-box button{padding:9px 13px;border:0;border-radius:8px;background:#1569bd;color:white;cursor:pointer}.aik-med-item{padding:11px;margin:8px 0;border:1px solid #d9e5f2;border-radius:9px;background:white;overflow-wrap:anywhere}.aik-med-item button{float:right;background:#a53636}.aik-rx-readonly .aik-meds-editor{display:none!important}.aik-rx-readonly .aik-med-item button{display:none!important}body.dark-mode .aik-meds-box{background:#1b2d46;color:#e7edf7;border-color:#405676}body.dark-mode .aik-med-item{background:#243953;color:#e7edf7;border-color:#405676}@media(max-width:580px){.aik-meds-row{grid-template-columns:1fr}}</style></head>
 <body>
 
 <header class="topbar">
@@ -609,7 +609,7 @@ body.dark-mode .topbar .logo {color:#fff!important}
 
       <div class="form-field">
         <label for="regDocSpecialityInput">Speciality (Select) *</label>
-        <select id="regDocSpecialityInput" required><option value="">Loading specialities…</option></select>
+        <select id="regDocSpecialityInput" required><option value="">Select a speciality…</option><option value="__OTHER__">Other — type your speciality</option></select><div id="regDocSpecialityInputOtherWrap" style="display:none;margin-top:10px"><label for="regDocSpecialityInputOther">Enter your speciality *</label><input type="text" id="regDocSpecialityInputOther" placeholder="e.g. Sports Medicine" maxlength="100" autocomplete="off" style="width:100%" /></div>
         <datalist id="adminSpecialitiesDatalist" hidden></datalist>
       </div>
 
@@ -699,7 +699,7 @@ body.dark-mode .topbar .logo {color:#fff!important}
 
           <div class="form-field">
             <label for="docSpecialityInput">Speciality (Select) *</label>
-            <select id="docSpecialityInput" required><option value="">Loading specialities…</option></select>
+            <select id="docSpecialityInput" required><option value="">Select a speciality…</option><option value="__OTHER__">Other — type your speciality</option></select><div id="docSpecialityInputOtherWrap" style="display:none;margin-top:10px"><label for="docSpecialityInputOther">Enter your speciality *</label><input type="text" id="docSpecialityInputOther" placeholder="e.g. Sports Medicine" maxlength="100" autocomplete="off" style="width:100%" /></div>
           </div>
 
 
@@ -1082,6 +1082,35 @@ function sameDoctorIdentity(a, b) {
   return (!!am && !!bm && am === bm) || (!!ae && !!be && ae === be) ||
     (a.id != null && b.id != null && String(a.id) === String(b.id));
 }
+function aikdocSpecialityValue(id) {
+  const select = document.getElementById(id);
+  if (!select) return '';
+  if (select.value === '__OTHER__') return (document.getElementById(id + 'Other')?.value || '').trim();
+  return (select.value || '').trim();
+}
+function aikdocUpdateSpecialityOther(id) {
+  const select = document.getElementById(id);
+  const wrap = document.getElementById(id + 'OtherWrap');
+  const input = document.getElementById(id + 'Other');
+  if (!select || !wrap || !input) return;
+  const other = select.value === '__OTHER__';
+  wrap.style.display = other ? 'block' : 'none';
+  input.required = other;
+}
+function aikdocSetSpeciality(id, value) {
+  const select = document.getElementById(id);
+  const input = document.getElementById(id + 'Other');
+  if (!select) return;
+  const wanted = String(value || '').trim();
+  if (!wanted) { select.value = ''; if(input) input.value = ''; aikdocUpdateSpecialityOther(id); return; }
+  const existing = [...select.options].find(o => o.value.toLowerCase() === wanted.toLowerCase() && o.value !== '__OTHER__');
+  if (existing) { select.value = existing.value; if(input) input.value = ''; }
+  else { select.value = '__OTHER__'; if(input) input.value = wanted; }
+  aikdocUpdateSpecialityOther(id);
+}
+['regDocSpecialityInput','docSpecialityInput'].forEach(id => {
+  document.getElementById(id)?.addEventListener('change', () => aikdocUpdateSpecialityOther(id));
+});
 function populateSpecialityDatalists() {
   const specs = getMasterSpecialties();
   const unique = [...new Set(specs.map(doctorSpecialityLabel).filter(Boolean))];
@@ -1094,7 +1123,7 @@ function populateSpecialityDatalists() {
   ["regDocSpecialityInput", "docSpecialityInput"].forEach(id => {
     const select = document.getElementById(id);
     if (!select) return;
-    const previous = String(select.value || "").trim();
+    const previous = aikdocSpecialityValue(id);
     const isProfile = id === "docSpecialityInput";
     const groupSelect = document.getElementById(isProfile ? "docPatientGroup" : "regDocPatientGroup");
     const group = groupSelect ? groupSelect.value : "All";
@@ -1103,12 +1132,11 @@ function populateSpecialityDatalists() {
       return group === "All" || !g || (group === "Paediatric" ? g.includes("paed") || g.includes("ped") : g.includes("adult"));
     }).map(doctorSpecialityLabel).filter(Boolean);
     const options = ['<option value="">Select a speciality…</option>'];
-    [...new Set(allowed)].forEach(label => options.push(`<option value="${doctorEscapeHtml(label)}">${doctorEscapeHtml(label)}</option>`));
-    if (isProfile && previous && !unique.some(label => label.toLowerCase() === previous.toLowerCase())) {
-      options.push(`<option value="${doctorEscapeHtml(previous)}">${doctorEscapeHtml(previous)} (current profile)</option>`);
-    }
-    select.innerHTML = options.join("");
-    if (previous && [...select.options].some(option => option.value === previous)) select.value = previous;
+    [...new Set(allowed)].filter(label => label.toLowerCase() !== 'other').forEach(label => options.push(`<option value="${doctorEscapeHtml(label)}">${doctorEscapeHtml(label)}</option>`));
+    options.push('<option value="__OTHER__">Other — type your speciality</option>');
+    select.innerHTML = options.join('');
+    aikdocSetSpeciality(id, previous);
+
   });
 
   populateDoctorHospitalDropdown();
@@ -1313,7 +1341,7 @@ function showDashboard(doctor) {
 
   document.getElementById("docName").value = doctor.name;
   if (doctor.registration) document.getElementById("docReg").value = doctor.registration;
-  if (doctor.speciality) document.getElementById("docSpecialityInput").value = doctor.speciality;
+  if (doctor.speciality) aikdocSetSpeciality("docSpecialityInput", doctor.speciality);
   if (doctor.photo) {
     currentPhotoBase64 = doctor.photo;
     document.getElementById("avatarPreviewImg").src = currentPhotoBase64;
@@ -1372,7 +1400,8 @@ registerForm.addEventListener("submit", (e) => {
   const name = document.getElementById("regDocName").value.trim();
   const mobile = document.getElementById("regDocMobile").value.trim();
   const email = document.getElementById("regDocEmail").value.trim().toLowerCase();
-  const spec = document.getElementById("regDocSpecialityInput").value.trim();
+  const spec = aikdocSpecialityValue("regDocSpecialityInput");
+  if (!spec) { showToast("⚠️ Please select or enter your speciality."); return; }
   const pass = document.getElementById("regDocPassword").value;
 
   if (currentPhotoBase64 === DEFAULT_AVATAR) {
@@ -1536,7 +1565,7 @@ docPhotoFileInput.addEventListener("change", (e) => {
 
 function updatePreview(){
   const name = document.getElementById("docName").value || "Dr. Your Name";
-  const spec = document.getElementById("docSpecialityInput").value || "General Physician";
+  const spec = aikdocSpecialityValue("docSpecialityInput") || "General Physician";
   const qual = document.getElementById("docQual").value || "MBBS";
   const hosp = document.getElementById("docHospital").value || "Hospital";
   const dist = document.getElementById("docDistrict").value;
@@ -1586,7 +1615,7 @@ document.getElementById("doctorForm").addEventListener("submit", (e) => {
   const docProfile = {
     id: sessionUser.id || Date.now(),
     name: document.getElementById("docName").value.trim(),
-    speciality: document.getElementById("docSpecialityInput").value.trim(),
+    speciality: aikdocSpecialityValue("docSpecialityInput"),
     patientGroup: document.getElementById("docPatientGroup").value,
     qualification: document.getElementById("docQual").value.trim(),
     registration: document.getElementById("docReg").value.trim() || sessionUser.registration || "BMRC-62910",
@@ -2180,7 +2209,7 @@ function loadDoctorProfileFromMaster(sessionUser) {
     if (doc) {
       document.getElementById("docName").value = doc.name;
       document.getElementById("docReg").value = doc.registration || "";
-      document.getElementById("docSpecialityInput").value = doc.speciality;
+      aikdocSetSpeciality("docSpecialityInput", doc.speciality);
       document.getElementById("docPatientGroup").value = doc.patientGroup || "Adult";
       window.dispatchEvent(new Event("aikdoc-profile-group-loaded"));
       document.getElementById("docQual").value = doc.qualification || "MBBS";
@@ -2225,7 +2254,7 @@ function escHtml(s){
 function openFullPreview(){
   const v = id => document.getElementById(id).value.trim();
   const name = v("docName") || "Dr. Your Name";
-  const spec = v("docSpecialityInput") || "General Physician";
+  const spec = aikdocSpecialityValue("docSpecialityInput") || "General Physician";
   const group = v("docPatientGroup");
   const qual = v("docQual") || "MBBS";
   const exp = v("docExp") || "8 years";
@@ -2497,7 +2526,7 @@ renderOwnClinicPhotoGallery();
  if(!launch||!panel||!close||!form||!input||!messages||!langSelect||!suggestions)return;
  function instantHelpSignedIn(){try{const u=JSON.parse(localStorage.getItem('aikdoc_doctor_session')||'null');return !!(u&&(u.id||u.name||u.mobile||u.email)&&document.getElementById('mainDashboardSection')?.style.display!=='none'&&document.getElementById('authGateSection')?.style.display==='none');}catch(e){return false;}}
  function syncInstantHelpAccess(){const ok=instantHelpSignedIn();launch.style.display=ok?'':'none';if(!ok)panel.classList.remove('open');}
- syncInstantHelpAccess();window.addEventListener('storage',syncInstantHelpAccess);window.setInterval(syncInstantHelpAccess,650);
+ syncInstantHelpAccess();window.addEventListener('storage',syncInstantHelpAccess);window.setInterval(syncInstantHelpAccess,4000);
  const roleNames={patient:{en:'Patient help',hi:'मरीज़ सहायता',bho:'मरीज़न के मदद'},doctor:{en:'Doctor help',hi:'डॉक्टर सहायता',bho:'डॉक्टरन के मदद'},admin:{en:'Admin help',hi:'एडमिन सहायता',bho:'एडमिन के मदद'}};
  const text={
   en:{welcome:{patient:'Hello! I can guide you around AIKDOC. Ask about finding doctors, appointments, cancellations, or your account.',doctor:'Welcome back, Doctor. I can summarize your appointments, help you review patient feedback, and take you straight to the right section for profiles, availability, or revenue.',admin:'Hello! I can guide you through AIKDOC admin features, including doctor, hospital, specialty, and registration management.'},placeholder:'Type your question…',send:'Send',note:'Local guided help only — not medical advice. Messages are not sent to an AI service.',thinking:'Let me check the available guidance…',fallback:'I can help you find the right place. I couldn’t confidently answer that from the saved website data, so try one of the options below or tell me the page/task you mean: {topics}.',topics:'appointments, accounts, profiles, or the dashboard',appt:'For appointments, open the appointments section on this page and review the available details and actions. Check the appointment status before making changes.',cancel:'Open the relevant appointment and use its cancellation option if available. Read the confirmation carefully before submitting. Some cancellations may require a reason.',finddoctor:'Use the doctor listing/search area to review specialties, clinic details, consultation options, and available slots before choosing.',account:'Use the sign-in, profile, or account controls already provided on this website. Do not share passwords, OTPs, or verification codes in chat.',payment:'Review the fee and payment status shown in the relevant appointment details. For a disputed payment or refund, contact the clinic or AIKDOC support.',medical:'I can help with AIKDOC website navigation, but I cannot diagnose, prescribe, or recommend treatment. For medical advice, contact a qualified healthcare professional. If this is an emergency, contact local emergency services.',doctor:'Use the doctor management area to review doctor profiles and registration status. Only make changes you are authorized to make.',hospital:'Use the hospital management section to review or update hospital records, checking details before saving.',specialty:'Use the specialty management section to review the available specialties and follow the existing add/edit controls.',profile:'Open your profile or settings section and use its existing edit/save controls. Review changes before saving.',availability:'Open your availability or schedule settings, if provided in this panel, and review the selected days and time slots before saving.',security:'Never enter passwords, OTPs, or private patient information into chat. This local helper does not verify identity and cannot securely retrieve private records.',followup:'I can clarify that. Which part do you want help with: where to find it, what it does, or the steps to use it?'},
@@ -2699,7 +2728,7 @@ renderOwnClinicPhotoGallery();
   window.addEventListener("focus", () => { lastReviewBadgeRaw = null; refreshPanels(true); });
   window.addEventListener("pageshow", () => { lastReviewBadgeRaw = null; refreshPanels(true); });
   document.addEventListener("DOMContentLoaded", () => refreshPanels(true));
-  window.setInterval(() => refreshPanels(true), 500);
+  window.setInterval(() => refreshPanels(false), 4000);
   refreshPanels(true);
 })();
 </script>
@@ -2779,7 +2808,7 @@ renderOwnClinicPhotoGallery();
     channel.addEventListener("message", checkAccess);
   } catch (_) {}
   document.addEventListener("DOMContentLoaded", checkAccess);
-  setInterval(checkAccess, 350);
+  setInterval(checkAccess, 3000);
   window.AIKDOC_checkDoctorAccess = checkAccess;
 })();
 </script>
@@ -2843,6 +2872,8 @@ renderOwnClinicPhotoGallery();
     }
     for (const select of specialitySelects) {
       const selected = select.value;
+      const customInput = document.getElementById(select.id + "Other");
+      const customValue = customInput ? customInput.value : "";
       const groupElement = document.getElementById(select.id === "regDocSpecialityInput" ? "regDocPatientGroup" : "docPatientGroup");
       const group = groupElement ? groupElement.value : "All";
       const specialtyNames = getSpecialtiesForGroup(group);
@@ -2850,9 +2881,19 @@ renderOwnClinicPhotoGallery();
       for (const name of specialtyNames) options.push('<option value="' + esc(name) + '">' + esc(name) + '</option>');
       // Never display a speciality from the wrong patient group.
       // Previously saved choices are kept only when they still match this group.
+      options.push('<option value="__OTHER__">Other — type your speciality</option>');
       const markup = options.join("");
       if (select.innerHTML !== markup) select.innerHTML = markup;
-      if (selected && [...select.options].some(o => o.value === selected)) select.value = selected;
+      if (selected === "__OTHER__") {
+        select.value = "__OTHER__";
+        if (customInput) customInput.value = customValue;
+      } else if (selected && [...select.options].some(o => o.value === selected)) {
+        select.value = selected;
+      } else if (selected) {
+        select.value = "__OTHER__";
+        if (customInput) customInput.value = selected;
+      }
+      if (typeof aikdocUpdateSpecialityOther === "function") aikdocUpdateSpecialityOther(select.id);
     }
     previousSignature = signature;
   }
@@ -2873,7 +2914,7 @@ renderOwnClinicPhotoGallery();
   document.addEventListener("visibilitychange", () => { if (!document.hidden) refresh(true); });
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", () => refresh(true));
   else refresh(true);
-  setInterval(() => refresh(false), 1500);
+  setInterval(() => refresh(false), 6000);
 })();
 </script>
 
@@ -2987,7 +3028,7 @@ renderOwnClinicPhotoGallery();
   window.addEventListener("storage",e => {if (!e.key || e.key === KEY) scan();});
   window.addEventListener("focus",scan);
   window.addEventListener("pageshow",scan);
-  setInterval(scan,500);
+  setInterval(scan,4000);
 })();
 </script>
 <script>
@@ -3116,22 +3157,262 @@ async function aikdocDetectClinicLocation(button){
 <style>
 .aik-rx-backdrop{position:fixed;inset:0;background:rgba(8,22,43,.72);backdrop-filter:blur(6px);z-index:99999;display:none;align-items:center;justify-content:center;padding:16px}.aik-rx-backdrop.show{display:flex}.aik-rx-card{background:#fff;color:#17263c;border-radius:24px;width:min(100%,760px);max-height:94vh;overflow:auto;box-shadow:0 28px 90px #071b3850;font-family:inherit}.aik-rx-head{background:linear-gradient(125deg,#102c54,#1767ac);color:#fff;padding:24px 28px;border-radius:24px 24px 0 0;display:flex;justify-content:space-between;gap:16px;align-items:flex-start}.aik-rx-head h2{font-size:23px;color:#fff;margin:5px 0}.aik-rx-head p{color:#d9eafd;margin:0;font-size:13px}.aik-rx-close{background:#ffffff22!important;color:#fff!important;border:1px solid #ffffff55!important;border-radius:10px!important;padding:8px 12px!important}.aik-rx-inner{padding:24px 28px}.aik-rx-patient{background:#f1f7fe;border:1px solid #dce9f7;border-radius:16px;padding:16px 18px;margin-bottom:22px}.aik-rx-patient-title{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#57718f;font-weight:800;margin-bottom:10px}.aik-rx-details{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px 22px}.aik-rx-details small{display:block;color:#72859c;font-size:11px;margin-bottom:4px}.aik-rx-details strong{font-size:14px;overflow-wrap:anywhere;color:#153454}.aik-rx-section{font-size:15px;font-weight:800;color:#183657;margin:0 0 8px}.aik-rx-help{color:#72859c;font-size:12px;margin:0 0 12px}.aik-rx-card textarea{display:block;width:100%;min-height:195px;padding:16px;border:1px solid #cad9e8;border-radius:13px;resize:vertical;background:#fcfdff;color:#1d334e;line-height:1.65;font:14px/1.6 inherit;box-sizing:border-box}.aik-rx-card textarea:focus{outline:2px solid #b2d5fa;border-color:#3c91e5}.aik-rx-upload{margin-top:18px;border:1.5px dashed #a9c6e4;background:#f8fbff;border-radius:15px;padding:16px;display:flex;gap:14px;align-items:center;flex-wrap:wrap}.aik-rx-upload-icon{font-size:27px;background:#e7f2ff;border-radius:12px;padding:9px}.aik-rx-upload input{font-size:12px;max-width:100%}.aik-rx-actions{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;margin-top:22px}.aik-rx-card button{padding:11px 16px;border-radius:11px;border:1px solid #d6e3f0;background:#fff;color:#1c4165;cursor:pointer;font-weight:750}.aik-rx-card button.rx-primary{background:#1769c9;color:#fff;border-color:#1769c9}.aik-rx-card button.rx-complete{background:#e8f7ef;color:#146b42;border-color:#bde7d0}.aik-rx-warning{font-size:11px;color:#8090a3;margin:16px 0 0;line-height:1.5}@media(max-width:560px){.aik-rx-head,.aik-rx-inner{padding:19px}.aik-rx-details{grid-template-columns:1fr 1fr}.aik-rx-actions button{flex:1}.aik-rx-head h2{font-size:19px}}
  .aik-rx-readonly .aik-rx-upload,.aik-rx-readonly .rx-primary,.aik-rx-readonly .rx-complete{display:none!important}.aik-rx-readonly textarea{background:#f4f8fc;resize:none;cursor:default}.aik-rx-readonly .aik-rx-help{display:none}
+.aik-med-autocomplete{position:relative;flex:1 1 180px;min-width:160px}.aik-med-autocomplete input{width:100%;box-sizing:border-box}#aikMedSuggestions{position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:100000;background:#fff;color:#1b3047;border:1px solid #b6c9de;border-radius:10px;max-height:220px;overflow-y:auto;box-shadow:0 12px 30px #0003}#aikMedSuggestions[hidden]{display:none!important}#aikMedSuggestions button{display:block;width:100%;padding:11px 12px;border:0;border-bottom:1px solid #e8edf5;text-align:left;background:white;color:#1b3047;cursor:pointer}#aikMedSuggestions button:hover,#aikMedSuggestions button:focus{background:#eaf4ff}#aikMedLink{background:#f3f7fb!important;color:#28435c!important}
 </style>
 <div id="aikDoctorRxModal" class="aik-rx-backdrop" role="dialog" aria-modal="true" aria-labelledby="aikRxTitle"><div class="aik-rx-card">
  <div class="aik-rx-head"><div><p>AIKDOC HEALTHCARE · DOCTOR WORKSPACE</p><h2 id="aikRxTitle">✍️ Consultation & Prescription</h2><p>Record consultation notes or attach a handwritten prescription.</p></div><button type="button" class="aik-rx-close" onclick="closeAikPrescription()" aria-label="Close">✕</button></div>
  <div class="aik-rx-inner"><section class="aik-rx-patient"><div class="aik-rx-patient-title">Patient & appointment details · Automatically filled</div><div class="aik-rx-details" id="aikDoctorRxInfo"></div></section>
  <div class="aik-rx-section">Write prescription / consultation notes</div><p class="aik-rx-help">Include only information appropriate for the consultation. The text will appear on the patient's prescription.</p><label for="aikDoctorRxText" style="position:absolute;left:-9999px">Doctor-written notes or prescription</label><textarea id="aikDoctorRxText" placeholder="Enter consultation findings, instructions, or prescription details…"></textarea>
+ <section class="aik-meds-box" id="aikDoctorMedicines"><h3>💊 Prescribed Medicines <small style="font-weight:400">(Optional)</small></h3>
+ <p style="font-size:12px;margin:5px 0">Start typing and choose a matching medicine. AIKDOC automatically adds a Google Shopping search link, not a verified product purchase link. Confirm strength and formulation before saving.</p>
+ <div class="aik-meds-editor"><div class="aik-meds-row">
+ <div class="aik-med-autocomplete"><input id="aikMedName" maxlength="130" placeholder="Type medicine name (e.g. Dolo)" aria-label="Medicine name" autocomplete="off" aria-autocomplete="list" aria-controls="aikMedSuggestions"><div id="aikMedSuggestions" role="listbox" aria-label="Medicine suggestions" hidden></div></div>
+ <input id="aikMedStrength" maxlength="100" placeholder="Strength / form" aria-label="Strength and form">
+ <input id="aikMedInstructions" maxlength="240" placeholder="Dose / duration" aria-label="Dose and duration">
+ <input id="aikMedLink" type="url" maxlength="600" placeholder="Shopping search link (automatic)" aria-label="Shopping search link" readonly>
+ </div><button type="button" onclick="aikAddMedicine()">+ Add Medicine</button></div><div id="aikDoctorMedList" aria-live="polite"></div></section>
  <div class="aik-rx-upload"><span class="aik-rx-upload-icon">📎</span><div style="flex:1;min-width:200px"><div class="aik-rx-section" style="margin:0 0 4px">Attach handwritten prescription</div><div class="aik-rx-help" style="margin:0 0 9px">Upload a clear JPG, PNG or WebP image (up to 2 MB).</div><input id="aikDoctorRxFile" type="file" accept="image/png,image/jpeg,image/webp"><div id="aikDoctorRxFileInfo" style="font-size:12px;color:#2873ac;margin-top:6px" aria-live="polite"></div></div></div>
  <div class="aik-rx-actions"><button type="button" onclick="closeAikPrescription()">Close</button><button type="button" class="rx-primary" onclick="saveAikPrescription(false)">💾 Save Draft</button><button type="button" class="rx-complete" onclick="saveAikPrescription(true)">✓ Save & Mark Completed</button></div><p class="aik-rx-warning">Prototype only · Stored in this browser. Do not use real patient information until secure storage and access controls are in place.</p></div>
 </div></div>
 <script>
-let aikRxToken=null,aikRxImage=null;
+let aikRxToken=null,aikRxImage=null,aikRxMedicines=[];
 function aikDoctorRxSafe(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-function openAikPrescription(token){const appts=JSON.parse(localStorage.getItem('aikdoc_appointments')||'[]');const a=appts.find(x=>String(x.token)===String(token));if(!a)return;aikRxToken=token;aikRxImage=a.aikPrescription?.image||null;document.getElementById('aikDoctorRxText').value=a.aikPrescription?.notes||'';document.getElementById('aikDoctorRxFile').value='';const fields=[['Patient name',a.patientName||a.name||'Not provided'],['Doctor',a.doctorName||'Not provided'],['Appointment date',a.date||'Not provided'],['Time',a.time||'Not provided'],['Appointment ID',a.token||token],['Consultation mode',a.mode||'Not provided']];document.getElementById('aikDoctorRxInfo').innerHTML=fields.map(([k,v])=>'<div><small>'+aikDoctorRxSafe(k)+'</small><strong>'+aikDoctorRxSafe(v)+'</strong></div>').join('');document.getElementById('aikDoctorRxFileInfo').textContent=aikRxImage?'✓ Existing prescription image attached. Upload another to replace it.':'';const readonly=String(a.status||'').toLowerCase()==='completed';const modal=document.getElementById('aikDoctorRxModal');modal.classList.toggle('aik-rx-readonly',readonly);const text=document.getElementById('aikDoctorRxText');text.readOnly=readonly;const file=document.getElementById('aikDoctorRxFile');file.disabled=readonly;document.getElementById('aikRxTitle').textContent=readonly?'👁 View Consultation & Prescription':'✍️ Consultation & Prescription';if(readonly){document.getElementById('aikDoctorRxFileInfo').textContent=aikRxImage?'Handwritten prescription attached below.':'No handwritten prescription attached.';text.placeholder='Nothing written';}else{text.placeholder='Write consultation notes and prescription here...';}let preview=document.getElementById('aikRxReadOnlyPreview');if(!preview){preview=document.createElement('div');preview.id='aikRxReadOnlyPreview';document.querySelector('#aikDoctorRxModal .aik-rx-upload').insertAdjacentElement('afterend',preview);}preview.innerHTML=readonly&&aikRxImage&&/^data:image\/(png|jpeg|webp);base64,/i.test(aikRxImage)?'<div class="aik-rx-section" style="margin-top:18px">Handwritten prescription</div><img alt="Saved handwritten prescription" style="max-width:100%;max-height:450px;object-fit:contain;border:1px solid #dce9f7;border-radius:12px" src="'+aikRxImage+'">':'';if(readonly&&!String(a.aikPrescription?.notes||'').trim()&&!aikRxImage){preview.innerHTML='<div role="status" style="margin-top:16px;padding:16px;border:1px solid #dce9f7;border-radius:12px;background:#f5f9ff;color:#48627e;font-weight:600;text-align:center">Nothing uploaded / written</div>'; }modal.classList.add('show');}
+function aikMedSafeLink(v){try{const u=new URL(String(v||''));return ['https:','http:'].includes(u.protocol)?u.href:''}catch(e){return ''}}
+const aikMedicineCatalogue=[
+ ['Dolo 650','650 mg','tablet'],['Dolo 500','500 mg','tablet'],['Crocin 650','650 mg','tablet'],['Crocin Advance','500 mg','tablet'],
+ ['Calpol 500','500 mg','tablet'],['Calpol 650','650 mg','tablet'],['Paracetamol','500 mg','tablet'],['Paracetamol','650 mg','tablet'],
+ ['Cetirizine','10 mg','tablet'],['Levocetirizine','5 mg','tablet'],['Allegra','120 mg','tablet'],['Allegra','180 mg','tablet'],
+ ['Azithromycin','500 mg','tablet'],['Amoxicillin','500 mg','capsule'],['Augmentin 625','625 mg','tablet'],
+ ['Pantoprazole','40 mg','tablet'],['Pan 40','40 mg','tablet'],['Omeprazole','20 mg','capsule'],
+ ['Metformin','500 mg','tablet'],['Glycomet','500 mg','tablet'],['Amlodipine','5 mg','tablet'],
+ ['Telma','40 mg','tablet'],['Telmisartan','40 mg','tablet'],['Atorvastatin','10 mg','tablet'],
+ ['Shelcal 500','500 mg','tablet'],['Vitamin D3','60000 IU','capsule'],['ORS','', 'powder'],
+ ["Combiflam", "400 mg + 325 mg", "tablet"],
+ ["Brufen", "400 mg", "tablet"],
+ ["Ibuprofen", "200 mg", "tablet"],
+ ["Meftal Spas", "", "tablet"],
+ ["Meftal Forte", "", "tablet"],
+ ["Mefenamic acid", "500 mg", "tablet"],
+ ["Naproxen", "250 mg", "tablet"],
+ ["Diclofenac", "50 mg", "tablet"],
+ ["Voveran", "50 mg", "tablet"],
+ ["Aceclofenac", "100 mg", "tablet"],
+ ["Zerodol", "100 mg", "tablet"],
+ ["Zerodol SP", "", "tablet"],
+ ["Etoricoxib", "90 mg", "tablet"],
+ ["Ecosprin", "75 mg", "tablet"],
+ ["Sinarest", "", "tablet"],
+ ["Cheston Cold", "", "tablet"],
+ ["Montair LC", "", "tablet"],
+ ["Montelukast", "10 mg", "tablet"],
+ ["Montek LC", "", "tablet"],
+ ["Desloratadine", "5 mg", "tablet"],
+ ["Fexofenadine", "120 mg", "tablet"],
+ ["Avil", "25 mg", "tablet"],
+ ["Benadryl", "", "syrup"],
+ ["Ascoril LS", "", "syrup"],
+ ["Ambroxol", "30 mg", "tablet"],
+ ["Ambrodil", "", "syrup"],
+ ["Bromhexine", "8 mg", "tablet"],
+ ["Dextromethorphan", "", "syrup"],
+ ["Otrivin", "", "nasal spray"],
+ ["Nasivion", "", "nasal spray"],
+ ["Asthalin", "", "inhaler"],
+ ["Salbutamol", "", "inhaler"],
+ ["Budecort", "", "inhaler"],
+ ["Budesonide", "", "inhaler"],
+ ["Foracort", "", "inhaler"],
+ ["Seroflo", "", "inhaler"],
+ ["Levolin", "", "inhaler"],
+ ["Duolin", "", "nebuliser solution"],
+ ["Cefixime", "200 mg", "tablet"],
+ ["Taxim O", "200 mg", "tablet"],
+ ["Cefuroxime", "500 mg", "tablet"],
+ ["Ceftum", "500 mg", "tablet"],
+ ["Cefpodoxime", "200 mg", "tablet"],
+ ["Ciprofloxacin", "500 mg", "tablet"],
+ ["Ofloxacin", "200 mg", "tablet"],
+ ["Levofloxacin", "500 mg", "tablet"],
+ ["Doxycycline", "100 mg", "capsule"],
+ ["Clarithromycin", "500 mg", "tablet"],
+ ["Metronidazole", "400 mg", "tablet"],
+ ["Flagyl", "400 mg", "tablet"],
+ ["Nitrofurantoin", "100 mg", "capsule"],
+ ["Clindamycin", "300 mg", "capsule"],
+ ["Amoxyclav", "625 mg", "tablet"],
+ ["Azithral", "500 mg", "tablet"],
+ ["Rabeprazole", "20 mg", "tablet"],
+ ["Rablet", "20 mg", "tablet"],
+ ["Razo", "20 mg", "tablet"],
+ ["Pantocid", "40 mg", "tablet"],
+ ["Pantop D", "", "capsule"],
+ ["Pan D", "", "capsule"],
+ ["Omez", "20 mg", "capsule"],
+ ["Omez D", "", "capsule"],
+ ["Esomeprazole", "40 mg", "tablet"],
+ ["Nexpro", "40 mg", "tablet"],
+ ["Domperidone", "10 mg", "tablet"],
+ ["Ondansetron", "4 mg", "tablet"],
+ ["Emeset", "4 mg", "tablet"],
+ ["Vomikind", "4 mg", "tablet"],
+ ["Cyclopam", "", "tablet"],
+ ["Buscopan", "10 mg", "tablet"],
+ ["Digene", "", "tablet"],
+ ["Gelusil", "", "tablet"],
+ ["ENO", "", "powder"],
+ ["Loperamide", "2 mg", "capsule"],
+ ["Eldoper", "2 mg", "capsule"],
+ ["Lactulose", "", "syrup"],
+ ["Duphalac", "", "syrup"],
+ ["Isabgol", "", "husk"],
+ ["Bisacodyl", "5 mg", "tablet"],
+ ["Glimepiride", "1 mg", "tablet"],
+ ["Amaryl", "1 mg", "tablet"],
+ ["Glycomet GP", "", "tablet"],
+ ["Metformin", "1000 mg", "tablet"],
+ ["Sitagliptin", "100 mg", "tablet"],
+ ["Januvia", "100 mg", "tablet"],
+ ["Vildagliptin", "50 mg", "tablet"],
+ ["Galvus", "50 mg", "tablet"],
+ ["Dapagliflozin", "10 mg", "tablet"],
+ ["Forxiga", "10 mg", "tablet"],
+ ["Empagliflozin", "10 mg", "tablet"],
+ ["Jardiance", "10 mg", "tablet"],
+ ["Teneligliptin", "20 mg", "tablet"],
+ ["Losartan", "50 mg", "tablet"],
+ ["Repace", "50 mg", "tablet"],
+ ["Telmisartan", "80 mg", "tablet"],
+ ["Telma", "80 mg", "tablet"],
+ ["Amlodipine", "10 mg", "tablet"],
+ ["Amlong", "5 mg", "tablet"],
+ ["Cilnidipine", "10 mg", "tablet"],
+ ["Cilacar", "10 mg", "tablet"],
+ ["Metoprolol", "25 mg", "tablet"],
+ ["Metolar", "25 mg", "tablet"],
+ ["Nebivolol", "5 mg", "tablet"],
+ ["Nebicard", "5 mg", "tablet"],
+ ["Bisoprolol", "5 mg", "tablet"],
+ ["Concor", "5 mg", "tablet"],
+ ["Rosuvastatin", "10 mg", "tablet"],
+ ["Rosuvas", "10 mg", "tablet"],
+ ["Atorvastatin", "20 mg", "tablet"],
+ ["Atorva", "10 mg", "tablet"],
+ ["Clopidogrel", "75 mg", "tablet"],
+ ["Clopilet", "75 mg", "tablet"],
+ ["Thyronorm", "25 mcg", "tablet"],
+ ["Thyronorm", "50 mcg", "tablet"],
+ ["Thyronorm", "100 mcg", "tablet"],
+ ["Eltroxin", "50 mcg", "tablet"],
+ ["Levothyroxine", "50 mcg", "tablet"],
+ ["Becosules", "", "capsule"],
+ ["Neurobion Forte", "", "tablet"],
+ ["Supradyn", "", "tablet"],
+ ["Zincovit", "", "tablet"],
+ ["Limcee", "500 mg", "tablet"],
+ ["Vitamin C", "500 mg", "tablet"],
+ ["Folvite", "5 mg", "tablet"],
+ ["Orofer XT", "", "tablet"],
+ ["Calcimax", "", "tablet"],
+ ["Uprise D3", "60000 IU", "capsule"],
+ ["D-Rise", "60000 IU", "capsule"],
+ ["Methylcobalamin", "1500 mcg", "tablet"],
+ ["Nurokind", "500 mcg", "tablet"],
+ ["Betadine", "", "ointment"],
+ ["Povidone iodine", "", "solution"],
+ ["Mupirocin", "2%", "ointment"],
+ ["T-Bact", "2%", "ointment"],
+ ["Fusidic acid", "2%", "cream"],
+ ["Fucidin", "2%", "cream"],
+ ["Clotrimazole", "1%", "cream"],
+ ["Candid", "1%", "cream"],
+ ["Ketoconazole", "2%", "cream"],
+ ["Nizoral", "2%", "shampoo"],
+ ["Terbinafine", "1%", "cream"],
+ ["Luliconazole", "1%", "cream"],
+ ["Lulifin", "1%", "cream"],
+ ["Permethrin", "5%", "cream"],
+ ["Benzoyl peroxide", "2.5%", "gel"],
+ ["Adapalene", "0.1%", "gel"],
+ ["Cetaphil", "", "cleanser"],
+ ["Ofloxacin", "", "eye drops"],
+ ["Moxifloxacin", "", "eye drops"],
+ ["Moxicip", "", "eye drops"],
+ ["Refresh Tears", "", "eye drops"],
+ ["Carboxymethylcellulose", "0.5%", "eye drops"],
+ ["Olopatadine", "0.1%", "eye drops"],
+ ["Ciplox", "", "ear drops"],
+ ["Fluconazole", "150 mg", "tablet"],
+ ["Forcan", "150 mg", "tablet"],
+ ["Itraconazole", "100 mg", "capsule"],
+ ["Sporanox", "100 mg", "capsule"],
+ ["Albendazole", "400 mg", "tablet"],
+ ["Zentel", "400 mg", "tablet"],
+ ["Sertraline", "50 mg", "tablet"],
+ ["Escitalopram", "10 mg", "tablet"],
+ ["Nexito", "10 mg", "tablet"],
+ ["Fluoxetine", "20 mg", "capsule"],
+ ["Amitriptyline", "10 mg", "tablet"],
+ ["Gabapentin", "300 mg", "capsule"],
+ ["Pregabalin", "75 mg", "capsule"],
+ ["Tamsulosin", "0.4 mg", "capsule"],
+ ["Urimax", "0.4 mg", "capsule"],
+ ["Finasteride", "5 mg", "tablet"],
+ ["Electral", "", "powder"],
+ ["Zinc sulphate", "20 mg", "tablet"],
+ ["Econorm", "", "sachet"],
+ ["Sporlac", "", "tablet"],
+ ["Racecadotril", "100 mg", "capsule"],
+ ["Enterogermina", "", "oral suspension"],
+ ["Calpol", "120 mg/5 mL", "suspension"],
+ ["Paracetamol", "120 mg/5 mL", "suspension"],
+ ["Ibuprofen", "100 mg/5 mL", "suspension"],
+ ["Crocin", "120 mg/5 mL", "suspension"],
+ ["Dolo", "120 mg/5 mL", "suspension"]
+];
+function aikMedicineShoppingLink(name,strength){return 'https://www.google.com/search?tbm=shop&q='+encodeURIComponent([name,strength,'India medicine'].filter(Boolean).join(' '));}
+// Additional offline medicine-name suggestions; these are NOT a verified formulary.
+aikMedicineCatalogue.push(...[["Prednisolone","5 mg","tablet"],["Prednisolone","10 mg","tablet"],["Prednisolone","20 mg","tablet"],["Prednisolone","40 mg","tablet"],["Prednisolone","5 mg/5 mL","oral solution"],["Wysolone","5 mg","tablet"],["Wysolone","10 mg","tablet"],["Wysolone","20 mg","tablet"],["Omnacortil","5 mg","tablet"],["Omnacortil","10 mg","tablet"],["Omnacortil","20 mg","tablet"],["Omnacortil","40 mg","tablet"],["Methylprednisolone","4 mg","tablet"],["Methylprednisolone","8 mg","tablet"],["Methylprednisolone","16 mg","tablet"],["Medrol","4 mg","tablet"],["Medrol","16 mg","tablet"],["Deflazacort","6 mg","tablet"],["Deflazacort","12 mg","tablet"],["Defcort","6 mg","tablet"],["Dexamethasone","0.5 mg","tablet"],["Dexamethasone","4 mg","tablet"],["Betamethasone","0.5 mg","tablet"],["Hydrocortisone","1%","cream"],["Budesonide","0.5 mg/2 mL","nebuliser suspension"],["Budesonide","200 mcg","inhaler"],["Budesonide","400 mcg","inhaler"],["Beclomethasone","100 mcg","inhaler"],["Beclomethasone","200 mcg","inhaler"],["Fluticasone","125 mcg","inhaler"],["Fluticasone","250 mcg","inhaler"],["Ciclesonide","160 mcg","inhaler"],["Salbutamol","100 mcg","inhaler"],["Salbutamol","2.5 mg/2.5 mL","nebuliser solution"],["Levosalbutamol","50 mcg","inhaler"],["Levosalbutamol","0.63 mg","nebuliser solution"],["Levosalbutamol","1.25 mg","nebuliser solution"],["Ipratropium","20 mcg","inhaler"],["Ipratropium","500 mcg","nebuliser solution"],["Tiotropium","18 mcg","inhalation capsule"],["Tiotropium","2.5 mcg","inhaler"],["Formoterol","12 mcg","inhalation capsule"],["Salmeterol","50 mcg","inhaler"],["Indacaterol","150 mcg","inhalation capsule"],["Olodaterol","2.5 mcg","inhaler"],["Glycopyrronium","50 mcg","inhalation capsule"],["Umeclidinium","62.5 mcg","inhaler"],["Vilanterol","25 mcg","inhaler"],["Asthalin","100 mcg","inhaler"],["Asthalin","2.5 mg","respules"],["Levolin","50 mcg","inhaler"],["Levolin","0.63 mg","respules"],["Levolin","1.25 mg","respules"],["Budecort","100 mcg","inhaler"],["Budecort","200 mcg","inhaler"],["Budecort","400 mcg","inhaler"],["Budecort","0.5 mg","respules"],["Foracort","100 mcg","inhaler"],["Foracort","200 mcg","inhaler"],["Foracort","400 mcg","inhaler"],["Foracort","200 mcg","rotacaps"],["Foracort","400 mcg","rotacaps"],["Seroflo","125 mcg","inhaler"],["Seroflo","250 mcg","inhaler"],["Seroflo","500 mcg","rotacaps"],["Seroflo","250 mcg","rotacaps"],["Seroflo","125 mcg","rotacaps"],["Duolin","2.5 mL","respules"],["Duolin","inhaler","inhaler"],["Combimist","inhaler","inhaler"],["Combimist L","respules","nebuliser solution"],["Aerocort","inhaler","inhaler"],["Aerocort","rotacaps","inhalation capsule"],["Beclate","200 mcg","inhaler"],["Beclate","400 mcg","rotacaps"],["Tiova","18 mcg","rotacaps"],["Tiova","9 mcg","inhaler"],["Spiriva","18 mcg","inhalation capsule"],["Spiriva Respimat","2.5 mcg","inhaler"],["Symbicort","160/4.5 mcg","inhaler"],["Symbicort","320/9 mcg","inhaler"],["Relvar Ellipta","100/25 mcg","inhaler"],["Relvar Ellipta","200/25 mcg","inhaler"],["Anoro Ellipta","62.5/25 mcg","inhaler"],["Trelegy Ellipta","100/62.5/25 mcg","inhaler"],["Breo Ellipta","100/25 mcg","inhaler"],["Pulmicort","0.5 mg","respules"],["Pulmicort","200 mcg","inhaler"],["Flixotide","125 mcg","inhaler"],["Flixotide","250 mcg","inhaler"],["Ventolin","100 mcg","inhaler"],["Atrovent","20 mcg","inhaler"],["Berodual","nebuliser solution","nebuliser solution"],["DuoResp Spiromax","160/4.5 mcg","inhaler"],["Airz","50 mcg","inhalation capsule"],["Airz FF","inhalation capsule","inhalation capsule"],["Sequadra","inhalation capsule","inhalation capsule"],["Onbrez","150 mcg","inhalation capsule"],["Nasonex","50 mcg","nasal spray"],["Flomist","50 mcg","nasal spray"],["Fluticasone","50 mcg","nasal spray"],["Mometasone","50 mcg","nasal spray"],["Azeflo","","nasal spray"],["Dymista","","nasal spray"],["Envas","2.5 mg","tablet"],["Envas","5 mg","tablet"],["Envas","10 mg","tablet"],["Enalapril","2.5 mg","tablet"],["Enalapril","5 mg","tablet"],["Enalapril","10 mg","tablet"],["Enalapril","20 mg","tablet"],["Enam","2.5 mg","tablet"],["Enam","5 mg","tablet"],["Enam","10 mg","tablet"],["Ramipril","1.25 mg","capsule"],["Ramipril","2.5 mg","capsule"],["Ramipril","5 mg","capsule"],["Ramipril","10 mg","capsule"],["Cardace","2.5 mg","capsule"],["Cardace","5 mg","capsule"],["Cardace","10 mg","capsule"],["Lisinopril","5 mg","tablet"],["Lisinopril","10 mg","tablet"],["Perindopril","4 mg","tablet"],["Perindopril","8 mg","tablet"],["Captopril","25 mg","tablet"],["Olmesartan","20 mg","tablet"],["Olmesartan","40 mg","tablet"],["Olmezest","20 mg","tablet"],["Olmezest","40 mg","tablet"],["Valsartan","80 mg","tablet"],["Valsartan","160 mg","tablet"],["Diovan","80 mg","tablet"],["Candesartan","8 mg","tablet"],["Candesartan","16 mg","tablet"],["Irbesartan","150 mg","tablet"],["Irbesartan","300 mg","tablet"],["Losartan","25 mg","tablet"],["Losartan","100 mg","tablet"],["Losar","50 mg","tablet"],["Losar H","","tablet"],["Telma H","","tablet"],["Telma AM","","tablet"],["Telmikind","40 mg","tablet"],["Telmikind H","","tablet"],["Tazloc","40 mg","tablet"],["Tazloc","80 mg","tablet"],["Cilacar","5 mg","tablet"],["Cilacar","20 mg","tablet"],["Amlong","10 mg","tablet"],["Amlopres","5 mg","tablet"],["Stamlo","5 mg","tablet"],["Stamlo","10 mg","tablet"],["Nifedipine","10 mg","capsule"],["Nifedipine","20 mg","tablet"],["Nicardia Retard","20 mg","tablet"],["Diltiazem","30 mg","tablet"],["Diltiazem","60 mg","tablet"],["Verapamil","40 mg","tablet"],["Verapamil","80 mg","tablet"],["Hydrochlorothiazide","12.5 mg","tablet"],["Hydrochlorothiazide","25 mg","tablet"],["Chlorthalidone","12.5 mg","tablet"],["Chlorthalidone","25 mg","tablet"],["Indapamide","1.5 mg","tablet"],["Furosemide","40 mg","tablet"],["Lasix","40 mg","tablet"],["Torsemide","10 mg","tablet"],["Torsemide","20 mg","tablet"],["Dytor","10 mg","tablet"],["Dytor","20 mg","tablet"],["Spironolactone","25 mg","tablet"],["Spironolactone","50 mg","tablet"],["Aldactone","25 mg","tablet"],["Eplerenone","25 mg","tablet"],["Eplerenone","50 mg","tablet"],["Carvedilol","3.125 mg","tablet"],["Carvedilol","6.25 mg","tablet"],["Carvedilol","12.5 mg","tablet"],["Propranolol","10 mg","tablet"],["Propranolol","40 mg","tablet"],["Inderal","10 mg","tablet"],["Inderal","40 mg","tablet"],["Atenolol","25 mg","tablet"],["Atenolol","50 mg","tablet"],["Tenormin","50 mg","tablet"],["Bisoprolol","2.5 mg","tablet"],["Nebivolol","2.5 mg","tablet"],["Metoprolol","50 mg","tablet"],["Metoprolol","100 mg","tablet"],["Metolar XR","25 mg","tablet"],["Metolar XR","50 mg","tablet"],["Betaloc","25 mg","tablet"],["Betaloc","50 mg","tablet"],["Isosorbide mononitrate","30 mg","tablet"],["Isosorbide dinitrate","5 mg","tablet"],["Nitroglycerin","0.5 mg","sublingual tablet"],["Nitrocontin","2.6 mg","tablet"],["Clopidogrel","75 mg","tablet"],["Aspirin","75 mg","tablet"],["Ecosprin AV","","capsule"],["Atorvastatin","40 mg","tablet"],["Atorvastatin","80 mg","tablet"],["Rosuvastatin","5 mg","tablet"],["Rosuvastatin","20 mg","tablet"],["Rosuvastatin","40 mg","tablet"],["Ezetimibe","10 mg","tablet"],["Fenofibrate","145 mg","tablet"],["Fenofibrate","160 mg","tablet"],["Warfarin","2 mg","tablet"],["Warfarin","5 mg","tablet"],["Acenocoumarol","2 mg","tablet"],["Acitrom","2 mg","tablet"],["Apixaban","2.5 mg","tablet"],["Apixaban","5 mg","tablet"],["Eliquis","5 mg","tablet"],["Rivaroxaban","10 mg","tablet"],["Rivaroxaban","20 mg","tablet"],["Xarelto","20 mg","tablet"],["Dabigatran","110 mg","capsule"],["Dabigatran","150 mg","capsule"],["Pradaxa","150 mg","capsule"],["Metformin","250 mg","tablet"],["Metformin","850 mg","tablet"],["Glycomet","1000 mg","tablet"],["Glycomet SR","500 mg","tablet"],["Glycomet SR","1000 mg","tablet"],["Glimepiride","3 mg","tablet"],["Glimepiride","4 mg","tablet"],["Gliclazide","40 mg","tablet"],["Gliclazide","80 mg","tablet"],["Diamicron MR","60 mg","tablet"],["Pioglitazone","15 mg","tablet"],["Pioglitazone","30 mg","tablet"],["Voglibose","0.2 mg","tablet"],["Voglibose","0.3 mg","tablet"],["Acarbose","50 mg","tablet"],["Acarbose","100 mg","tablet"],["Sitagliptin","50 mg","tablet"],["Vildagliptin","100 mg","tablet"],["Linagliptin","5 mg","tablet"],["Trajenta","5 mg","tablet"],["Empagliflozin","25 mg","tablet"],["Dapagliflozin","5 mg","tablet"],["Canagliflozin","100 mg","tablet"],["Insulin glargine","100 units/mL","injection"],["Lantus","100 units/mL","injection"],["Basaglar","100 units/mL","injection"],["Insulin aspart","100 units/mL","injection"],["NovoRapid","100 units/mL","injection"],["Insulin lispro","100 units/mL","injection"],["Humalog","100 units/mL","injection"],["Human insulin","30/70","injection"],["Mixtard","30/70","injection"],["Ryzodeg","","injection"],["Semaglutide","","injection"],["Ozempic","","injection"],["Rybelsus","3 mg","tablet"],["Rybelsus","7 mg","tablet"],["Rybelsus","14 mg","tablet"],["Liraglutide","","injection"],["Victoza","","injection"],["Levothyroxine","25 mcg","tablet"],["Levothyroxine","75 mcg","tablet"],["Levothyroxine","100 mcg","tablet"],["Thyronorm","75 mcg","tablet"],["Thyronorm","125 mcg","tablet"],["Thyronorm","150 mcg","tablet"],["Eltroxin","25 mcg","tablet"],["Eltroxin","100 mcg","tablet"],["Carbimazole","5 mg","tablet"],["Carbimazole","10 mg","tablet"],["Methimazole","5 mg","tablet"],["Methimazole","10 mg","tablet"],["Propranolol","20 mg","tablet"],["Amoxicillin","250 mg","capsule"],["Amoxicillin","500 mg","capsule"],["Amoxicillin clavulanate","625 mg","tablet"],["Augmentin","375 mg","tablet"],["Augmentin","625 mg","tablet"],["Augmentin","1 g","tablet"],["Cefixime","100 mg","tablet"],["Cefixime","400 mg","tablet"],["Cefpodoxime","100 mg","tablet"],["Cefpodoxime","200 mg","tablet"],["Cefuroxime","250 mg","tablet"],["Cefuroxime","500 mg","tablet"],["Cefalexin","250 mg","capsule"],["Cefalexin","500 mg","capsule"],["Cephalexin","500 mg","capsule"],["Azithromycin","250 mg","tablet"],["Azithromycin","500 mg","tablet"],["Azithromycin","200 mg/5 mL","suspension"],["Azithral","250 mg","tablet"],["Clarithromycin","250 mg","tablet"],["Erythromycin","250 mg","tablet"],["Doxycycline","100 mg","tablet"],["Minocycline","100 mg","capsule"],["Ciprofloxacin","250 mg","tablet"],["Ciprofloxacin","500 mg","tablet"],["Levofloxacin","750 mg","tablet"],["Ofloxacin","400 mg","tablet"],["Norfloxacin","400 mg","tablet"],["Metronidazole","200 mg","tablet"],["Metronidazole","400 mg","tablet"],["Tinidazole","500 mg","tablet"],["Secnidazole","1 g","tablet"],["Nitrofurantoin","100 mg","capsule"],["Fosfomycin","3 g","sachet"],["Linezolid","600 mg","tablet"],["Clindamycin","150 mg","capsule"],["Clindamycin","300 mg","capsule"],["Co-trimoxazole","800 mg/160 mg","tablet"],["Bactrim DS","","tablet"],["Fluconazole","50 mg","capsule"],["Fluconazole","150 mg","capsule"],["Fluconazole","200 mg","tablet"],["Itraconazole","100 mg","capsule"],["Itraconazole","200 mg","capsule"],["Terbinafine","250 mg","tablet"],["Griseofulvin","250 mg","tablet"],["Acyclovir","200 mg","tablet"],["Acyclovir","400 mg","tablet"],["Acyclovir","800 mg","tablet"],["Valacyclovir","500 mg","tablet"],["Valacyclovir","1000 mg","tablet"],["Oseltamivir","75 mg","capsule"],["Tamiflu","75 mg","capsule"],["Albendazole","200 mg","tablet"],["Albendazole","400 mg","tablet"],["Mebendazole","100 mg","tablet"],["Mebendazole","500 mg","tablet"],["Ivermectin","6 mg","tablet"],["Ivermectin","12 mg","tablet"],["Praziquantel","600 mg","tablet"],["Cetirizine","5 mg","tablet"],["Cetirizine","10 mg","tablet"],["Levocetirizine","5 mg","tablet"],["Fexofenadine","180 mg","tablet"],["Montelukast","4 mg","chewable tablet"],["Montelukast","5 mg","chewable tablet"],["Montelukast","10 mg","tablet"],["Bilastine","20 mg","tablet"],["Rupatadine","10 mg","tablet"],["Hydroxyzine","10 mg","tablet"],["Hydroxyzine","25 mg","tablet"],["Atarax","25 mg","tablet"],["Chlorpheniramine","4 mg","tablet"],["Loratadine","10 mg","tablet"],["Desloratadine","5 mg","tablet"],["Paracetamol","250 mg/5 mL","suspension"],["Paracetamol","500 mg","tablet"],["Paracetamol","650 mg","tablet"],["Dolo","650 mg","tablet"],["Dolo","500 mg","tablet"],["Calpol","250 mg/5 mL","suspension"],["Crocin","650 mg","tablet"],["Ibuprofen","400 mg","tablet"],["Ibuprofen","600 mg","tablet"],["Naproxen","500 mg","tablet"],["Aceclofenac","100 mg","tablet"],["Diclofenac","50 mg","tablet"],["Diclofenac","75 mg","injection"],["Ketorolac","10 mg","tablet"],["Ketorolac","30 mg/mL","injection"],["Etoricoxib","60 mg","tablet"],["Etoricoxib","120 mg","tablet"],["Tramadol","50 mg","capsule"],["Gabapentin","100 mg","capsule"],["Gabapentin","300 mg","capsule"],["Gabapentin","600 mg","tablet"],["Pregabalin","50 mg","capsule"],["Pregabalin","75 mg","capsule"],["Pregabalin","150 mg","capsule"],["Amitriptyline","10 mg","tablet"],["Amitriptyline","25 mg","tablet"],["Nortriptyline","10 mg","tablet"],["Duloxetine","20 mg","capsule"],["Duloxetine","30 mg","capsule"],["Duloxetine","60 mg","capsule"],["Sertraline","25 mg","tablet"],["Sertraline","50 mg","tablet"],["Sertraline","100 mg","tablet"],["Escitalopram","5 mg","tablet"],["Escitalopram","10 mg","tablet"],["Escitalopram","20 mg","tablet"],["Fluoxetine","10 mg","capsule"],["Fluoxetine","20 mg","capsule"],["Fluoxetine","40 mg","capsule"],["Venlafaxine","37.5 mg","tablet"],["Venlafaxine","75 mg","tablet"],["Mirtazapine","7.5 mg","tablet"],["Mirtazapine","15 mg","tablet"],["Mirtazapine","30 mg","tablet"],["Quetiapine","25 mg","tablet"],["Quetiapine","50 mg","tablet"],["Risperidone","1 mg","tablet"],["Risperidone","2 mg","tablet"],["Olanzapine","5 mg","tablet"],["Olanzapine","10 mg","tablet"],["Levetiracetam","250 mg","tablet"],["Levetiracetam","500 mg","tablet"],["Levetiracetam","750 mg","tablet"],["Keppra","500 mg","tablet"],["Sodium valproate","200 mg","tablet"],["Sodium valproate","500 mg","tablet"],["Valproic acid","200 mg","tablet"],["Lamotrigine","25 mg","tablet"],["Lamotrigine","50 mg","tablet"],["Lamotrigine","100 mg","tablet"],["Carbamazepine","200 mg","tablet"],["Carbamazepine","400 mg","tablet"],["Oxcarbazepine","300 mg","tablet"],["Oxcarbazepine","600 mg","tablet"],["Topiramate","25 mg","tablet"],["Topiramate","50 mg","tablet"],["Topiramate","100 mg","tablet"],["Sumatriptan","50 mg","tablet"],["Sumatriptan","100 mg","tablet"],["Rizatriptan","10 mg","tablet"],["Propranolol","40 mg","tablet"],["Flunarizine","5 mg","tablet"],["Flunarizine","10 mg","tablet"],["Domperidone","10 mg","tablet"],["Ondansetron","4 mg","tablet"],["Ondansetron","8 mg","tablet"],["Ondansetron","2 mg/5 mL","oral solution"],["Metoclopramide","10 mg","tablet"],["Pantoprazole","20 mg","tablet"],["Pantoprazole","40 mg","tablet"],["Rabeprazole","20 mg","tablet"],["Esomeprazole","20 mg","tablet"],["Esomeprazole","40 mg","tablet"],["Omeprazole","20 mg","capsule"],["Omeprazole","40 mg","capsule"],["Lansoprazole","30 mg","capsule"],["Famotidine","20 mg","tablet"],["Famotidine","40 mg","tablet"],["Sucralfate","1 g","tablet"],["Sucralfate","1 g/10 mL","suspension"],["Dicyclomine","10 mg","tablet"],["Dicyclomine","20 mg","tablet"],["Hyoscine butylbromide","10 mg","tablet"],["Mebeverine","135 mg","tablet"],["Mebeverine","200 mg","capsule"],["Lactulose","10 g/15 mL","syrup"],["Polyethylene glycol","","powder"],["Bisacodyl","5 mg","tablet"],["Senna","7.5 mg","tablet"],["Psyllium husk","","powder"],["Loperamide","2 mg","capsule"],["Racecadotril","100 mg","capsule"],["Saccharomyces boulardii","250 mg","sachet"],["Bacillus clausii","","oral suspension"],["Zinc","20 mg","tablet"],["ORS","","powder"],["Ferrous sulphate","200 mg","tablet"],["Ferrous ascorbate","","tablet"],["Folic acid","5 mg","tablet"],["Vitamin B12","1500 mcg","tablet"],["Methylcobalamin","1500 mcg","tablet"],["Vitamin D3","60000 IU","capsule"],["Cholecalciferol","60000 IU","capsule"],["Calcium carbonate","500 mg","tablet"],["Calcium citrate","500 mg","tablet"],["Vitamin C","500 mg","tablet"],["Vitamin B complex","","tablet"],["Multivitamin","","tablet"],["Zincovit","","tablet"],["Becosules","","capsule"],["Supradyn","","tablet"],["Shelcal","500 mg","tablet"],["Calcimax","","tablet"],["Mupirocin","2%","ointment"],["Fusidic acid","2%","cream"],["Clotrimazole","1%","cream"],["Clotrimazole","1%","dusting powder"],["Ketoconazole","2%","cream"],["Ketoconazole","2%","shampoo"],["Luliconazole","1%","cream"],["Terbinafine","1%","cream"],["Terbinafine","250 mg","tablet"],["Permethrin","5%","cream"],["Benzoyl peroxide","2.5%","gel"],["Benzoyl peroxide","5%","gel"],["Adapalene","0.1%","gel"],["Tretinoin","0.025%","cream"],["Tretinoin","0.05%","cream"],["Clindamycin","1%","gel"],["Hydrocortisone","1%","cream"],["Mometasone","0.1%","cream"],["Betamethasone","0.05%","cream"],["Tacrolimus","0.03%","ointment"],["Tacrolimus","0.1%","ointment"],["Povidone iodine","10%","solution"],["Silver sulfadiazine","1%","cream"],["Moxifloxacin","0.5%","eye drops"],["Ofloxacin","0.3%","eye drops"],["Ciprofloxacin","0.3%","eye drops"],["Carboxymethylcellulose","0.5%","eye drops"],["Carboxymethylcellulose","1%","eye drops"],["Olopatadine","0.1%","eye drops"],["Ketotifen","0.025%","eye drops"],["Timolol","0.5%","eye drops"],["Latanoprost","0.005%","eye drops"],["Brimonidine","0.2%","eye drops"],["Fluticasone","50 mcg","nasal spray"],["Mometasone","50 mcg","nasal spray"],["Oxymetazoline","0.05%","nasal spray"],["Xylometazoline","0.1%","nasal spray"],["Sodium chloride","0.65%","nasal spray"],["Tamsulosin","0.4 mg","capsule"],["Silodosin","8 mg","capsule"],["Finasteride","5 mg","tablet"],["Dutasteride","0.5 mg","capsule"],["Solifenacin","5 mg","tablet"],["Solifenacin","10 mg","tablet"],["Oxybutynin","5 mg","tablet"],["Tolterodine","2 mg","tablet"],["Allopurinol","100 mg","tablet"],["Allopurinol","300 mg","tablet"],["Febuxostat","40 mg","tablet"],["Febuxostat","80 mg","tablet"],["Colchicine","0.5 mg","tablet"],["Sulfasalazine","500 mg","tablet"],["Hydroxychloroquine","200 mg","tablet"],["Methotrexate","2.5 mg","tablet"],["Methotrexate","7.5 mg","tablet"],["Leflunomide","10 mg","tablet"],["Leflunomide","20 mg","tablet"],["Tranexamic acid","500 mg","tablet"],["Ethamsylate","500 mg","tablet"],["Norethisterone","5 mg","tablet"],["Medroxyprogesterone","10 mg","tablet"],["Progesterone","200 mg","capsule"],["Dydrogesterone","10 mg","tablet"],["Duphaston","10 mg","tablet"],["Clomiphene","50 mg","tablet"],["Letrozole","2.5 mg","tablet"],["Metformin","500 mg","tablet"],["Iron folic acid","","tablet"],["Calcium vitamin D","","tablet"]]);
+{
+ const seen=new Set();
+ for(let i=aikMedicineCatalogue.length-1;i>=0;i--){
+  const key=aikMedicineCatalogue[i].join('|').toLowerCase().trim();
+  if(seen.has(key))aikMedicineCatalogue.splice(i,1);else seen.add(key);
+ }
+}
+function aikUpdateMedicineSuggestions(){
+ const box=document.getElementById('aikMedSuggestions'), input=document.getElementById('aikMedName');
+ const q=input.value.trim().toLowerCase();
+ if(document.getElementById('aikDoctorRxModal').classList.contains('aik-rx-readonly')||q.length<2){box.hidden=true;box.innerHTML='';return;}
+ const matches=aikMedicineCatalogue.filter(m=>m.join(' ').toLowerCase().includes(q)).sort((a,b)=>Number(!a[0].toLowerCase().startsWith(q))-Number(!b[0].toLowerCase().startsWith(q))).slice(0,12);
+ box.innerHTML=matches.map((m,i)=>'<button type="button" role="option" data-index="'+i+'"><strong>'+aikDoctorRxSafe(m[0])+'</strong><small style="display:block;color:#526b83">'+aikDoctorRxSafe([m[1],m[2]].filter(Boolean).join(' · '))+'</small></button>').join('');
+ box.hidden=false;
+ if(!matches.length)box.innerHTML='<div style="padding:12px;color:#526b83;font-size:12px">No catalogue match. You can still enter the medicine manually, including its strength and form.</div>';
+ box.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>aikChooseMedicine(matches[Number(b.dataset.index)])));
+}
+function aikChooseMedicine(m){
+ document.getElementById('aikMedName').value=m[0];
+ document.getElementById('aikMedStrength').value=[m[1],m[2]].filter(Boolean).join(' ');
+ document.getElementById('aikMedLink').value=aikMedicineShoppingLink(m[0],m[1]+' '+m[2]);
+ document.getElementById('aikMedSuggestions').hidden=true;
+}
+document.getElementById('aikMedName').addEventListener('input',()=>{
+ document.getElementById('aikMedLink').value='';
+ aikUpdateMedicineSuggestions();
+});
+document.getElementById('aikMedStrength').addEventListener('input',()=>{
+ const name=document.getElementById('aikMedName').value.trim();
+ if(document.getElementById('aikMedLink').value)document.getElementById('aikMedLink').value=aikMedicineShoppingLink(name,document.getElementById('aikMedStrength').value.trim());
+});
+document.addEventListener('click',e=>{if(!e.target.closest('.aik-med-autocomplete'))document.getElementById('aikMedSuggestions').hidden=true;});
+
+function aikRenderMedicines(){const el=document.getElementById('aikDoctorMedList');const readonly=document.getElementById('aikDoctorRxModal').classList.contains('aik-rx-readonly');el.innerHTML=aikRxMedicines.length?aikRxMedicines.map((m,i)=>'<div class="aik-med-item">'+(!readonly?'<button type="button" onclick="aikRemoveMedicine('+i+')" aria-label="Remove medicine">Remove</button>':'')+'<strong>'+aikDoctorRxSafe(m.name)+'</strong>'+(m.strength?'<div>'+aikDoctorRxSafe(m.strength)+'</div>':'')+(m.instructions?'<div>'+aikDoctorRxSafe(m.instructions)+'</div>':'')+(aikMedSafeLink(m.link)?'<div><a target="_blank" rel="noopener noreferrer" href="'+aikDoctorRxSafe(aikMedSafeLink(m.link))+'">🔗 Medicine information</a></div>':'')+'</div>').join(''):'<p style="font-size:12px">No medicines added.</p>';}
+function aikAddMedicine(){if(document.getElementById('aikDoctorRxModal').classList.contains('aik-rx-readonly'))return;const name=document.getElementById('aikMedName').value.trim(),strength=document.getElementById('aikMedStrength').value.trim(),instructions=document.getElementById('aikMedInstructions').value.trim(),rawLink=document.getElementById('aikMedLink').value.trim(),link=aikMedSafeLink(rawLink)||aikMedicineShoppingLink(name,strength);if(!name){alert('Enter a medicine name.');return;}if(aikRxMedicines.length>=20){alert('Maximum 20 medicines per appointment.');return;}aikRxMedicines.push({name,strength,instructions,link});['aikMedName','aikMedStrength','aikMedInstructions','aikMedLink'].forEach(id=>document.getElementById(id).value='');document.getElementById('aikMedSuggestions').hidden=true;aikRenderMedicines();}
+function aikRemoveMedicine(i){if(document.getElementById('aikDoctorRxModal').classList.contains('aik-rx-readonly'))return;aikRxMedicines.splice(i,1);aikRenderMedicines();}
+function openAikPrescription(token){const appts=JSON.parse(localStorage.getItem('aikdoc_appointments')||'[]');const a=appts.find(x=>String(x.token)===String(token));if(!a)return;aikRxToken=token;aikRxImage=a.aikPrescription?.image||null;aikRxMedicines=Array.isArray(a.aikPrescription?.medicines)?a.aikPrescription.medicines.map(m=>({...m})):[];document.getElementById('aikDoctorRxText').value=a.aikPrescription?.notes||'';document.getElementById('aikDoctorRxFile').value='';const fields=[['Patient name',a.patientName||a.name||'Not provided'],['Doctor',a.doctorName||'Not provided'],['Appointment date',a.date||'Not provided'],['Time',a.time||'Not provided'],['Appointment ID',a.token||token],['Consultation mode',a.mode||'Not provided']];document.getElementById('aikDoctorRxInfo').innerHTML=fields.map(([k,v])=>'<div><small>'+aikDoctorRxSafe(k)+'</small><strong>'+aikDoctorRxSafe(v)+'</strong></div>').join('');document.getElementById('aikDoctorRxFileInfo').textContent=aikRxImage?'✓ Existing prescription image attached. Upload another to replace it.':'';const readonly=String(a.status||'').toLowerCase()==='completed';const modal=document.getElementById('aikDoctorRxModal');modal.classList.toggle('aik-rx-readonly',readonly);const text=document.getElementById('aikDoctorRxText');text.readOnly=readonly;const file=document.getElementById('aikDoctorRxFile');file.disabled=readonly;document.getElementById('aikRxTitle').textContent=readonly?'👁 View Consultation & Prescription':'✍️ Consultation & Prescription';if(readonly){document.getElementById('aikDoctorRxFileInfo').textContent=aikRxImage?'Handwritten prescription attached below.':'No handwritten prescription attached.';text.placeholder='Nothing written';}else{text.placeholder='Write consultation notes and prescription here...';}let preview=document.getElementById('aikRxReadOnlyPreview');if(!preview){preview=document.createElement('div');preview.id='aikRxReadOnlyPreview';document.querySelector('#aikDoctorRxModal .aik-rx-upload').insertAdjacentElement('afterend',preview);}preview.innerHTML=readonly&&aikRxImage&&/^data:image\/(png|jpeg|webp);base64,/i.test(aikRxImage)?'<div class="aik-rx-section" style="margin-top:18px">Handwritten prescription</div><img alt="Saved handwritten prescription" style="max-width:100%;max-height:450px;object-fit:contain;border:1px solid #dce9f7;border-radius:12px" src="'+aikRxImage+'">':'';if(readonly&&!String(a.aikPrescription?.notes||'').trim()&&!aikRxImage){preview.innerHTML='<div role="status" style="margin-top:16px;padding:16px;border:1px solid #dce9f7;border-radius:12px;background:#f5f9ff;color:#48627e;font-weight:600;text-align:center">Nothing uploaded / written</div>'; }modal.classList.add('show');aikRenderMedicines();}
 
 function closeAikPrescription(){document.getElementById('aikDoctorRxModal').classList.remove('show');aikRxToken=null;}
 document.getElementById('aikDoctorRxFile').addEventListener('change',async e=>{const f=e.target.files[0];if(!f)return;if(!['image/png','image/jpeg','image/webp'].includes(f.type)){alert('Please select a JPG or PNG image.');e.target.value='';return;}if(f.size>2*1024*1024){alert('Please choose an image smaller than 2 MB.');e.target.value='';return;}const img=new Image();const url=URL.createObjectURL(f);try{await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=reject;img.src=url;});const c=document.createElement('canvas');const scale=Math.min(1,1200/Math.max(img.width,img.height));c.width=Math.max(1,Math.round(img.width*scale));c.height=Math.max(1,Math.round(img.height*scale));c.getContext('2d').drawImage(img,0,0,c.width,c.height);aikRxImage=c.toDataURL('image/jpeg',0.68);document.getElementById('aikDoctorRxFileInfo').textContent='Image ready to save.';}catch(err){alert('Could not read image.');}finally{URL.revokeObjectURL(url);}});
-function saveAikPrescription(complete){if(!aikRxToken)return;const notes=document.getElementById('aikDoctorRxText').value.trim();if(!notes&&!aikRxImage){alert('Please write notes or upload an image first.');return;}const appts=JSON.parse(localStorage.getItem('aikdoc_appointments')||'[]');const a=appts.find(x=>String(x.token)===String(aikRxToken));if(!a)return;if(String(a.status||'').toLowerCase()==='completed'){alert('This appointment is completed. Notes and prescriptions are view-only.');return;}a.aikPrescription={notes,image:aikRxImage,updatedAt:new Date().toISOString(),doctorName:a.doctorName||''};if(complete){a.status='Completed';a.lastUpdated=Date.now();}try{localStorage.setItem('aikdoc_appointments',JSON.stringify(appts));localStorage.setItem('aikdoc_last_sync',String(Date.now()));}catch(err){alert('Storage is full. Try a smaller image; nothing was saved.');return;}closeAikPrescription();showToast(complete?'Prescription saved and appointment completed.':'Prescription saved.');loadAllDoctorData();}
+function saveAikPrescription(complete){if(!aikRxToken)return;const notes=document.getElementById('aikDoctorRxText').value.trim();if(!notes&&!aikRxImage&&!aikRxMedicines.length){alert('Please add notes, a prescription image, or a medicine first.');return;}const appts=JSON.parse(localStorage.getItem('aikdoc_appointments')||'[]');const a=appts.find(x=>String(x.token)===String(aikRxToken));if(!a)return;if(String(a.status||'').toLowerCase()==='completed'){alert('This appointment is completed. Notes and prescriptions are view-only.');return;}a.aikPrescription={notes,image:aikRxImage,medicines:aikRxMedicines.map(m=>({...m})),updatedAt:new Date().toISOString(),doctorName:a.doctorName||''};if(complete){a.status='Completed';a.lastUpdated=Date.now();}try{localStorage.setItem('aikdoc_appointments',JSON.stringify(appts));localStorage.setItem('aikdoc_last_sync',String(Date.now()));}catch(err){alert('Storage is full. Try a smaller image; nothing was saved.');return;}closeAikPrescription();showToast(complete?'Prescription saved and appointment completed.':'Prescription saved.');loadAllDoctorData();}
 </script>
 <style>
 #aikReportsBackdrop{display:none;position:fixed;inset:0;z-index:2147483000;background:rgba(8,27,48,.72);align-items:center;justify-content:center;padding:15px}
