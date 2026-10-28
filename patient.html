@@ -3571,7 +3571,14 @@ function generateReceiptPrint(appt){
           </div>
         </div>
       </div>
-    </body>
+    <style id="aikdoc-mobile-help-circle">
+@media(max-width:600px){
+ #aikhelpLaunch.aikhelp-launch{width:54px!important;height:54px!important;min-width:54px!important;max-width:54px!important;min-height:54px!important;padding:0!important;display:flex!important;align-items:center!important;justify-content:center!important;border-radius:50%!important;left:14px!important;bottom:max(14px,env(safe-area-inset-bottom))!important;font-size:24px!important;line-height:1!important;white-space:nowrap!important;}
+ #aikhelpLaunch .aikhelp-label{display:none!important}
+ #aikhelpLaunch .aikhelp-icon{display:inline-block!important;line-height:1!important}
+}
+</style>
+</body>
     </html>
   `;
   printWindow.document.open();
@@ -4099,7 +4106,7 @@ if(location.hash && location.hash.startsWith("#page-") && location.hash !== "#pa
 @media(prefers-reduced-motion:reduce){.aikhelp-launch,.aikhelp-msg{animation:none!important;transition:none!important}}
 
 </style>
-<button type="button" class="aikhelp-launch" id="aikhelpLaunch" aria-label="Open AIKDOC AI Help">💬 AIKDOC AI Help</button>
+<button type="button" class="aikhelp-launch" id="aikhelpLaunch" aria-label="Open AIKDOC AI Help"><span class="aikhelp-icon" aria-hidden="true">💬</span><span class="aikhelp-label"> AIKDOC AI Help</span></button>
 <section class="aikhelp-panel" id="aikhelpPanel" role="dialog" aria-label="AIKDOC AI Help" aria-modal="false">
  <div class="aikhelp-head"><span id="aikhelpTitle">AIKDOC AI Help</span><div class="aikhelp-tools"><select class="aikhelp-lang" id="aikhelpLang" aria-label="Chat language"><option value="en">English</option><option value="hi">हिन्दी</option><option value="bho">भोजपुरी</option></select><button type="button" id="aikhelpClose" aria-label="Minimize chat">−</button></div></div>
  <div class="aikhelp-messages" id="aikhelpMessages" aria-live="polite"></div>
