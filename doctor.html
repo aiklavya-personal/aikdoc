@@ -452,6 +452,48 @@ body.dark-mode .reviews-hero-card .big-stars {
  .score-box{border-right:0 !important;border-bottom:1px solid var(--line);padding:0 0 18px !important;}
 }
 </style>
+
+<style id="aikdoc-dark-mode-all-sections-v3">
+/* Unified contrast for appointments, revenue, and live doctor preview. */
+body.dark-mode :is(.appointment-item-card,.empty-state,.metric-card,.split-box,.doctor-card-preview,.fp-modal,.fp-stat,.fp-slot,.fp-rev,.fp-stats,.fp-hosp,.fp-reviews,.preview-slots,.credential-share-card){background:#1c2a40!important;border-color:#3b4f6b!important;color:#e7edf7!important;box-shadow:0 6px 20px #0002!important}
+body.dark-mode :is(.appt-details-grid,.fp-profile,.fp-top,.fp-note,.upload-card){background:#22334c!important;border-color:#3b4f6b!important;color:#e7edf7!important}
+body.dark-mode :is(.appointment-item-card,.metric-card,.split-box,.doctor-card-preview,.fp-modal,.fp-profile,.fp-stat,.fp-rev) :is(h1,h2,h3,h4,h5,h6,p,span,strong,small,label,.appt-patient-name,.split-title,.fp-title,.fp-text,.preview-pill,.preview-slots,.metric-value,.fp-stat strong){color:#e7edf7!important}
+body.dark-mode :is(.appointment-item-card,.metric-card,.split-box,.doctor-card-preview,.fp-modal) :is(.muted,.card-sub,.appt-details-grid small,.metric-card small,.fp-stat small,.preview-meta small){color:#b5c6de!important}
+body.dark-mode .metric-card span{color:#79e2c6!important}
+body.dark-mode .split-row{border-bottom-color:#3b4f6b!important}
+body.dark-mode :is(.preview-pill,.appt-token,.fp-badge-v){background:#29466b!important;color:#c7e2ff!important}
+body.dark-mode :is(.subtab-btn,.action-btn,.fp-close,.fp-slot){background:#263b57!important;border-color:#48617f!important;color:#e7edf7!important}
+body.dark-mode .subtab-btn.active{background:#3573bf!important;color:white!important;border-color:#6398dc!important}
+body.dark-mode .action-btn.done{background:#164d3d!important;color:#b4f7d6!important;border-color:#247a5a!important}
+body.dark-mode .action-btn.cancel{background:#4a2531!important;color:#fecdd3!important;border-color:#864052!important}
+body.dark-mode .action-btn.call{background:#223e62!important;color:#bfdbfe!important;border-color:#4c7ab4!important}
+body.dark-mode .status-confirmed{background:#174a3c!important;color:#b8f7d5!important;border-color:#286c58!important}
+body.dark-mode .status-completed{background:#34465f!important;color:#e1eafa!important;border-color:#566a86!important}
+body.dark-mode .status-cancelled{background:#4b2634!important;color:#fecdd3!important;border-color:#8b4255!important}
+body.dark-mode .fp-note{background:#493b22!important;color:#ffe5aa!important;border-color:#8a6d32!important}
+body.dark-mode .fp-note *{color:#ffe5aa!important}
+body.dark-mode .fp-badge-r{background:#54401e!important;color:#ffd98b!important}
+body.dark-mode .fp-badge-v{background:#15483b!important;color:#b6f7d6!important}
+body.dark-mode .fp-avatar{border-color:#405b7d!important}
+body.dark-mode .btn-full-preview{background:#28466b!important;color:#dceaff!important;border-color:#527caf!important}
+body.dark-mode .btn-full-preview:hover{background:#326caa!important;color:#fff!important}
+body.dark-mode :is(.table-responsive table,.table-responsive thead,.table-responsive tbody,.table-responsive tr,.table-responsive td,.table-responsive th){background:#1c2a40!important;color:#e7edf7!important;border-color:#3b4f6b!important}
+body.dark-mode .table-responsive tr:hover td{background:#293b54!important}
+body.dark-mode .fp-top{background:linear-gradient(135deg,#253b58,#203b4d)!important}
+body.dark-mode .preview-avatar{background:#29415e!important}
+body.dark-mode :is(.preview-pill,.appt-token) *{color:inherit!important}
+/* Make any dark-mode text inside preview and metrics legible, including dynamically generated labels. */
+body.dark-mode :is(.doctor-card-preview,.fp-modal,.metric-card,.split-box,.appointment-item-card) [style*="color:#123"],
+body.dark-mode :is(.doctor-card-preview,.fp-modal,.metric-card,.split-box,.appointment-item-card) [style*="color: #123"]{color:#e7edf7!important}
+@media(max-width:650px){body.dark-mode .appt-details-grid{grid-template-columns:1fr!important}}
+</style>
+<style id="aikdoc-doctor-header-brand-contrast-fix">
+/* Keep the portal badge legible even when the generic dark-mode span rule applies. */
+body.dark-mode .topbar .brand,
+body.dark-mode .topbar .brand span:not(.logo) {color:#f8fbff!important;opacity:1!important;text-shadow:none!important}
+body.dark-mode .topbar .partner-tag {background:#28476c!important;color:#f8fbff!important;border:1px solid #7094c4!important;opacity:1!important;box-shadow:inset 0 0 0 1px rgba(255,255,255,.04)!important}
+body.dark-mode .topbar .logo {color:#fff!important}
+</style>
 </head>
 <body>
 
