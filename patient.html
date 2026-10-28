@@ -1072,6 +1072,11 @@ input,select,textarea,button{max-width:100%}
     </select>
   </div>
 
+  <div class="hospital-nearby-controls" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:-4px 0 14px">
+    <button id="hospNearMeBtn" type="button" class="primary" onclick="findHospitalsNearMe()">📍 View hospitals near me</button>
+    <button id="hospNearResetBtn" type="button" class="chip" style="display:none" onclick="resetNearbyHospitals()">Show all hospitals / clinics</button>
+    <span id="hospNearStatus" role="status" aria-live="polite" style="font-size:12px;color:var(--muted)"></span>
+  </div>
   <div class="hospital-grid" id="hospitalGrid"></div>
 </section>
 
@@ -1516,6 +1521,13 @@ input,select,textarea,button{max-width:100%}
         </div>
       </div>
 
+      <div id="aikPreBookingReports" style="margin:15px 0;padding:14px;border:1px solid #c5d9ea;border-radius:12px;background:#f4f9ff;text-align:left">
+        <div style="font-weight:800;color:#123b60;margin-bottom:5px">📎 Medical reports (optional)</div>
+        <p style="font-size:12px;color:#5d7085;margin:0 0 10px">Attach up to 5 PDF, JPG or PNG reports before confirming. Each file must be under 700 KB. You can also add reports after booking.</p>
+        <input id="aikPreBookingReportInput" type="file" accept="application/pdf,image/jpeg,image/png" multiple onchange="aikStageBookingReports(this.files)" style="width:100%;max-width:100%;font-size:13px">
+        <div id="aikPreBookingReportList" style="margin-top:9px;font-size:12px;color:#38546d"></div>
+      </div>
+
       <div class="pay-demo-notice">
         <span>ℹ️ <strong>Prototype Demo Mode:</strong> No real money will be charged. Click below to simulate confirmation.</span>
       </div>
@@ -1537,6 +1549,9 @@ input,select,textarea,button{max-width:100%}
       <div style="display:flex;gap:10px;margin-top:18px">
         <button class="navbtn" type="button" id="downloadReceiptBtn" style="flex:1">🖨️ Print / Download Receipt</button>
         <button class="primary" type="button" onclick="viewBookedInMyAppts()" style="flex:1">View in My Appointments</button>
+      </div>
+      <button id="aikSuccessUploadReports" type="button" class="navbtn" style="width:100%;margin-top:11px;background:#e7f6f4;color:#087b73;border:1px solid #a6d9d5;border-radius:10px;padding:12px;font-weight:800">📎 Upload / View Medical Reports</button>
+      <div style="display:none">
       </div>
     </div>
   </div>
@@ -1964,7 +1979,14 @@ async function submitEmailPasswordAuth(event) {
 
   try {
     if (button) { button.disabled = true; button.textContent = emailAuthMode === "create" ? "Creating account…" : "Signing in…"; }
-    const accounts = safeGetJSON("aikdoc_patient_email_accounts", []);
+    // Read older signup accounts as well, without changing or deleting legacy storage.
+    const legacyAccounts = safeGetJSON("aikdoc_email_accounts", []);
+    const currentAccounts = safeGetJSON("aikdoc_patient_email_accounts", []);
+    const accounts = Array.isArray(currentAccounts) ? currentAccounts.slice() : [];
+    if (Array.isArray(legacyAccounts)) legacyAccounts.forEach(a => {
+      if (a && a.email && !accounts.some(b => String(b.email || "").toLowerCase() === String(a.email).toLowerCase()))
+        accounts.push(a);
+    });
     if (!Array.isArray(accounts)) throw new Error("Stored email account data is invalid.");
     const index = accounts.findIndex(a => String(a.email || "").toLowerCase() === email);
 
@@ -2378,6 +2400,8 @@ function checkDoctorLiveUpdates() {
     const completedUnreviewed = appts.find(a => patientOwnsAppointment(a, liveSession) && a.status === "Completed" && !a.review && !a.patientDismissedReview);
     if (completedUnreviewed) {
       openReviewModal(completedUnreviewed);
+    } else {
+      aikCheckRxNotice(appts,liveSession);
     }
 
     const cancelledByDoc = appts.find(a => patientOwnsAppointment(a, liveSession) && a.status === "Cancelled" && a.cancelledBy === "Doctor" && !a.patientDismissedCancellationNotice);
@@ -2581,6 +2605,43 @@ function nextHospPhoto(hospId, event) {
   if (counterEl) counterEl.textContent = `${hospitalPhotoIndices[hospId] + 1}/${list.length}`;
 }
 
+let nearbyHospitalLocation = null;
+function hospitalPointForNearby(h){
+  const lat=Number(h.latitude ?? h.lat ?? h.location?.lat);
+  const lon=Number(h.longitude ?? h.lng ?? h.lon ?? h.location?.lng ?? h.location?.lon);
+  if(Number.isFinite(lat)&&Number.isFinite(lon)&&Math.abs(lat)<=90&&Math.abs(lon)<=180&&(lat!==0||lon!==0)) return {lat,lon,exact:true};
+  const district=String(h.district||h.city||'').trim().toLowerCase();
+  const p=AIKDOC_DISTRICT_CENTRES[district];
+  return p ? {lat:p[0],lon:p[1],exact:false} : null;
+}
+function setHospitalNearbyStatus(message){
+  const el=document.getElementById('hospNearStatus');
+  if(el)el.textContent=message;
+}
+function findHospitalsNearMe(){
+  if(!window.isSecureContext){setHospitalNearbyStatus('Location needs HTTPS. Open your Netlify HTTPS site on mobile.');return;}
+  if(!navigator.geolocation){setHospitalNearbyStatus('Location is unavailable in this browser. Try Chrome or Safari.');return;}
+  const btn=document.getElementById('hospNearMeBtn');
+  if(btn){btn.disabled=true;btn.textContent='📍 Finding your location…';}
+  setHospitalNearbyStatus('Allow location access when your browser asks.');
+  navigator.geolocation.getCurrentPosition(pos=>{
+    nearbyHospitalLocation={lat:pos.coords.latitude,lon:pos.coords.longitude};
+    selectedHospitalCity='';
+    const citySelect=document.getElementById('hospCityFilter');if(citySelect)citySelect.value='';
+    if(btn){btn.disabled=false;btn.textContent='📍 Update my location';}
+    const reset=document.getElementById('hospNearResetBtn');if(reset)reset.style.display='inline-block';
+    renderHospitals();
+  },error=>{
+    if(btn){btn.disabled=false;btn.textContent='📍 View hospitals near me';}
+    setHospitalNearbyStatus(error.code===1?'Location permission denied. Enable location access for this website in your phone/browser settings.':error.code===3?'Location timed out. Enable GPS and retry.':'Unable to determine your location. Enable phone Location Services and retry.');
+  },{enableHighAccuracy:true,timeout:25000,maximumAge:120000});
+}
+function resetNearbyHospitals(){
+  nearbyHospitalLocation=null;
+  const reset=document.getElementById('hospNearResetBtn');if(reset)reset.style.display='none';
+  const btn=document.getElementById('hospNearMeBtn');if(btn)btn.textContent='📍 View hospitals near me';
+  setHospitalNearbyStatus('');renderHospitals();
+}
 function renderHospitals(){
   const hGrid = document.getElementById("hospitalGrid");
   if (!hGrid) return;
@@ -2593,6 +2654,14 @@ function renderHospitals(){
     list = list.filter(h => getHospitalListingType(h) === selectedHospitalType);
   }
 
+  if(nearbyHospitalLocation){
+    const countBefore=list.length;
+    list=list.map(h=>({h,point:hospitalPointForNearby(h)})).filter(x=>x.point)
+      .sort((a,b)=>nearbyDistanceKm(nearbyHospitalLocation,a.point)-nearbyDistanceKm(nearbyHospitalLocation,b.point))
+      .map(x=>x.h);
+    const excluded=countBefore-list.length;
+    setHospitalNearbyStatus(list.length?`Showing ${list.length} nearest hospitals / clinics first. Distances are straight-line; district estimates are approximate.${excluded?' '+excluded+' listing(s) without location data excluded.':''}`:'No hospitals / clinics with usable location data match these filters. Try another filter.');
+  }
   if (list.length === 0) {
     const typeLabel = selectedHospitalType === "clinic" ? "clinics" : selectedHospitalType === "hospital" ? "hospitals" : "hospitals or clinics";
     const cityLabel = selectedHospitalCity ? ` in ${selectedHospitalCity}` : "";
@@ -2619,6 +2688,7 @@ function renderHospitals(){
         <div class="hospital-content">
           <h3>${h.name}</h3>
           <p class="hospital-location">${h.type === "clinic" ? "🩺 Clinic" : "🏥 Hospital"} · 📍 ${h.district}, Bihar</p>
+          ${nearbyHospitalLocation && hospitalPointForNearby(h) ? (()=>{const pt=hospitalPointForNearby(h);const mapQuery=pt.exact?`${pt.lat},${pt.lon}`:`${h.name||'Hospital'}, ${h.address||''}, ${h.district||h.city||''}, Bihar, India`;const mapUrl='https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(mapQuery);return `<div class="nearby-location-row" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:7px 0 10px"><span class="hospital-location" style="font-weight:750;color:var(--blue);margin:0">📍 ${nearbyDistanceKm(nearbyHospitalLocation,pt).toFixed(1)} km away · ${pt.exact?'saved GPS location':'district estimate'}</span><a class="nearby-map-link" href="${mapUrl}" target="_blank" rel="noopener noreferrer" title="${pt.exact?'Open saved hospital GPS coordinates in Google Maps':'Search for this hospital in Google Maps; the displayed distance is only a district estimate'}">🗺️ View in map ↗</a></div>`;})() : ''}
           <div class="hospital-tags">
             <span class="hospital-tag">🛏️ ${h.beds || '100+ Beds'}</span>
             <span class="hospital-tag">👨‍⚕️ ${docCount} Specialists</span>
@@ -2675,10 +2745,18 @@ function setNearbyStatus(message){
   const el=document.getElementById('nearbyStatus');
   if(el){el.textContent=message;el.style.display=message?'block':'none';}
 }
+function aikdocHospitalMapUrl(h){
+  const lat=Number(h.latitude ?? h.lat ?? h.location?.lat);
+  const lon=Number(h.longitude ?? h.lng ?? h.lon ?? h.location?.lng);
+  const valid=Number.isFinite(lat)&&Number.isFinite(lon)&&Math.abs(lat)<=90&&Math.abs(lon)<=180&&(lat!==0||lon!==0);
+  const query=valid ? `${lat},${lon}` : [h.address,h.district||h.city,h.name].filter(Boolean).join(', ');
+  return query ? 'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(query) : '';
+}
 function findDoctorsNearMe(){
   setPage('doctors');
   document.getElementById('doctors')?.scrollIntoView({behavior:'smooth'});
-  if(!navigator.geolocation){setNearbyStatus('Location is unavailable in this browser. You can still search doctors by district.');return;}
+  if(!window.isSecureContext){setNearbyStatus('Mobile GPS requires HTTPS. Open https://aikdoc.netlify.app/patient (not an HTTP IP address or a downloaded HTML file).');return;}
+  if(!navigator.geolocation){setNearbyStatus('This browser does not support location access. Try Chrome or Safari, or search by district.');return;}
   const btn=document.getElementById('nearbyBtn');
   if(btn){btn.disabled=true;btn.textContent='Locating…';}
   setNearbyStatus('Requesting your location. Please allow access in your browser.');
@@ -2692,9 +2770,9 @@ function findDoctorsNearMe(){
     renderDoctorGrid();
   },error=>{
     if(btn){btn.disabled=false;btn.textContent='◎ Use my location';}
-    const message=error.code===1?'Location permission was denied. Enable it in your browser settings, or search by district.':error.code===3?'Location request timed out. Please try again.':'Your location could not be determined. Please try again or search by district.';
+    const message=error.code===1?'Location permission denied. On mobile, enable Location Services and allow location for this site in browser settings, then retry.':error.code===3?'Location timed out. Turn on phone GPS, move near a window, and retry; or search by district.':'Could not determine your position. Enable phone Location Services and try again, or search by district.';
     setNearbyStatus(message);
-  },{enableHighAccuracy:false,timeout:12000,maximumAge:60000});
+  },{enableHighAccuracy:true,timeout:25000,maximumAge:120000});
 }
 function resetNearbyDoctors(){
   nearbyOnly=false;nearbyLocation=null;
@@ -3035,6 +3113,7 @@ function openHospitalDetailsModal(hospitalName){
     <img src="${h.photo}" alt="${h.name}" onerror="this.src='https://images.unsplash.com/photo-1587351021759-3e566b6af7cc?auto=format&fit=crop&w=700&q=80'" style="width:100%;height:180px;border-radius:16px;object-fit:cover;margin-bottom:14px">
     <h2 style="color:var(--navy);margin:0 0 4px;font-size:20px">${h.name}</h2>
     <div style="font-size:12.5px;color:var(--muted);margin-bottom:12px">📍 ${h.address}</div>
+    ${aikdocHospitalMapUrl(h) ? `<a href="${aikdocHospitalMapUrl(h)}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;padding:10px 15px;margin-bottom:14px;border-radius:10px;background:#e8f2ff;color:#1557a4;font-weight:800;text-decoration:none">📍 View Location on Google Maps ↗</a>` : ''}
 
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:12px 0">
       <div style="background:var(--input-bg);padding:10px;border-radius:10px;text-align:center"><small style="display:block;color:var(--muted);font-size:10px;font-weight:800;text-transform:uppercase">Helpline</small><strong>${h.phone || '85271 27888'}</strong></div>
@@ -3313,7 +3392,8 @@ function confirmPaymentAndBook() {
       status: "Confirmed",
       paymentMethod: currentPayMethod,
       paymentStatus: currentPayMethod === "PayAtClinic" ? "Pay at Counter" : "Paid Online (Demo)",
-      createdAt: new Date().toLocaleString()
+      createdAt: new Date().toLocaleString(),
+      aikPatientReports: Array.isArray(window.aikStagedBookingReports) ? window.aikStagedBookingReports.slice() : []
     };
 
     let appts = safeGetJSON("aikdoc_appointments", []);
@@ -3325,6 +3405,37 @@ function confirmPaymentAndBook() {
       alert("Booking could not be saved. Check browser storage and try again.");
       return;
     }
+
+    // A successful guest booking also creates a patient directory record.
+    // This is a booking-created profile, NOT a verified login or password account.
+    try {
+      const key = "aikdoc_registered_patients";
+      const existing = safeGetJSON(key, []);
+      const records = Array.isArray(existing) ? existing : [];
+      const phone = String(newAppointment.phone || "").replace(/\\D/g, "").slice(-10);
+      const email = String(newAppointment.email || "").trim().toLowerCase();
+      const match = records.findIndex(p =>
+        (phone && String(p.phone || "").replace(/\\D/g, "").slice(-10) === phone) ||
+        (email && String(p.email || "").toLowerCase() === email)
+      );
+      if ((phone && phone.length === 10) || email) {
+        if (match < 0) {
+          records.unshift({
+            name: newAppointment.patientName || "Patient",
+            phone, email,
+            authMethod: "Direct Booking (Unverified)",
+            verifiedAt: "Not verified",
+            createdAt: new Date().toISOString(),
+            lastActive: "Booked appointment"
+          });
+          safeSetJSON(key, records);
+        } else {
+          records[match].lastActive = "Booked appointment";
+          safeSetJSON(key, records);
+        }
+        localStorage.setItem("aikdoc_last_sync", String(Date.now()));
+      }
+    } catch (e) { console.warn("Could not update patient directory", e); }
 
     updateAppointmentBadge();
 
@@ -3351,6 +3462,13 @@ function confirmPaymentAndBook() {
 
     const dBtn = document.getElementById("downloadReceiptBtn");
     if (dBtn) dBtn.onclick = () => generateReceiptPrint(newAppointment);
+    const uploadBtn = document.getElementById('aikSuccessUploadReports');
+    if (uploadBtn) uploadBtn.onclick = () => window.aikOpenReports(newAppointment.token);
+    window.aikStagedBookingReports = [];
+    const preInput = document.getElementById('aikPreBookingReportInput');
+    if (preInput) preInput.value = '';
+    const preList = document.getElementById('aikPreBookingReportList');
+    if (preList) preList.textContent = '';
 
   }, 650);
 }
@@ -3567,8 +3685,10 @@ function renderAppointmentsList() {
           <div style="font-size:11px;color:#9f5b5b;margin-top:5px">${a.cancelledBy ? `Cancelled by ${escapePatientHtml(a.cancelledBy)}` : ''}${a.cancelledAt ? `${a.cancelledBy ? ' · ' : ''}${escapePatientHtml(new Date(a.cancelledAt).toLocaleString())}` : ''}</div></div>
         </div>` : ''}
 
+      ${a.status === 'Completed' && a.aikPrescription ? `<div style="margin:10px 0"><button type="button" class="primary" onclick="aikOpenPatientRx('${a.token}')">📄 View / Download Prescription</button></div>` : ''}
       <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px">
         <button class="navbtn" type="button" style="padding:6px 12px;font-size:11.5px" onclick="printReceiptFromToken('${a.token}')">🖨️ Receipt</button>
+        ${a.status !== 'Cancelled' ? `<button class="navbtn" type="button" style="padding:7px 12px;font-size:11.5px;background:#e8f6f5;color:#087c75;border:1px solid #a6d9d5;border-radius:9px" onclick="aikOpenReports('${escapePatientHtml(a.token)}')">📎 ${Array.isArray(a.aikPatientReports) && a.aikPatientReports.length ? (a.status === 'Completed' ? 'View Reports (' : 'Manage Reports (')+a.aikPatientReports.length+')' : (a.status === 'Completed' ? 'View Reports' : 'Upload Reports')}</button>` : ''}
 
         ${a.status === 'Confirmed' || !a.status ? `
           <button type="button" style="color:var(--danger);background:transparent;border:0;font-size:12px;font-weight:750;text-decoration:underline" onclick="cancelAppointment('${a.token}')">Cancel booking</button>
@@ -3635,6 +3755,7 @@ function openReviewModalFromToken(token) {
 function closeReviewModal() {
   document.getElementById("reviewModalBackdrop").classList.remove("show");
   if (reviewSelectedApptToken) {
+    setTimeout(checkDoctorLiveUpdates,100);
     let appts = safeGetJSON("aikdoc_appointments", []);
     const t = appts.find(a => a.token === reviewSelectedApptToken);
     if (t) { 
@@ -3668,6 +3789,7 @@ function submitDoctorReview() {
   }
   document.getElementById("reviewModalBackdrop").classList.remove("show");
   renderAppointmentsList();
+  setTimeout(checkDoctorLiveUpdates,100);
 }
 
 function openPrivacyModal(e) {
@@ -3864,6 +3986,7 @@ if(location.hash && location.hash.startsWith("#page-") && location.hash !== "#pa
       </div>
       <h2 style="color:var(--navy);margin:0 0 4px;font-size:20px">${esc(h.name)}</h2>
       <div style="font-size:12.5px;color:var(--muted);margin-bottom:12px">📍 ${esc(h.address)}</div>
+      ${aikdocHospitalMapUrl(h) ? `<a href="${aikdocHospitalMapUrl(h)}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:8px;padding:10px 15px;margin:0 0 14px;background:#e8f2ff;color:#1557a4;border:1px solid #bcd8fa;border-radius:10px;font-size:13px;font-weight:800;text-decoration:none">📍 View Location on Google Maps ↗</a>` : ''}
 
       <div class="hm-stats">
         <div><small>Helpline</small><strong>${esc(h.phone || '85271 27888')}</strong></div>
@@ -4183,6 +4306,106 @@ if(location.hash && location.hash.startsWith("#page-") && location.hash !== "#pa
   let last=localStorage.getItem(KEY);
   refresh();
 })();
+</script>
+
+<style> .rx-document{font:14px/1.55 Arial,sans-serif;color:#1b3551;background:#fff;border:1px solid #e1e9f1;border-radius:14px;overflow:hidden}.rx-doc-head{background:linear-gradient(115deg,#0c284a,#1663a2);color:white;padding:26px 30px;display:flex;justify-content:space-between;align-items:center;gap:12px}.rx-brand{display:flex;align-items:center;gap:12px}.rx-cross{display:grid;place-items:center;width:43px;height:43px;background:#ffffff20;border:1px solid #ffffff55;border-radius:12px;font-size:26px}.rx-brand-title{font-size:24px;font-weight:800;letter-spacing:-.6px;line-height:1.1}.rx-brand-title span{font-weight:400}.rx-brand-sub{font-size:9px;letter-spacing:1.8px;color:#cce5fa;margin-top:5px}.rx-head-label{font-size:9px;letter-spacing:1px;border:1px solid #ffffff66;padding:7px 10px;border-radius:20px;white-space:nowrap}.rx-doc-content{padding:29px 31px 36px}.rx-document-title{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding-bottom:21px;border-bottom:1px solid #e1eaf3}.rx-eyebrow{font-size:10px;font-weight:800;letter-spacing:1.7px;color:#2375b7}.rx-document-title h2{font-size:25px;color:#143858;margin:5px 0 4px}.rx-document-title p{font-size:12px;color:#6a8097;margin:0}.rx-doc-date{color:#3974a6;font-weight:700;font-size:12px}.rx-details-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 25px;padding:24px 0;border-bottom:1px solid #e1eaf3}.rx-detail span{display:block;color:#8494a6;font-size:10px;font-weight:800;letter-spacing:1px;margin-bottom:5px}.rx-detail strong{font-size:14px;color:#193a59;overflow-wrap:anywhere}.rx-notes-section,.rx-image-section{padding-top:25px}.rx-section-heading{font-weight:800;font-size:15px;color:#153b60;margin-bottom:15px;display:flex;align-items:center;gap:9px}.rx-section-symbol{color:#1e78bb;background:#eaf5ff;padding:4px 9px;border-radius:8px}.rx-note-text{background:#f7fafd;border:1px solid #e3edf6;border-left:4px solid #2680c2;border-radius:8px;padding:20px;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.8;min-height:80px}.rx-empty-note{color:#71849a}.rx-image-frame{border:1px solid #e1e9f1;border-radius:10px;padding:12px;text-align:center}.rx-image-frame img{max-width:100%;height:auto;max-height:850px;object-fit:contain}.rx-doc-footer{border-top:1px solid #e1eaf3;padding:17px 30px;background:#f7fafd;display:flex;flex-direction:column;gap:3px;color:#57728c;font-size:11px}.rx-doc-footer strong{color:#175b93;font-size:12px}.rx-doc-footer small{font-size:10px;color:#8798a9}@media(max-width:550px){.rx-doc-head{padding:18px}.rx-head-label{display:none}.rx-doc-content{padding:20px}.rx-brand-title{font-size:20px}.rx-document-title h2{font-size:20px}.rx-details-grid{gap:14px}.rx-doc-footer{padding:17px 20px}}@media print{@page{size:A4;margin:12mm}body{margin:0!important;padding:0!important;background:white!important}.rx-document{border:0;border-radius:0;overflow:visible;print-color-adjust:exact;-webkit-print-color-adjust:exact}.rx-doc-head,.rx-doc-footer,.rx-note-text,.rx-section-symbol{print-color-adjust:exact;-webkit-print-color-adjust:exact}.rx-image-section,.rx-notes-section{break-inside:avoid}.rx-image-frame img{max-height:210mm}.rx-doc-content{padding:25px 22px}}
+.aik-rx-overlay{position:fixed;inset:0;z-index:99999;background:#08172bcc;display:none;align-items:center;justify-content:center;padding:14px}.aik-rx-overlay.show{display:flex}.aik-rx-paper{width:min(100%,620px);max-height:90vh;overflow:auto;background:#fff;color:#17263c;padding:22px;border-radius:18px}.aik-rx-paper button{padding:10px 14px;border:0;border-radius:8px;background:#1769e0;color:white;cursor:pointer}.aik-rx-paper img{max-width:100%;height:auto}</style>
+<div class="aik-rx-overlay" id="aikPatientRxModal"><div class="aik-rx-paper"><div style="display:flex;justify-content:space-between;gap:8px"><h2 style="margin:0 0 12px">Prescription Available</h2><button type="button" onclick="aikClosePatientRx()">✕</button></div><div id="aikPatientRxBody"></div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:15px"><button type="button" onclick="aikDownloadPatientRx()">⬇ Download Branded PDF</button><button type="button" onclick="aikClosePatientRx()">Close</button></div><p style="font-size:11px;color:#64748b">Testing version only. This browser-local record is not securely shared across devices.</p></div></div>
+<script>
+let aikPatientRxToken=null;
+function aikRxEscape(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function aikGetPatientRx(){const a=JSON.parse(localStorage.getItem('aikdoc_appointments')||'[]').find(x=>String(x.token)===String(aikPatientRxToken));const session=JSON.parse(localStorage.getItem('aikdoc_patient_session')||'null');return a&&a.status==='Completed'&&a.aikPrescription&&session&&patientOwnsAppointment(a,session)?a:null;}
+function aikPrescriptionMarkup(a){const r=a.aikPrescription||{};const esc=aikRxEscape;const field=(label,value)=>'<div class="rx-detail"><span>'+label+'</span><strong>'+esc(value||'Not provided')+'</strong></div>';return `<article class="rx-document"><header class="rx-doc-head"><div class="rx-brand"><span class="rx-cross">✚</span><div><div class="rx-brand-title">AIKDOC <span>Healthcare</span></div><div class="rx-brand-sub">CONSULTATION & PRESCRIPTION RECORD</div></div></div><div class="rx-head-label">DOCTOR-ISSUED DOCUMENT</div></header><div class="rx-doc-content"><div class="rx-document-title"><div><div class="rx-eyebrow">MEDICAL CONSULTATION</div><h2>Prescription & Notes</h2><p>Appointment reference: ${esc(a.token)}</p></div><div class="rx-doc-date">${esc(a.date||'')}</div></div><div class="rx-details-grid">${field('PATIENT NAME',a.patientName)}${field('TREATING DOCTOR',a.doctorName)}${field('APPOINTMENT DATE',a.date)}${field('APPOINTMENT TIME',a.time)}${field('CONSULTATION MODE',a.mode)}${field('REFERENCE ID',a.token)}</div><section class="rx-notes-section"><div class="rx-section-heading"><span class="rx-section-symbol">✎</span> Doctor's Consultation Notes / Prescription</div>${r.notes?'<div class="rx-note-text">'+esc(r.notes)+'</div>':'<p class="rx-empty-note">Handwritten prescription attached below.</p>'}</section>${r.image?'<section class="rx-image-section"><div class="rx-section-heading"><span class="rx-section-symbol">▧</span> Attached Handwritten Prescription</div><div class="rx-image-frame"><img alt="Handwritten prescription uploaded by the doctor" src="'+r.image+'"></div></section>':''}</div><footer class="rx-doc-footer"><strong>AIKDOC Healthcare</strong><span>Document provided by the treating doctor through AIKDOC.</span><small>Consult the issuing doctor for clarification. This record is not independently verified by AIKDOC.</small></footer></article>`;}
+function aikOpenPatientRx(token){aikPatientRxToken=token;const a=aikGetPatientRx();if(!a){alert('Prescription not available for this account.');return;}document.getElementById('aikPatientRxBody').innerHTML=aikPrescriptionMarkup(a);document.getElementById('aikPatientRxModal').classList.add('show');}
+
+function aikClosePatientRx(){document.getElementById('aikPatientRxModal').classList.remove('show');}
+function aikDownloadPatientRx(){const a=aikGetPatientRx();if(!a)return;const body=aikPrescriptionMarkup(a);const w=window.open('','_blank');if(!w){alert('Allow popups to print or save the prescription as PDF.');return;}w.document.open();w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>AIKDOC Prescription '+aikRxEscape(a.token)+'</title><style>body{background:#fff;margin:20px auto;max-width:800px}'+aikPrescriptionPrintCSS+'</style></head><body>'+body+'<script>window.onload=function(){setTimeout(function(){window.print()},600)}<\/script></body></html>');w.document.close();}
+const aikPrescriptionPrintCSS=' .rx-document{font:14px/1.55 Arial,sans-serif;color:#1b3551;background:#fff;border:1px solid #e1e9f1;border-radius:14px;overflow:hidden}.rx-doc-head{background:linear-gradient(115deg,#0c284a,#1663a2);color:white;padding:26px 30px;display:flex;justify-content:space-between;align-items:center;gap:12px}.rx-brand{display:flex;align-items:center;gap:12px}.rx-cross{display:grid;place-items:center;width:43px;height:43px;background:#ffffff20;border:1px solid #ffffff55;border-radius:12px;font-size:26px}.rx-brand-title{font-size:24px;font-weight:800;letter-spacing:-.6px;line-height:1.1}.rx-brand-title span{font-weight:400}.rx-brand-sub{font-size:9px;letter-spacing:1.8px;color:#cce5fa;margin-top:5px}.rx-head-label{font-size:9px;letter-spacing:1px;border:1px solid #ffffff66;padding:7px 10px;border-radius:20px;white-space:nowrap}.rx-doc-content{padding:29px 31px 36px}.rx-document-title{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding-bottom:21px;border-bottom:1px solid #e1eaf3}.rx-eyebrow{font-size:10px;font-weight:800;letter-spacing:1.7px;color:#2375b7}.rx-document-title h2{font-size:25px;color:#143858;margin:5px 0 4px}.rx-document-title p{font-size:12px;color:#6a8097;margin:0}.rx-doc-date{color:#3974a6;font-weight:700;font-size:12px}.rx-details-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 25px;padding:24px 0;border-bottom:1px solid #e1eaf3}.rx-detail span{display:block;color:#8494a6;font-size:10px;font-weight:800;letter-spacing:1px;margin-bottom:5px}.rx-detail strong{font-size:14px;color:#193a59;overflow-wrap:anywhere}.rx-notes-section,.rx-image-section{padding-top:25px}.rx-section-heading{font-weight:800;font-size:15px;color:#153b60;margin-bottom:15px;display:flex;align-items:center;gap:9px}.rx-section-symbol{color:#1e78bb;background:#eaf5ff;padding:4px 9px;border-radius:8px}.rx-note-text{background:#f7fafd;border:1px solid #e3edf6;border-left:4px solid #2680c2;border-radius:8px;padding:20px;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.8;min-height:80px}.rx-empty-note{color:#71849a}.rx-image-frame{border:1px solid #e1e9f1;border-radius:10px;padding:12px;text-align:center}.rx-image-frame img{max-width:100%;height:auto;max-height:850px;object-fit:contain}.rx-doc-footer{border-top:1px solid #e1eaf3;padding:17px 30px;background:#f7fafd;display:flex;flex-direction:column;gap:3px;color:#57728c;font-size:11px}.rx-doc-footer strong{color:#175b93;font-size:12px}.rx-doc-footer small{font-size:10px;color:#8798a9}@media(max-width:550px){.rx-doc-head{padding:18px}.rx-head-label{display:none}.rx-doc-content{padding:20px}.rx-brand-title{font-size:20px}.rx-document-title h2{font-size:20px}.rx-details-grid{gap:14px}.rx-doc-footer{padding:17px 20px}}@media print{@page{size:A4;margin:12mm}body{margin:0!important;padding:0!important;background:white!important}.rx-document{border:0;border-radius:0;overflow:visible;print-color-adjust:exact;-webkit-print-color-adjust:exact}.rx-doc-head,.rx-doc-footer,.rx-note-text,.rx-section-symbol{print-color-adjust:exact;-webkit-print-color-adjust:exact}.rx-image-section,.rx-notes-section{break-inside:avoid}.rx-image-frame img{max-height:210mm}.rx-doc-content{padding:25px 22px}}';
+
+function aikCheckRxNotice(appts,session){if(document.getElementById('aikPatientRxModal').classList.contains('show')||document.getElementById('reviewModalBackdrop').classList.contains('show'))return;const a=appts.find(x=>patientOwnsAppointment(x,session)&&x.status==='Completed'&&x.aikPrescription&&!x.aikPrescriptionNoticeSeen);if(!a)return;a.aikPrescriptionNoticeSeen=true;try{localStorage.setItem('aikdoc_appointments',JSON.stringify(appts));}catch(e){}aikOpenPatientRx(a.token);}
+</script>
+<style>
+#aikReportsBackdrop{display:none;position:fixed;inset:0;z-index:2147483000;background:rgba(8,27,48,.72);align-items:center;justify-content:center;padding:15px}
+#aikReportsBackdrop.show{display:flex}
+#aikReportsDialog{width:min(650px,100%);max-height:90vh;overflow:auto;background:#fff;color:#20384f;border-radius:18px;padding:24px;box-shadow:0 20px 70px #0005;font:14px system-ui,sans-serif}
+#aikReportsDialog h2{font-size:21px;margin:0 0 6px;color:#123b60}
+#aikReportsDialog button{cursor:pointer;border:1px solid #cbd8e5;border-radius:9px;padding:9px 13px;background:#f1f6fb;color:#1d4666;font-weight:700}
+#aikReportsDialog .aik-report-row{display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding:12px 0;border-bottom:1px solid #e4edf4}
+#aikReportsDialog .aik-report-row span{flex:1;min-width:130px;overflow-wrap:anywhere}
+#aikReportsDialog .aik-report-preview{margin-top:14px;border:1px solid #d6e2eb;border-radius:12px;padding:12px;background:#f8fafc}
+#aikReportsDialog .aik-report-preview img{max-width:100%;max-height:52vh;object-fit:contain;display:block;margin:auto}
+#aikReportsDialog .aik-report-preview iframe{width:100%;height:52vh;border:0}
+</style><div id="aikReportsBackdrop" role="dialog" aria-modal="true" aria-label="Appointment medical reports"><div id="aikReportsDialog">
+<div style="display:flex;align-items:center;justify-content:space-between;gap:12px"><h2>📎 Appointment Reports</h2><button type="button" onclick="aikCloseReports()">✕ Close</button></div>
+<p id="aikReportsInfo" style="font-size:12px;color:#60758a;margin:6px 0 16px">Only upload reports relevant to this appointment. PDF, JPG and PNG; maximum 700 KB per file for this local demo.</p>
+<label style="display:block;padding:13px;background:#f1f8fb;border-radius:12px;border:1px dashed #9db8ce">Add report: <input id="aikReportInput" type="file" accept="application/pdf,image/jpeg,image/png" multiple onchange="aikSaveReports(this.files)" style="max-width:100%;margin-top:8px"></label>
+<div id="aikReportsList" style="margin-top:16px"></div><div id="aikReportsPreview"></div></div></div><script>
+(function(){
+let currentToken=null;
+const key='aikdoc_appointments';
+const safe=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const all=()=>{try{const a=JSON.parse(localStorage.getItem(key)||'[]');return Array.isArray(a)?a:[]}catch(e){return []}};
+const lookup=()=>all().find(a=>String(a.token)===String(currentToken));
+const backdrop=document.getElementById('aikReportsBackdrop');
+window.aikCloseReports=()=>{backdrop.classList.remove('show');document.getElementById('aikReportsPreview').innerHTML='';currentToken=null};
+function render(){
+ const a=lookup(),list=document.getElementById('aikReportsList');if(!a){list.textContent='Appointment not found.';return}
+ const reports=Array.isArray(a.aikPatientReports)?a.aikPatientReports:[];
+ const readOnly=a.status==='Completed';
+ const inputLabel=document.getElementById('aikReportInput').closest('label');
+ inputLabel.style.display=readOnly?'none':'block';
+ document.getElementById('aikReportsInfo').textContent=readOnly?'This appointment is completed. Uploaded reports are available to view only.':'Only upload reports relevant to this appointment. PDF, JPG and PNG; maximum 700 KB per file for this local demo.';
+ list.innerHTML=reports.length?reports.map((r,i)=>'<div class="aik-report-row"><span>📄 '+safe(r.name)+' <small style="color:#64748b">('+Math.ceil((r.bytes||0)/1024)+' KB)</small></span><button type="button" onclick="aikPreviewReport('+i+')">View</button>'+ (!readOnly && window.aikRemoveReport?'<button type="button" onclick="aikRemoveReport('+i+')">Remove</button>':'')+'</div>').join(''):'<p style="color:#60758a;padding:14px">No reports uploaded for this appointment yet.</p>';
+ document.getElementById('aikReportsPreview').innerHTML='';
+}
+window.aikPreviewReport=function(i){const a=lookup(),r=a?.aikPatientReports?.[i];if(!r)return;const el=document.getElementById('aikReportsPreview');el.innerHTML='';if(!/^data:(application\/pdf|image\/(png|jpeg));base64,[A-Za-z0-9+/=]+$/.test(r.data||'')){el.textContent='This file cannot be previewed.';return}const holder=document.createElement('div');holder.className='aik-report-preview';const heading=document.createElement('strong');heading.textContent=r.name;holder.appendChild(heading);const viewer=document.createElement(r.type==='application/pdf'?'iframe':'img');viewer.src=r.data;viewer.title=r.name;viewer.alt=r.name;holder.appendChild(viewer);el.appendChild(holder)};
+window.aikRenderReports=render;
+window.aikSetReportToken=token=>{currentToken=token;backdrop.classList.add('show');render()};
+backdrop.addEventListener('click',e=>{if(e.target===backdrop)aikCloseReports()});
+})();
+</script><script>
+window.aikOpenReports=function(token){const session=JSON.parse(localStorage.getItem('aikdoc_patient_session')||'null');const a=JSON.parse(localStorage.getItem('aikdoc_appointments')||'[]').find(x=>String(x.token)===String(token));if(!a||!session||!patientOwnsAppointment(a,session)||a.status==='Cancelled'){alert('You cannot access reports for this appointment.');return}aikSetReportToken(token)};
+window.aikSaveReports=async function(files){if(!files?.length)return;const token=document.getElementById('aikReportsBackdrop').classList.contains('show')?null:null;const session=JSON.parse(localStorage.getItem('aikdoc_patient_session')||'null');const input=document.getElementById('aikReportInput');
+// Find the appointment currently open by the report dialog's selected token.
+const appts=JSON.parse(localStorage.getItem('aikdoc_appointments')||'[]');const current=appts.find(a=>a.token===window.aikCurrentReportToken&&patientOwnsAppointment(a,session)&&a.status!=='Cancelled'&&a.status!=='Completed');
+if(!current){alert('Appointment session expired. Reopen the report dialog.');input.value='';return}
+const permitted=['application/pdf','image/jpeg','image/png'];const reports=Array.isArray(current.aikPatientReports)?current.aikPatientReports.slice():[];
+for(const file of Array.from(files)){if(!permitted.includes(file.type)||file.size>700*1024){alert(file.name+': choose a PDF, JPG or PNG under 700 KB.');continue}if(reports.length>=5){alert('Maximum 5 reports per appointment.');break}const data=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(file)});reports.push({name:file.name,type:file.type,bytes:file.size,data,uploadedAt:new Date().toISOString()})}
+const latest=JSON.parse(localStorage.getItem('aikdoc_appointments')||'[]');const live=latest.find(a=>String(a.token)===String(current.token));if(!live||live.status==='Completed'||live.status==='Cancelled'){alert('This appointment is no longer open for report uploads.');input.value='';aikRenderReports();return}live.aikPatientReports=reports;try{localStorage.setItem('aikdoc_appointments',JSON.stringify(latest));localStorage.setItem('aikdoc_last_sync',String(Date.now()));aikRenderReports();renderAppointmentsList()}catch(e){alert('Browser storage is full. Try fewer or smaller files.')}input.value='';};
+window.aikRemoveReport=function(index){const session=JSON.parse(localStorage.getItem('aikdoc_patient_session')||'null');const appts=JSON.parse(localStorage.getItem('aikdoc_appointments')||'[]');const a=appts.find(x=>x.token===window.aikCurrentReportToken&&patientOwnsAppointment(x,session)&&x.status!=='Cancelled');if(!a||!Array.isArray(a.aikPatientReports))return;if(!confirm('Remove this report?'))return;a.aikPatientReports.splice(index,1);localStorage.setItem('aikdoc_appointments',JSON.stringify(appts));localStorage.setItem('aikdoc_last_sync',String(Date.now()));aikRenderReports();renderAppointmentsList()};
+const oldOpen=window.aikOpenReports;window.aikOpenReports=function(token){window.aikCurrentReportToken=token;oldOpen(token)};
+</script>
+<script>
+window.aikStagedBookingReports = [];
+window.aikStageBookingReports = async function(files){
+  const input=document.getElementById('aikPreBookingReportInput');
+  const allowed=['application/pdf','image/jpeg','image/png'];
+  const staged=window.aikStagedBookingReports||[];
+  for(const file of Array.from(files||[])){
+    if(!allowed.includes(file.type)||file.size>700*1024){alert(file.name+': use a PDF, JPG or PNG under 700 KB.');continue;}
+    if(staged.length>=5){alert('Maximum 5 reports per appointment.');break;}
+    try{
+      const data=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(file)});
+      staged.push({name:file.name,type:file.type,bytes:file.size,data,uploadedAt:new Date().toISOString()});
+    }catch(e){alert('Could not read '+file.name)}
+  }
+  window.aikStagedBookingReports=staged;
+  window.aikRenderStagedReports();
+  if(input)input.value='';
+};
+window.aikRenderStagedReports=function(){
+  const el=document.getElementById('aikPreBookingReportList');if(!el)return;
+  el.replaceChildren();
+  const reports=window.aikStagedBookingReports||[];
+  if(!reports.length){el.textContent='No reports selected.';return;}
+  reports.forEach((r,i)=>{
+    const row=document.createElement('div');row.style.cssText='display:flex;gap:8px;align-items:center;justify-content:space-between;padding:6px 0;';
+    const label=document.createElement('span');label.textContent='📄 '+r.name+' ('+Math.ceil(r.bytes/1024)+' KB)';label.style.overflowWrap='anywhere';
+    const btn=document.createElement('button');btn.type='button';btn.textContent='Remove';btn.style.cssText='border:1px solid #bdd2e5;border-radius:7px;background:white;padding:5px 9px;cursor:pointer';
+    btn.onclick=()=>{window.aikStagedBookingReports.splice(i,1);window.aikRenderStagedReports()};
+    row.append(label,btn);el.append(row);
+  });
+};
 </script>
 </body>
 </html>
