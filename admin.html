@@ -144,6 +144,36 @@ tr:hover td{background:#f7faff}
 @media(max-width:980px){.main-content{padding:18px 14px}.panel-card{padding:14px}.content-header{align-items:flex-start}.action-group{max-width:245px}}
 @media(max-width:600px){.metrics-grid{grid-template-columns:1fr 1fr}.content-header h1{font-size:20px}.content-header p{line-height:1.5}.btn-primary{white-space:normal}}
 
+
+/* All Appointments: responsive, readable card layout without horizontal scrolling */
+#tab-bookings .table-responsive{overflow-x:visible!important;width:100%;}
+#allBookingsTable,#allBookingsTable tbody{display:block;width:100%;}
+#allBookingsTable thead{display:none;}
+#allBookingsTable tbody{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,380px),1fr));gap:16px;padding:16px;}
+#allBookingsTable tbody tr{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 18px;align-content:start;border:1px solid #dbe6f0;border-radius:15px;padding:20px;background:#fff;box-shadow:0 4px 14px rgba(12,48,84,.055);min-width:0;}
+#allBookingsTable tbody tr:hover{box-shadow:0 7px 22px rgba(12,48,84,.11);border-color:#aacfe9;}
+#allBookingsTable tbody td{display:block!important;min-width:0!important;width:auto!important;max-width:100%!important;padding:0!important;border:0!important;text-align:left!important;overflow-wrap:anywhere;white-space:normal!important;line-height:1.5;}
+#allBookingsTable tbody td:before{display:block;font-size:10px;letter-spacing:.07em;text-transform:uppercase;font-weight:800;color:#64748b;margin-bottom:4px;}
+#allBookingsTable tbody td:nth-child(1){grid-column:1/-1;border-bottom:1px solid #e6eef5!important;padding-bottom:12px!important;}
+#allBookingsTable tbody td:nth-child(1):before{content:'Booking token';}
+#allBookingsTable tbody td:nth-child(2):before{content:'Patient';}
+#allBookingsTable tbody td:nth-child(3):before{content:'Doctor & speciality';}
+#allBookingsTable tbody td:nth-child(4):before{content:'Hospital / venue';}
+#allBookingsTable tbody td:nth-child(5):before{content:'Date & time';}
+#allBookingsTable tbody td:nth-child(6):before{content:'Fee & payment';}
+#allBookingsTable tbody td:nth-child(7):before{content:'Status';}
+#allBookingsTable tbody td:nth-child(8):before{content:'Cancellation details';}
+#allBookingsTable tbody td:nth-child(9){grid-column:1/-1;border-top:1px solid #e6eef5!important;padding-top:13px!important;}
+#allBookingsTable tbody td:nth-child(9):before{content:'Documents & actions';}
+#allBookingsTable tbody td:nth-child(9)>div{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px!important;min-width:0!important;width:100%;align-items:stretch!important;justify-content:stretch!important;}
+#allBookingsTable tbody td:nth-child(9) .btn-action{width:100%;min-width:0;min-height:40px;padding:10px 6px;white-space:normal;overflow-wrap:anywhere;line-height:1.25;text-align:center;display:flex;align-items:center;justify-content:center;border-radius:9px;font-weight:700;}
+#allBookingsTable tbody td:nth-child(9) span{display:flex;align-items:center;justify-content:center;text-align:center;white-space:normal;min-height:40px;}
+#tab-bookings .panel-toolbar{flex-wrap:wrap;gap:12px;}
+#tab-bookings .panel-toolbar>div{min-width:0;flex-wrap:wrap;}
+#tab-bookings .panel-toolbar select{max-width:100%;}
+@media(max-width:680px){#allBookingsTable tbody{grid-template-columns:1fr;padding:12px;}#allBookingsTable tbody tr{grid-template-columns:1fr;padding:16px;}#allBookingsTable tbody td:nth-child(1),#allBookingsTable tbody td:nth-child(9){grid-column:1;}#allBookingsTable tbody td:nth-child(9)>div{grid-template-columns:repeat(2,minmax(0,1fr));}}
+@media(max-width:380px){#allBookingsTable tbody td:nth-child(9)>div{grid-template-columns:1fr;}}
+
 </style>
 
 <style id="aikdoc-admin-responsive-v2">
@@ -403,6 +433,9 @@ html,body{max-width:100%;overflow-x:clip}
             </thead>
             <tbody></tbody>
           </table>
+        </div>
+        <div style="display:flex;justify-content:center;padding:20px 10px 5px">
+          <button type="button" id="overviewViewAllAppointments" onclick="document.querySelector('.nav-item[data-tab=&quot;tab-bookings&quot;]').click();window.scrollTo({top:0,behavior:'smooth'});" style="display:inline-flex;align-items:center;justify-content:center;gap:9px;border:0;border-radius:11px;background:var(--blue);color:white;font-weight:800;font-size:14px;padding:12px 28px;cursor:pointer;box-shadow:0 5px 14px rgba(23,105,224,.18)">View All Appointments <span aria-hidden="true">→</span></button>
         </div>
       </div>
     </section>
@@ -1202,71 +1235,49 @@ function saveAppointments(appts) {
 
 // Registered Patients Auto-Discovery: WhatsApp and email/password registrations
 function getRegisteredPatients() {
-  let patients = JSON.parse(localStorage.getItem("aikdoc_registered_patients") || "[]");
-  if (!Array.isArray(patients)) patients = [];
-  const deletedPhones = JSON.parse(localStorage.getItem("aikdoc_deleted_patient_phones") || "[]");
-  const deletedEmails = JSON.parse(localStorage.getItem("aikdoc_deleted_patient_emails") || "[]").map(e => String(e).toLowerCase());
-
-  patients = patients.filter(p => {
-    const phone = String(p.phone || "").trim();
-    const email = String(p.email || "").trim().toLowerCase();
-    return !(phone && deletedPhones.includes(phone)) && !(email && deletedEmails.includes(email));
-  });
-
-  // Email/password accounts are saved separately by the patient portal; merge them into admin's patient registry.
-  const emailAccounts = JSON.parse(localStorage.getItem("aikdoc_patient_email_accounts") || "[]");
-  (Array.isArray(emailAccounts) ? emailAccounts : []).forEach(account => {
-    const email = String(account.email || "").trim().toLowerCase();
-    if (!email || deletedEmails.includes(email)) return;
-    const existing = patients.find(p => String(p.email || "").trim().toLowerCase() === email);
-    const record = {
-      name: account.name || (existing && existing.name) || email.split("@")[0],
-      email,
-      authMethod: "Email & Password",
-      verifiedAt: (existing && existing.verifiedAt) || account.createdAt || "Recent",
-      lastActive: (existing && existing.lastActive) || "Registered"
-    };
-    if (existing) Object.assign(existing, record);
-    else patients.unshift(record);
-  });
-
-  const appts = getAppointments();
-  appts.forEach(a => {
-    const pPhone = String(a.phone || '').trim();
-    if (pPhone && !deletedPhones.includes(pPhone) && !patients.some(p => String(p.phone || '').trim() === pPhone)) {
-      patients.push({
-        name: a.patientName || "Patient",
-        phone: pPhone,
-        email: String(a.email || a.patientEmail || "").trim().toLowerCase(),
-        verifiedAt: a.createdAt || a.date || "Recent",
-        lastActive: a.date || "Recent",
-        authMethod: "Booked Appointment"
-      });
-    }
-  });
-
-  const activeSession = JSON.parse(localStorage.getItem("aikdoc_patient_session") || "null");
-  if (activeSession) {
-    const sPhone = String(activeSession.phone || activeSession.mobile || "").trim();
-    const sEmail = String(activeSession.email || "").trim().toLowerCase();
-    const exists = patients.some(p =>
-      (sPhone && String(p.phone || '').trim() === sPhone) ||
-      (sEmail && String(p.email || '').trim().toLowerCase() === sEmail)
-    );
-    if (!exists && ((sPhone && !deletedPhones.includes(sPhone)) || (sEmail && !deletedEmails.includes(sEmail)))) {
-      patients.unshift({
-        name: activeSession.name || "Patient",
-        phone: sPhone,
-        email: sEmail,
-        verifiedAt: activeSession.loginTime || "Today",
-        lastActive: "Active Session Now",
-        authMethod: activeSession.authMethod || (sEmail ? "Email & Password" : "WhatsApp Verification")
+  const read = key => { try { const x=JSON.parse(localStorage.getItem(key)||'[]');return Array.isArray(x)?x:[]; }catch(e){return [];} };
+  const records = new Map();
+  for (const key of ['aikdoc_registered_patients','aikdoc_patient_email_accounts','aikdoc_email_accounts']) {
+    for (const a of read(key)) {
+      if (!a || typeof a!=='object') continue;
+      const email=String(a.email||'').trim().toLowerCase();
+      const phone=String(a.phone||a.mobile||'').replace(/\D/g,'').slice(-10);
+      if (!email&&!phone) continue;
+      const id=email?'email:'+email:'phone:'+phone;
+      const old=records.get(id)||{};
+      records.set(id,{
+        ...old,
+        name: a.name||old.name||'Patient',
+        email: email||old.email||'',
+        phone: phone||old.phone||'',
+        authMethod: a.authMethod||old.authMethod||(email?'Email & Password':'Phone Registration'),
+        verifiedAt: a.verifiedAt||a.createdAt||old.verifiedAt||'Previously registered',
+        lastActive: a.lastActive||old.lastActive||'Registered'
       });
     }
   }
-
-  localStorage.setItem("aikdoc_registered_patients", JSON.stringify(patients));
-  return patients;
+  // Include previous guest bookings as booking-created (unverified) patient profiles.
+  // Do not create fake sign-in credentials or overwrite verified accounts.
+  const appointments=read('aikdoc_appointments');
+  for (const booking of appointments) {
+    if (!booking || typeof booking!=='object') continue;
+    const phone=String(booking.phone||booking.patientPhone||'').replace(/\D/g,'').slice(-10);
+    const email=String(booking.email||booking.patientEmail||'').trim().toLowerCase();
+    if (!phone && !email) continue;
+    const existing=[...records.values()].find(p =>
+      (phone && p.phone===phone) || (email && p.email===email));
+    if (existing) continue;
+    const id=email?'email:'+email:'phone:'+phone;
+    if (records.has(id)) continue;
+    records.set(id,{
+      name:booking.patientName||booking.name||'Patient',
+      phone,email,
+      authMethod:'Direct Booking (Unverified)',
+      verifiedAt:'Not verified',
+      lastActive:'Booked appointment'
+    });
+  }
+  return Array.from(records.values());
 }
 
 // PERMANENTLY DELETE PATIENT ACCOUNT
@@ -1593,7 +1604,7 @@ function renderPatientsTable(patients, appts) {
           <div style="font-weight:800;color:var(--navy);font-size:13.5px">👤 ${p.name || 'Patient'}</div>
         </td>
         <td><strong style="color:var(--blue)">${contact}</strong></td>
-        <td><span class="tag-pill tag-completed">✓ ${p.authMethod || 'WhatsApp Verified'}</span></td>
+        <td><span class="tag-pill tag-completed">✓ ${p.authMethod || 'Registration'}</span></td>
         <td style="font-size:12px;color:var(--muted)">${p.verifiedAt || 'Recent'}</td>
         <td><span class="nav-pill-count" style="background:#eaf2ff;color:var(--blue);font-size:12px;padding:3px 9px">${pApptsCount} Booking${pApptsCount === 1 ? '' : 's'}</span></td>
         <td style="text-align:right">
@@ -1677,6 +1688,8 @@ function renderPatientModalList() {
       </div>
       ${a.status === "Cancelled" ? `<div style="padding:10px 12px;border:1px solid #fecaca;background:#fff7f7;border-radius:9px;margin:8px 0;font-size:12px;line-height:1.6;overflow-wrap:anywhere"><strong>Cancellation reason:</strong> ${a.cancellationReason || "Not recorded"}<br><strong>Cancelled by:</strong> ${a.cancelledBy || "Unknown"}<br><strong>Cancelled at:</strong> ${a.cancelledAt ? new Date(a.cancelledAt).toLocaleString() : "Not recorded"}</div>` : ""}
       <div style="display:flex;justify-content:flex-end">
+        <button class="btn-action view" type="button" onclick="aikAdminPrintReceiptByToken(decodeURIComponent('${encodeURIComponent(a.token)}'))">🧾 View Receipt</button>
+        ${a.aikPrescription ? `<button class="btn-action view" type="button" onclick="aikAdminViewRxByToken(decodeURIComponent('${encodeURIComponent(a.token)}'))">💊 View Prescription</button>` : `<span style="font-size:12px;color:var(--muted);align-self:center">Prescription not uploaded</span>`}
         <button class="btn-action delete" type="button" onclick="deleteBookingFromPatientModal('${a.token}')">Delete Appointment</button>
       </div>
     </div>
@@ -1759,7 +1772,11 @@ function renderBookingsTable(appts, docs) {
       <td><span class="tag-pill ${a.status === 'Completed' ? 'tag-completed' : a.status === 'Cancelled' ? 'tag-cancelled' : 'tag-confirmed'}">${a.status || 'Confirmed'} ${a.cancelledBy ? `(${a.cancelledBy})` : ''}</span></td>
       <td>${a.status === "Cancelled" ? `<div style="min-width:180px;max-width:280px;white-space:normal;line-height:1.5"><strong>Reason:</strong> ${a.cancellationReason || "Not recorded"}<br><strong>Cancelled by:</strong> ${a.cancelledBy || "Unknown"}<br><strong>At:</strong> ${a.cancelledAt ? new Date(a.cancelledAt).toLocaleString() : "Not recorded"}</div>` : "—"}</td>
       <td style="text-align:right">
-        <button class="btn-action delete" type="button" onclick="deleteBooking('${a.token}')">Delete</button>
+        <div style="display:flex;gap:6px;justify-content:flex-end;align-items:center;flex-wrap:wrap;min-width:0">
+          <button class="btn-action view" type="button" onclick="aikAdminPrintReceiptByToken(decodeURIComponent('${encodeURIComponent(a.token)}'))">🧾 Receipt</button>
+          ${a.aikPrescription ? `<button class="btn-action view" type="button" onclick="aikAdminViewRxByToken(decodeURIComponent('${encodeURIComponent(a.token)}'))">💊 Prescription</button>` : `<span style="font-size:11px;color:var(--muted)" title="No prescription uploaded">No prescription</span>`}
+          <button class="btn-action delete" type="button" onclick="deleteBooking('${a.token}')">Delete</button>
+        </div>
       </td>
     </tr>
   `).join("");
@@ -2356,12 +2373,39 @@ function showToast(msg){
   setTimeout(() => t.classList.remove("show"), 4000);
 }
 
-// Cross-tab real-time listener
-window.addEventListener("storage", (e) => {
-  if (["aikdoc_appointments", "aikdoc_master_doctors", "aikdoc_master_hospitals", "aikdoc_master_specialties", "aikdoc_registered_patients", "aikdoc_patient_session", "aikdoc_deleted_patient_phones", "aikdoc_last_sync"].includes(e.key)) {
+// Refresh all admin analytics, not just the registered-patients table.
+// This works for tabs on the SAME origin/browser profile only.
+const AIKDOC_ADMIN_LIVE_KEYS = [
+  'aikdoc_registered_patients','aikdoc_patient_email_accounts','aikdoc_email_accounts',
+  'aikdoc_patient_session','aikdoc_active_patient_phone',
+  'aikdoc_deleted_patient_phones','aikdoc_deleted_patient_emails',
+  'aikdoc_appointments','aikdoc_last_sync',
+  'aikdoc_master_doctors','aikdoc_master_hospitals','aikdoc_master_specialties'
+];
+let aikdocAdminLiveSnapshot = '';
+let aikdocAdminRefreshing = false;
+function aikdocAdminLiveFingerprint(){
+  return AIKDOC_ADMIN_LIVE_KEYS.map(k=>localStorage.getItem(k)||'').join('\u001f');
+}
+function aikdocAdminRefreshLive(force=false){
+  if(aikdocAdminRefreshing)return;
+  const snapshot=aikdocAdminLiveFingerprint();
+  if(!force && snapshot===aikdocAdminLiveSnapshot)return;
+  aikdocAdminRefreshing=true;
+  try {
     renderAll();
-  }
+    aikdocAdminLiveSnapshot=aikdocAdminLiveFingerprint();
+  } catch(err) { console.error('AIKDOC admin live refresh failed',err); }
+  finally {aikdocAdminRefreshing=false;}
+}
+window.addEventListener('storage',e=>{
+  if(!e.key || AIKDOC_ADMIN_LIVE_KEYS.includes(e.key))aikdocAdminRefreshLive(true);
 });
+window.addEventListener('focus',()=>aikdocAdminRefreshLive());
+document.addEventListener('visibilitychange',()=>{
+  if(!document.hidden)aikdocAdminRefreshLive();
+});
+window.setInterval(()=>{if(!document.hidden)aikdocAdminRefreshLive();},1500);
 
 // Boot authentication check
 checkAdminAuth();
@@ -2921,5 +2965,70 @@ checkAdminAuth();
   }
 })();
 </script>
+
+
+
+
+<style>
+#aikAdminDocumentOverlay{position:fixed;inset:0;z-index:100000;background:#071a32b8;display:none;align-items:center;justify-content:center;padding:16px}
+#aikAdminDocumentOverlay.show{display:flex}
+#aikAdminDocumentCard{background:white;width:min(760px,100%);max-height:94vh;overflow:auto;border-radius:16px;color:#173451;box-shadow:0 15px 55px #071a3255}
+#aikAdminDocumentActions{display:flex;justify-content:flex-end;gap:10px;padding:13px 18px;border-bottom:1px solid #dae5ef}
+#aikAdminDocumentActions button{border:1px solid #c8d7e8;background:#f2f7ff;border-radius:8px;padding:10px 14px;cursor:pointer;font-weight:700}
+#aikAdminDocumentBody{padding:26px}
+#aikAdminDocumentBody .aik-document-heading{border-bottom:2px solid #1971c2;padding-bottom:16px;margin-bottom:22px}
+#aikAdminDocumentBody .aik-document-heading h2{color:#124c86;margin:0 0 4px}
+#aikAdminDocumentBody .aik-document-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+#aikAdminDocumentBody .aik-document-field{padding:10px 12px;background:#f5f9fe;border-radius:9px;overflow-wrap:anywhere}
+#aikAdminDocumentBody .aik-document-field small{display:block;color:#66788c;margin-bottom:5px}
+#aikAdminDocumentBody .aik-document-notes{white-space:pre-wrap;line-height:1.7;overflow-wrap:anywhere}
+#aikAdminDocumentBody img{max-width:100%;height:auto;display:block;margin:14px auto}
+@media(max-width:520px){#aikAdminDocumentBody .aik-document-grid{grid-template-columns:1fr}}
+</style>
+<div id="aikAdminDocumentOverlay" role="dialog" aria-modal="true" aria-label="Patient appointment document">
+ <div id="aikAdminDocumentCard">
+  <div id="aikAdminDocumentActions"><button type="button" onclick="aikAdminPrintDocument()">🖨 Print / Save PDF</button><button type="button" onclick="aikAdminCloseDocument()">Close ✕</button></div>
+  <div id="aikAdminDocumentBody"></div>
+ </div>
+</div>
+<script>
+(function(){
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const getAppt=token=>{try{const v=JSON.parse(localStorage.getItem('aikdoc_appointments')||'[]');return Array.isArray(v)?v.find(a=>String(a.token)===String(token)):null}catch(e){return null}};
+const field=(label,value)=>'<div class="aik-document-field"><small>'+esc(label)+'</small><strong>'+esc(value||'—')+'</strong></div>';
+const header=title=>'<div class="aik-document-heading"><h2>✚ AIKDOC Healthcare</h2><div>'+esc(title)+'</div></div>';
+function show(html){document.getElementById('aikAdminDocumentBody').innerHTML=html;document.getElementById('aikAdminDocumentOverlay').classList.add('show')}
+window.aikAdminCloseDocument=()=>document.getElementById('aikAdminDocumentOverlay').classList.remove('show');
+window.aikAdminPrintReceiptByToken=function(token){
+ const a=getAppt(token);if(!a){alert('Appointment not found.');return}
+ show(header('Appointment booking receipt')+
+ '<div class="aik-document-grid">'+
+ field('Booking token',a.token)+field('Patient',a.patientName)+field('Mobile',a.phone)+field('Doctor',a.doctorName)+
+ field('Speciality',a.speciality)+field('Hospital / Clinic',a.hospital)+field('Appointment date',a.date)+field('Time',a.time)+
+ field('Consultation mode',a.mode)+field('Consultation fee','₹'+(a.fee??'—'))+
+ field('Payment status',a.paymentStatus)+field('Appointment status',a.status||'Confirmed')+
+ '</div><p style="font-size:12px;color:#6b7d90;margin-top:22px">Booking record generated from the saved AIKDOC appointment. Payment status is shown as recorded; this is not independent proof of payment.</p>');
+};
+window.aikAdminViewRxByToken=function(token){
+ const a=getAppt(token);if(!a){alert('Appointment not found.');return}
+ const r=a.aikPrescription;if(!r){alert('No prescription has been uploaded for this appointment.');return}
+ const image=String(r.image||'');
+ const safeImage=/^data:image\/(?:png|jpeg|jpg|webp);base64,[a-z0-9+/=]+$/i.test(image)?'<h3>Attached handwritten prescription</h3><img alt="Handwritten prescription" src="'+image+'">':'';
+ show(header('Doctor-issued consultation & prescription record')+
+ '<div class="aik-document-grid">'+field('Patient',a.patientName)+field('Doctor',a.doctorName)+field('Appointment',String(a.date||'')+' '+String(a.time||''))+field('Booking token',a.token)+field('Hospital / Clinic',a.hospital)+field('Consultation mode',a.mode)+'</div>'+
+ '<h3 style="margin-top:22px">Prescription / consultation notes</h3><div class="aik-document-notes">'+esc(r.notes||'No typed notes attached.')+'</div>'+safeImage+
+ '<p style="font-size:12px;color:#6b7d90;margin-top:22px">Read-only copy of the prescription stored with this appointment.</p>');
+};
+window.aikAdminPrintDocument=function(){
+ const html=document.getElementById('aikAdminDocumentBody').innerHTML;
+ const w=window.open('','_blank');if(!w){alert('Allow pop-ups to print this document.');return}
+ w.document.open();
+ w.document.write('<!doctype html><html><head><title>AIKDOC Healthcare Document</title><meta charset="utf-8"><style>body{font:14px Arial,sans-serif;color:#173451;margin:32px}.aik-document-heading{border-bottom:2px solid #1971c2;padding-bottom:15px;margin-bottom:22px}.aik-document-heading h2{color:#124c86}.aik-document-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.aik-document-field{background:#f5f9fe;padding:10px;border-radius:8px;overflow-wrap:anywhere}.aik-document-field small{display:block;color:#64748b;margin-bottom:5px}.aik-document-notes{white-space:pre-wrap;line-height:1.7}img{max-width:100%;height:auto;max-height:85vh;object-fit:contain}@media print{@page{size:A4;margin:14mm}body{margin:0}}</style></head><body>'+html+'</body></html>');
+ w.document.close();w.focus();setTimeout(()=>w.print(),350);
+};
+document.getElementById('aikAdminDocumentOverlay').addEventListener('click',e=>{if(e.target.id==='aikAdminDocumentOverlay')aikAdminCloseDocument()});
+})();
+</script>
+
 </body>
 </html>
