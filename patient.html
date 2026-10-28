@@ -783,6 +783,13 @@ input,select,textarea,button{max-width:100%}
 .nearby-map-link{display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:6px 10px;border:1px solid var(--blue);border-radius:8px;color:var(--blue);background:var(--surface);font-size:11px;font-weight:800;text-decoration:none;transition:background .15s}
 .nearby-map-link:hover{background:rgba(23,105,224,.1)}
 </style>
+<style id="aikdoc-mobile-help-circle-v2">
+@media screen and (max-width: 767px) {
+ html body #aikhelpLaunch.aikhelp-launch { box-sizing:border-box!important; width:54px!important;height:54px!important;min-width:54px!important;max-width:54px!important;min-height:54px!important;max-height:54px!important; padding:0!important; border-radius:50%!important; display:flex!important; flex-direction:row!important; align-items:center!important;justify-content:center!important; gap:0!important; position:fixed!important;left:14px!important;right:auto!important;bottom:calc(14px + env(safe-area-inset-bottom, 0px))!important;line-height:1!important;font-size:24px!important;white-space:nowrap!important; }
+ html body #aikhelpLaunch .aikhelp-label {display:none!important;visibility:hidden!important;width:0!important;}
+ html body #aikhelpLaunch .aikhelp-icon {display:block!important;font-size:24px!important;line-height:1!important;margin:0!important;}
+}
+</style>
 </head>
 <body>
 
@@ -3571,13 +3578,6 @@ function generateReceiptPrint(appt){
           </div>
         </div>
       </div>
-    <style id="aikdoc-mobile-help-circle">
-@media(max-width:600px){
- #aikhelpLaunch.aikhelp-launch{width:54px!important;height:54px!important;min-width:54px!important;max-width:54px!important;min-height:54px!important;padding:0!important;display:flex!important;align-items:center!important;justify-content:center!important;border-radius:50%!important;left:14px!important;bottom:max(14px,env(safe-area-inset-bottom))!important;font-size:24px!important;line-height:1!important;white-space:nowrap!important;}
- #aikhelpLaunch .aikhelp-label{display:none!important}
- #aikhelpLaunch .aikhelp-icon{display:inline-block!important;line-height:1!important}
-}
-</style>
 </body>
     </html>
   `;
@@ -3842,11 +3842,11 @@ window.addEventListener("storage", (e) => {
 });
 
 // Boot Initial Page
-if (localStorage.getItem("aikdoc-theme") === "dark") {
-  document.body.classList.add("theme-dark");
-  const tBtn = document.getElementById("themeToggle");
-  if (tBtn) tBtn.textContent = "☀️";
-}
+// Start every new page load in light mode; user can still switch to dark mode.
+document.body.classList.remove("theme-dark");
+localStorage.setItem("aikdoc-theme", "light");
+const initialThemeButton = document.getElementById("themeToggle");
+if (initialThemeButton) initialThemeButton.textContent = "🌙";
 
 syncFromSuperAdmin();
 renderHomeSpecialties("adult");
