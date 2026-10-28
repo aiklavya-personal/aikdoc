@@ -790,6 +790,24 @@ input,select,textarea,button{max-width:100%}
  html body #aikhelpLaunch .aikhelp-icon {display:block!important;font-size:24px!important;line-height:1!important;margin:0!important;}
 }
 </style>
+
+<style id="aikdoc-preferred-language-styles">
+.aikdoc-mobile-language-btn{display:none !important}
+@media(max-width:640px){
+ .header-actions .aikdoc-mobile-language-btn{display:inline-flex !important;align-items:center;justify-content:center;flex:0 0 34px;width:34px;height:34px;min-width:34px;padding:0 !important;border-radius:10px;font-size:18px;line-height:1}
+ .header-actions #langSelect{display:none !important}
+}
+#aikdocLanguageBackdrop{position:fixed;inset:0;z-index:999999;background:rgba(9,24,47,.68);display:none;align-items:center;justify-content:center;padding:18px}
+#aikdocLanguageBackdrop.aikdoc-visible{display:flex}
+#aikdocLanguageCard{width:min(420px,100%);background:#fff;color:#173451;border-radius:20px;padding:25px;box-shadow:0 22px 70px rgba(0,0,0,.3);box-sizing:border-box}
+#aikdocLanguageCard h2{margin:0 0 8px;color:#163a68;font-size:23px}
+#aikdocLanguageCard p{margin:0 0 20px;color:#61748d;line-height:1.5;font-size:14px}
+#aikdocLanguageChoices{display:grid;gap:10px}
+.aikdoc-language-choice{display:flex;align-items:center;justify-content:space-between;width:100%;padding:15px;border:1.5px solid #d9e4f2;background:#f7faff;color:#163a68;border-radius:12px;font-size:16px;font-weight:650;cursor:pointer;text-align:left}
+.aikdoc-language-choice:hover,.aikdoc-language-choice:focus-visible{border-color:#1c72d5;background:#eaf3ff;outline-offset:2px}
+.aikdoc-language-choice.aikdoc-selected{border-color:#1769ce;background:#eaf3ff}
+#aikdocLanguageClose{margin-top:15px;width:100%;border:0;border-radius:10px;background:#e8eef6;color:#23436a;padding:12px;cursor:pointer;font-weight:700}
+</style>
 </head>
 <body>
 
@@ -828,6 +846,8 @@ input,select,textarea,button{max-width:100%}
         <option value="hi">हिन्दी</option>
         <option value="bho">भोजपुरी</option>
       </select>
+
+      <button class="navbtn aikdoc-mobile-language-btn" id="aikdocMobileLanguageButton" type="button" onclick="aikdocOpenLanguageDialog()" title="Change language" aria-label="Change language">🌐</button>
 
       <!-- WhatsApp Session Pill -->
       <div id="patientAuthNavBtn" class="patient-session-pill guest" onclick="openWhatsAppAuthModal()">
@@ -4413,6 +4433,45 @@ window.aikRenderStagedReports=function(){
     row.append(label,btn);el.append(row);
   });
 };
+</script>
+
+<div id="aikdocLanguageBackdrop" role="dialog" aria-modal="true" aria-labelledby="aikdocLanguageTitle">
+ <div id="aikdocLanguageCard">
+  <h2 id="aikdocLanguageTitle">🌐 Choose your preferred language</h2>
+  <p>Select a language to use on AIKDOC. You can change it anytime.</p>
+  <div id="aikdocLanguageChoices">
+   <button type="button" class="aikdoc-language-choice" data-aikdoc-language="en" onclick="aikdocSelectPreferredLanguage('en')">English <span>English</span></button>
+   <button type="button" class="aikdoc-language-choice" data-aikdoc-language="hi" onclick="aikdocSelectPreferredLanguage('hi')">हिन्दी <span>Hindi</span></button>
+   <button type="button" class="aikdoc-language-choice" data-aikdoc-language="bho" onclick="aikdocSelectPreferredLanguage('bho')">भोजपुरी <span>Bhojpuri</span></button>
+  </div>
+  <button type="button" id="aikdocLanguageClose" onclick="aikdocCloseLanguageDialog()">Close</button>
+ </div>
+</div>
+<script>
+(function(){
+ const key='aikdoc_language_preference_selected';
+ window.aikdocOpenLanguageDialog=function(){
+   const modal=document.getElementById('aikdocLanguageBackdrop');
+   if(!modal)return;
+   const selected=localStorage.getItem('aikdoc_lang')||'en';
+   modal.querySelectorAll('[data-aikdoc-language]').forEach(b=>b.classList.toggle('aikdoc-selected',b.dataset.aikdocLanguage===selected));
+   document.getElementById('aikdocLanguageClose').hidden=!localStorage.getItem(key);
+   modal.classList.add('aikdoc-visible');
+ };
+ window.aikdocCloseLanguageDialog=function(){
+   if(!localStorage.getItem(key))return;
+   document.getElementById('aikdocLanguageBackdrop').classList.remove('aikdoc-visible');
+ };
+ window.aikdocSelectPreferredLanguage=function(lang){
+   if(!['en','hi','bho'].includes(lang))return;
+   if(typeof changeLanguage==='function')changeLanguage(lang);
+   localStorage.setItem(key,'1');
+   document.getElementById('aikdocLanguageBackdrop').classList.remove('aikdoc-visible');
+ };
+ document.addEventListener('DOMContentLoaded',function(){
+   if(!localStorage.getItem(key))window.aikdocOpenLanguageDialog();
+ });
+})();
 </script>
 </body>
 </html>
