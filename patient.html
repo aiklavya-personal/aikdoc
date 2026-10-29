@@ -4119,7 +4119,7 @@ async function aikdocFetchActiveSupabaseDoctors() {
     }
     if(dr.error)throw dr.error;
     const [hr,sr,av]=await Promise.all([
-      client.from('hospitals').select('id,name'),
+      client.from('hospitals').select('*'),
       client.from('specialities').select('id,name'),
       client.from('doctor_availability').select('doctor_id,morning_slots,evening_slots,opd_hours')
     ]);
@@ -4156,9 +4156,31 @@ async function aikdocFetchActiveSupabaseDoctors() {
       aikdocOnlineDirectoryReady = true;
       doctors = doctors.filter(d => !!d.supabaseId && incomingIds.has(d.supabaseId));
     }
+    // Refresh Supabase facilities without changing locally seeded hospitals or their photos.
+    // These online entries are transient: do not write them into localStorage.
+    hospitals = hospitals.filter(h => h.aikdocOnlineClinic !== true && h.aikdocOnlineHospital !== true);
+    if (hr.error) {
+      console.warn('AIKDOC: Supabase hospitals could not be listed:', hr.error.message);
+    } else {
+      const normalizeFacilityName = value => String(value || '').trim().toLocaleLowerCase().replace(/\s+/g, ' ');
+      const seenFacilityNames = new Set(hospitals.map(h => normalizeFacilityName(h.name)));
+      for (const h of hr.data || []) {
+        const name = String(h.name || '').trim();
+        if (!name || seenFacilityNames.has(normalizeFacilityName(name))) continue;
+        seenFacilityNames.add(normalizeFacilityName(name));
+        const photos = Array.isArray(h.photos) ? h.photos.filter(x => typeof x === 'string') : [];
+        const photo = h.photo_url || h.image_url || h.photo || photos[0] || 'https://images.unsplash.com/photo-1538108149393-fbbd81895907?auto=format&fit=crop&w=700&q=80';
+        hospitals.push({
+          id: 'supabase-hospital-' + h.id, supabaseId: h.id, aikdocOnlineHospital: true,
+          name, type: 'hospital', district: h.district || h.city || '', city: h.city || h.district || '',
+          address: h.address || '', phone: h.phone || '', pin: h.pin || h.pincode || '',
+          photo, photos: photos.length ? photos : [photo], beds: h.beds || '—',
+          emergency: h.emergency || ''
+        });
+      }
+    }
     // A published own clinic is a facility listing, not just a doctor-card field.
     // Build its entry from Supabase; never rely on the doctor's localStorage.
-    hospitals = hospitals.filter(h => h.aikdocOnlineClinic !== true);
     for (const d of dr.data || []) {
       if (d.venue_type !== 'own' || d.publish_own_clinic !== true || !String(d.venue_name || '').trim()) continue;
       const doc = doctors.find(x => x.supabaseId === d.id);
