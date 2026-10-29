@@ -2455,7 +2455,7 @@ function checkDoctorLiveUpdates() {
   const appts = safeGetJSON("aikdoc_appointments", []);
   const liveSession = safeGetJSON("aikdoc_patient_session", null) || (activePhone ? { phone: activePhone } : null);
 
-  if (liveSession && (liveSession.phone || liveSession.email)) {
+  if ((liveSession && (liveSession.phone || liveSession.email)) || window.aikdocCurrentPatientUid) {
     const completedUnreviewed = appts.find(a => patientOwnsAppointment(a, liveSession) && a.status === "Completed" && !a.review && !a.patientDismissedReview);
     if (completedUnreviewed && !document.getElementById("reviewModalBackdrop")?.classList.contains("show") && !document.getElementById("doctorCancellationNotice")?.classList.contains("show")) {
       openReviewModal(completedUnreviewed);
@@ -4650,8 +4650,15 @@ async function aikOpenPatientRx(token){
   const c=window.aikdoc14Client('patient');
   const {data:{user}}=await c.auth.getUser();
   const list=window.aikdoc14Local();
-  const target=list.find(x=>x.token===token&&x.supabaseAppointmentId);
-  if(!user||!target)throw Error('Please sign in to view this appointment.');
+  let target=list.find(x=>x.token===token&&x.supabaseAppointmentId);
+  if(!user)throw Error('Your Supabase session has expired. Please sign in again.');
+  if(!target){
+   const {data:rows,error:lookupError}=await c.from('appointments').select('id,patient_id,doctor_id,starts_at,status').eq('patient_id',user.id).eq('status','completed').limit(250);
+   if(lookupError)throw lookupError;
+   const row=(rows||[]).find(r=>'AIK-'+String(r.id).slice(0,8).toUpperCase()===String(token));
+   if(row){target={token,supabaseAppointmentId:row.id,status:'Completed',aikdocAuthenticatedPatientId:user.id,doctorName:'Doctor',patientName:user.user_metadata?.full_name||'Patient',date:new Date(row.starts_at).toLocaleDateString('en-IN'),time:new Date(row.starts_at).toLocaleTimeString('en-IN')};list.push(target);}
+  }
+  if(!target)throw Error('This appointment could not be found for your signed-in account.');
   const {data:own,error:ownError}=await c.from('appointments').select('id,patient_id,status').eq('id',target.supabaseAppointmentId).single();
   if(ownError)throw ownError;
   if(own.patient_id!==user.id)throw Error('This appointment does not belong to your signed-in account.');
@@ -4894,13 +4901,13 @@ async function refresh(){error('');try{const c=init(),user=await c.auth.getUser(
        if(!r.data)return;
        doctor=r.data;scopeId=doctor.id;scopeColumn='doctor_id';
      }
-     if(ROLE==='patient')window.aikdocCurrentPatientUid=user.id;
+     if(ROLE==='patient'){window.aikdocCurrentPatientUid=user.id; if(typeof checkDoctorLiveUpdates==='function')checkDoctorLiveUpdates();}
      const nextScope=ROLE+':'+scopeId;
      if(currentScope!==nextScope){
        if(channel)await c.removeChannel(channel);
        currentScope=nextScope;
        channel=c.channel('aikdoc-13b-'+ROLE+'-'+scopeId)
-         .on('postgres_changes',{event:'*',schema:'public',table:'appointments',filter:scopeColumn+'=eq.'+scopeId},()=>schedule())
+         .on('postgres_changes',{event:'*',schema:'public',table:'appointments',filter:scopeColumn+'=eq.'+scopeId},()=>{schedule();setTimeout(schedule,900);})
          .subscribe();
      }
      const q=await c.from('appointments')
@@ -4965,6 +4972,7 @@ async function refresh(){error('');try{const c=init(),user=await c.auth.getUser(
        render();
      }
      if(typeof window.aikdoc14Refresh==='function')await window.aikdoc14Refresh('patient');
+     if(typeof checkDoctorLiveUpdates==='function')checkDoctorLiveUpdates();
      window.aikdocPhase13BStatus={role:ROLE,remoteCount:rows.length,lastSync:new Date().toISOString()};
    }catch(e){console.warn('AIKDOC Phase 13B appointment sync:',e);window.aikdocPhase13BStatus={role:ROLE,error:e.message||String(e)};}
    finally{busy=false;if(pending){pending=false;setTimeout(sync,250);}}
@@ -4975,7 +4983,7 @@ async function refresh(){error('');try{const c=init(),user=await c.auth.getUser(
  window.addEventListener('focus',schedule);
  window.addEventListener('online',schedule);
  window.addEventListener('storage',e=>{if(e.key==='aikdoc_appointments')render();});
- setInterval(()=>{if(!document.hidden)schedule();},15000);
+ setInterval(()=>{if(!document.hidden)schedule();},4000);
  setTimeout(schedule,1400);
  window.aikdocPhase13SyncNow=schedule;
  window.aikdocPhase13BSyncNow=sync;
@@ -4985,7 +4993,8 @@ async function refresh(){error('');try{const c=init(),user=await c.auth.getUser(
 /* AIKDOC Phase 14: authenticated clinical data bridge */
 window.aikdoc14Client=function(role){
  if(!window.supabase||!window.AIKDOC_SUPABASE_URL||!window.AIKDOC_SUPABASE_PUBLISHABLE_KEY)throw Error('Supabase configuration missing');
- return window.supabase.createClient(window.AIKDOC_SUPABASE_URL,window.AIKDOC_SUPABASE_PUBLISHABLE_KEY,{auth:{storageKey:role==='doctor'?'aikdoc-doctor-auth':'aikdoc-patient-auth'}});
+ if(role==='patient' && typeof getAikdocPatientAuthClient==='function') return getAikdocPatientAuthClient();
+ return window.supabase.createClient(window.AIKDOC_SUPABASE_URL,window.AIKDOC_SUPABASE_PUBLISHABLE_KEY,{auth:{storageKey:'aikdoc-doctor-auth'}});
 };
 window.aikdoc14Local=function(){try{return JSON.parse(localStorage.getItem('aikdoc_appointments')||'[]')}catch(e){return []}};
 window.aikdoc14Save=function(list){localStorage.setItem('aikdoc_appointments',JSON.stringify(list));localStorage.setItem('aikdoc_last_sync',String(Date.now()))};
