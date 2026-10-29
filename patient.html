@@ -2268,6 +2268,7 @@ function normalizePatientPhone(value) {
 // (WhatsApp sign-in) OR by email (email sign-in).
 function patientOwnsAppointment(a, session) {
   if (!a || !session) return false;
+  if (a.aikdocAuthenticatedPatientId && window.aikdocCurrentPatientUid) return a.aikdocAuthenticatedPatientId === window.aikdocCurrentPatientUid;
   const sp = normalizePatientPhone(session.phone || session.mobile || "");
   if (sp && normalizePatientPhone(a.phone) === sp) return true;
   const se = String(session.email || "").trim().toLowerCase();
@@ -2456,14 +2457,14 @@ function checkDoctorLiveUpdates() {
 
   if (liveSession && (liveSession.phone || liveSession.email)) {
     const completedUnreviewed = appts.find(a => patientOwnsAppointment(a, liveSession) && a.status === "Completed" && !a.review && !a.patientDismissedReview);
-    if (completedUnreviewed) {
+    if (completedUnreviewed && !document.getElementById("reviewModalBackdrop")?.classList.contains("show") && !document.getElementById("doctorCancellationNotice")?.classList.contains("show")) {
       openReviewModal(completedUnreviewed);
     } else {
       aikCheckRxNotice(appts,liveSession);
     }
 
     const cancelledByDoc = appts.find(a => patientOwnsAppointment(a, liveSession) && a.status === "Cancelled" && a.cancelledBy === "Doctor" && !a.patientDismissedCancellationNotice);
-    if (cancelledByDoc) {
+    if (cancelledByDoc && !document.getElementById("reviewModalBackdrop")?.classList.contains("show") && !document.getElementById("aikPatientRxModal")?.classList.contains("show")) {
       openDoctorCancellationNotice(cancelledByDoc);
     }
   }
@@ -3998,7 +3999,6 @@ function openReviewModalFromToken(token) {
 function closeReviewModal() {
   document.getElementById("reviewModalBackdrop").classList.remove("show");
   if (reviewSelectedApptToken) {
-    setTimeout(checkDoctorLiveUpdates,100);
     let appts = safeGetJSON("aikdoc_appointments", []);
     const t = appts.find(a => a.token === reviewSelectedApptToken);
     if (t) { 
@@ -4029,9 +4029,9 @@ async function submitDoctorReview() {
   const out=await c.from('aikdoc_appointment_reviews').insert({appointment_id:a.supabaseAppointmentId,rating:currentRating,comment});
   if(out.error)throw out.error;
   a.review={rating:currentRating,comment,date:new Date().toLocaleDateString()};
-  window.aikdoc14Save(appts);document.getElementById('reviewModalBackdrop').classList.remove('show');
+  a.patientDismissedReview=true;window.aikdoc14Save(appts);document.getElementById('reviewModalBackdrop').classList.remove('show');
   showToast('Review submitted.');renderAppointmentsList();
- }catch(err){alert('Could not submit review online: '+(err.message||err));}
+ }catch(err){alert('Could not submit review online: '+(err.message||err)+'\n\nThe signed-in Supabase patient must own this completed appointment. Do not change RLS permissions to bypass this check.');}
 }
 
 function openPrivacyModal(e) {
@@ -4073,8 +4073,7 @@ window.addEventListener("storage", (e) => {
   }
   if (e.key === "aikdoc_appointments") {
     checkDoctorLiveUpdates(); renderAppointmentsList();
-    const pending=safeGetJSON("aikdoc_appointments",[]).find(x=>x.status==="Cancelled"&&x.cancelledBy==="Doctor"&&!x.patientDismissedCancellationNotice);
-    if(pending)openDoctorCancellationNotice(pending);
+
   }
 });
 
@@ -4176,7 +4175,7 @@ window.addEventListener("focus", aikdocScheduleDoctorDirectoryRefresh);
 checkPatientSession();
 checkDoctorLiveUpdates();
 changeLanguage(currentLang);
-setTimeout(()=>{const session=safeGetJSON('aikdoc_patient_session',null);if(!session||!(session.phone||session.email))return;const x=safeGetJSON('aikdoc_appointments',[]).find(v=>patientOwnsAppointment(v,session)&&v.status==='Cancelled'&&v.cancelledBy==='Doctor'&&!v.patientDismissedCancellationNotice);if(x)openDoctorCancellationNotice(x);},350);
+
 
 if(location.hash && location.hash.startsWith("#page-") && location.hash !== "#page-home"){
   setPage(location.hash.replace("#page-", ""));
@@ -4856,6 +4855,7 @@ async function refresh(){error('');try{const c=init(),user=await c.auth.getUser(
        if(!r.data)return;
        doctor=r.data;scopeId=doctor.id;scopeColumn='doctor_id';
      }
+     if(ROLE==='patient')window.aikdocCurrentPatientUid=user.id;
      const nextScope=ROLE+':'+scopeId;
      if(currentScope!==nextScope){
        if(channel)await c.removeChannel(channel);
@@ -4896,6 +4896,7 @@ async function refresh(){error('');try{const c=init(),user=await c.auth.getUser(
        const name=doc?.display_name||old?.doctorName||'Doctor';
        const nextStatus=status(r.status);
        if(old){
+         if(ROLE==='patient' && old.aikdocAuthenticatedPatientId!==user.id){old.aikdocAuthenticatedPatientId=user.id;changed=true;}
          if(old.status!==nextStatus||old.cancelledBy!==(r.cancelled_by==='doctor'?'Doctor':r.cancelled_by==='patient'?'Patient':undefined)){
            old.status=nextStatus;
            old.cancelledBy=r.cancelled_by==='doctor'?'Doctor':r.cancelled_by==='patient'?'Patient':undefined;
@@ -4907,6 +4908,7 @@ async function refresh(){error('');try{const c=init(),user=await c.auth.getUser(
        const a={supabaseAppointmentId:r.id,token:'AIK-'+r.id.slice(0,8).toUpperCase(),
          doctorName:name,doctorId:r.doctor_id,doctor_id:r.doctor_id,
          patientName:ROLE==='patient'?(session.name||profileName||'Patient'):'Patient',
+         aikdocAuthenticatedPatientId:ROLE==='patient'?user.id:null,
          phone:ROLE==='patient'?(session.phone||session.mobile||profilePhone||''):'',
          email:ROLE==='patient'?(session.email||authEmail):'',
          date:dt,time:tm,mode:'Not specified',fee:doc?.consultation_fee??0,
