@@ -4210,6 +4210,24 @@ try {
       aikdocDoctorProfileRefreshTimer=setTimeout(()=>aikdocLoadActiveSupabaseDoctors(),350);
     }).subscribe();
 } catch(e) { console.warn('Doctor profile live sync unavailable:',e); }
+// Phase 17E: keep Supabase hospital/clinic cards current without page reload.
+// Realtime works when public.hospitals is in the Supabase Realtime publication;
+// a visibility-aware fallback refresh also works when it is not.
+let aikdocHospitalLiveTimer=null;
+function aikdocRefreshHospitalDirectoryLive(){
+  if(document.hidden)return;
+  clearTimeout(aikdocHospitalLiveTimer);
+  aikdocHospitalLiveTimer=setTimeout(()=>{
+    aikdocLoadActiveSupabaseDoctors().catch(e=>console.warn('Hospital live refresh:',e));
+  },300);
+}
+try {
+  getAikdocPatientAuthClient().channel('aikdoc-hospital-directory-phase17e')
+    .on('postgres_changes',{event:'*',schema:'public',table:'hospitals'},aikdocRefreshHospitalDirectoryLive)
+    .subscribe();
+} catch(e) { console.warn('Hospital realtime subscription unavailable:',e); }
+// Fallback: automatically sync visible tabs even if Realtime is not enabled.
+setInterval(()=>{if(!document.hidden)aikdocRefreshHospitalDirectoryLive();},12000);
 // Boot Initial Page
 // Start every new page load in light mode; user can still switch to dark mode.
 document.body.classList.remove("theme-dark");
