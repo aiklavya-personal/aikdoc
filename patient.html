@@ -2251,16 +2251,12 @@ function verifyReceivedWhatsAppOTP() {
 // The message is only drafted in WhatsApp; it is not sent automatically.
 function handlePatientWhatsAppChat(event) {
   if (event) event.preventDefault();
-  const session = safeGetJSON("aikdoc_patient_session", null);
-
-  if (!session || !(session.phone || session.email)) {
-    window.aikdocPendingSupportWhatsAppChat = true;
-    openWhatsAppAuthModal();
-    showToast("Please sign in first to include your patient details and appointments.");
-    return false;
-  }
-
-  openPatientSupportWhatsApp();
+  // Support chat is available to guests. Never automatically send medical history.
+  const cfg = safeGetJSON('aikdoc_site_config', {});
+  const phone = String(cfg.whatsapp || '918527127888').replace(/\D/g, '');
+  const url = 'https://wa.me/' + phone + '?text=' + encodeURIComponent('Hello AIKDOC Support, I need assistance.');
+  // A real anchor navigation works reliably on iPad/Safari without popup permissions.
+  window.location.assign(url);
   return false;
 }
 
@@ -2356,21 +2352,7 @@ function buildPatientAppointmentWhatsAppSummary(session) {
 }
 
 function openPatientSupportWhatsApp() {
-  const session = safeGetJSON("aikdoc_patient_session", null);
-  if (!session || !(session.phone || session.email)) {
-    window.aikdocPendingSupportWhatsAppChat = true;
-    openWhatsAppAuthModal();
-    return;
-  }
-
-  const siteConfig = safeGetJSON("aikdoc_site_config", {});
-  const supportWhatsApp = String(siteConfig.whatsapp || "918527127888").replace(/\D/g, "");
-  const message = buildPatientAppointmentWhatsAppSummary(session);
-  const deepLink = `https://wa.me/${supportWhatsApp}?text=${encodeURIComponent(message)}`;
-  const opened = window.open(deepLink, "_blank", "noopener,noreferrer");
-  if (!opened) {
-    showToast("WhatsApp could not open. Please allow pop-ups and try again.");
-  }
+  return handlePatientWhatsAppChat();
 }
 
 function patientLogout(e) {
@@ -2880,7 +2862,12 @@ function renderDoctorGrid(){
 
     const matchDocName = !docNameQuery || (d.name && d.name.toLowerCase().includes(docNameQuery.toLowerCase()));
     const matchPatientType = selectedPatientType === "All" || d.patientGroup === "All" || (d.patientGroup && d.patientGroup.toLowerCase() === selectedPatientType.toLowerCase());
-    const matchMode = (mode === "All" || (d.modes && d.modes.includes(mode)));
+    const normalizeMode = value => String(value || '').toLowerCase().replace(/[^a-z]/g, '');
+    const desired = normalizeMode(mode);
+    const matchMode = mode === 'All' || (Array.isArray(d.modes) && d.modes.some(value => {
+      const actual = normalizeMode(value);
+      return actual === desired || (desired.includes('online') && (actual.includes('online') || actual.includes('video'))) || (desired.includes('clinic') && (actual.includes('clinic') || actual.includes('inperson')));
+    }));
 
     return matchHospital && matchDistrict && matchSpeciality && matchDocName && matchPatientType && matchMode;
   })());
@@ -4031,20 +4018,19 @@ function updateStarDisplay() {
   });
 }
 
-function submitDoctorReview() {
-  const comment = document.getElementById("reviewCommentInput").value.trim();
-  let appts = safeGetJSON("aikdoc_appointments", []);
-  const target = appts.find(a => a.token === reviewSelectedApptToken);
-
-  if (target) {
-    target.review = { rating: currentRating, comment: comment, date: new Date().toLocaleDateString() };
-    safeSetJSON("aikdoc_appointments", appts);
-    localStorage.setItem("aikdoc_last_sync", Date.now().toString());
-    showToast(`Thank you! Your ${currentRating}-star review was submitted.`);
-  }
-  document.getElementById("reviewModalBackdrop").classList.remove("show");
-  renderAppointmentsList();
-  setTimeout(checkDoctorLiveUpdates,100);
+async function submitDoctorReview() {
+ const comment=document.getElementById('reviewCommentInput').value.trim();
+ const appts=window.aikdoc14Local(),a=appts.find(x=>x.token===reviewSelectedApptToken);
+ if(!a||!a.supabaseAppointmentId){alert('Online appointment not found.');return;}
+ if(a.status!=='Completed'){alert('Only completed appointments can be reviewed.');return;}
+ try{
+  const c=window.aikdoc14Client('patient');
+  const out=await c.from('aikdoc_appointment_reviews').insert({appointment_id:a.supabaseAppointmentId,rating:currentRating,comment});
+  if(out.error)throw out.error;
+  a.review={rating:currentRating,comment,date:new Date().toLocaleDateString()};
+  window.aikdoc14Save(appts);document.getElementById('reviewModalBackdrop').classList.remove('show');
+  showToast('Review submitted.');renderAppointmentsList();
+ }catch(err){alert('Could not submit review online: '+(err.message||err));}
 }
 
 function openPrivacyModal(e) {
@@ -4112,7 +4098,7 @@ async function aikdocFetchActiveSupabaseDoctors() {
     const client=getAikdocPatientAuthClient();
     // Read the minimum guaranteed columns first. Optional Phase 11 columns may not exist
     // in every database and must never make the entire directory disappear.
-    let dr=await client.from('doctors').select('id,display_name,hospital_id,speciality_id,qualifications,consultation_fee,approval_status,biography,consultation_modes,patient_group,district,photo_path').eq('approval_status','approved');
+    let dr=await client.from('doctors').select('id,display_name,hospital_id,speciality_id,speciality_name,qualifications,consultation_fee,approval_status,biography,consultation_modes,patient_group,district,photo_path').eq('approval_status','approved');
     if(dr.error){
       console.warn('AIKDOC: optional profile fields unavailable; loading core doctor records:',dr.error.message);
       dr=await client.from('doctors').select('id,display_name,hospital_id,speciality_id,qualifications,consultation_fee,approval_status').eq('approval_status','approved');
@@ -4134,7 +4120,7 @@ async function aikdocFetchActiveSupabaseDoctors() {
       const existing=doctors.find(x=>x.supabaseId===d.id);
       const record={
         id:existing?.id||Math.max(0,...doctors.map(x=>Number(x.id)||0))+1,
-        supabaseId:d.id, name:d.display_name, speciality:ss.get(d.speciality_id)||'General',
+        supabaseId:d.id, name:d.display_name, speciality:d.speciality_name||ss.get(d.speciality_id)||'General',
         qualification:d.qualifications||'', hospital:hs.get(d.hospital_id)||'Hospital not specified',
         district:d.district||existing?.district||'', fee:Number(d.consultation_fee)||0,
         modes:Array.isArray(d.consultation_modes)?d.consultation_modes:(existing?.modes||['Clinic visit']),patientGroup:d.patient_group||existing?.patientGroup||'All',about:d.biography||existing?.about||'',quickSlots:[...(availabilityByDoctor.get(d.id)?.morning_slots||[]),...(availabilityByDoctor.get(d.id)?.evening_slots||[])],
@@ -4934,6 +4920,7 @@ async function refresh(){error('');try{const c=init(),user=await c.auth.getUser(
        localStorage.setItem('aikdoc_last_sync',String(Date.now()));
        render();
      }
+     if(typeof window.aikdoc14Refresh==='function')await window.aikdoc14Refresh('patient');
      window.aikdocPhase13BStatus={role:ROLE,remoteCount:rows.length,lastSync:new Date().toISOString()};
    }catch(e){console.warn('AIKDOC Phase 13B appointment sync:',e);window.aikdocPhase13BStatus={role:ROLE,error:e.message||String(e)};}
    finally{busy=false;if(pending){pending=false;setTimeout(sync,250);}}
@@ -4949,6 +4936,46 @@ async function refresh(){error('');try{const c=init(),user=await c.auth.getUser(
  window.aikdocPhase13SyncNow=schedule;
  window.aikdocPhase13BSyncNow=sync;
 })();
+</script>
+<script>
+/* AIKDOC Phase 14: authenticated clinical data bridge */
+window.aikdoc14Client=function(role){
+ if(!window.supabase||!window.AIKDOC_SUPABASE_URL||!window.AIKDOC_SUPABASE_PUBLISHABLE_KEY)throw Error('Supabase configuration missing');
+ return window.supabase.createClient(window.AIKDOC_SUPABASE_URL,window.AIKDOC_SUPABASE_PUBLISHABLE_KEY,{auth:{storageKey:role==='doctor'?'aikdoc-doctor-auth':'aikdoc-patient-auth'}});
+};
+window.aikdoc14Local=function(){try{return JSON.parse(localStorage.getItem('aikdoc_appointments')||'[]')}catch(e){return []}};
+window.aikdoc14Save=function(list){localStorage.setItem('aikdoc_appointments',JSON.stringify(list));localStorage.setItem('aikdoc_last_sync',String(Date.now()))};
+window.aikdoc14ImageURL=async function(c,path){
+ if(!path)return null;
+ const {data,error}=await c.storage.from('aikdoc-prescriptions').createSignedUrl(path,1800);
+ if(error)throw error;return data.signedUrl;
+};
+window.aikdoc14Refresh=async function(role){
+ const c=window.aikdoc14Client(role),{data:{user}}=await c.auth.getUser();if(!user)return;
+ let ids=[];
+ const list=window.aikdoc14Local();
+ if(role==='doctor'){
+  const r=await c.rpc('aikdoc_doctor_patient_labels');
+  if(r.error)console.warn('Patient labels:',r.error.message);
+  else for(const x of r.data||[]){const a=list.find(y=>y.supabaseAppointmentId===x.appointment_id);if(a){a.patientName=x.patient_name||'Patient';a.phone=x.patient_phone||'';}}
+ }
+ ids=list.filter(a=>a.supabaseAppointmentId && (role==='doctor'?window.aikdocDoctorOnlineAppointmentIds?.has(String(a.supabaseAppointmentId)):true)).map(a=>a.supabaseAppointmentId);
+ if(!ids.length)return;
+ const [rx,rev]=await Promise.all([
+   c.from('aikdoc_clinical_records').select('appointment_id,notes,medicines,image_path,updated_at').in('appointment_id',ids),
+   c.from('aikdoc_appointment_reviews').select('appointment_id,rating,comment,created_at').in('appointment_id',ids)
+ ]);
+ if(rx.error)console.warn('Clinical sync:',rx.error.message);
+ if(rev.error)console.warn('Review sync:',rev.error.message);
+ for(const r of rx.data||[]){const a=list.find(x=>x.supabaseAppointmentId===r.appointment_id);if(!a)continue;
+  let image=null;try{image=await window.aikdoc14ImageURL(c,r.image_path)}catch(e){console.warn('Prescription image:',e.message)}
+  a.aikPrescription={notes:r.notes||'',medicines:r.medicines||[],image,updatedAt:r.updated_at};
+ }
+ for(const r of rev.data||[]){const a=list.find(x=>x.supabaseAppointmentId===r.appointment_id);if(a)a.review={rating:r.rating,comment:r.comment,date:new Date(r.created_at).toLocaleDateString()};}
+ window.aikdoc14Save(list);
+ if(role==='patient'&&typeof renderAppointmentsList==='function')renderAppointmentsList();
+ if(role==='doctor'&&typeof loadAllDoctorData==='function')loadAllDoctorData();
+};
 </script>
 </body>
 </html>
