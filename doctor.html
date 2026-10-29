@@ -3736,15 +3736,17 @@ async function refresh(){error('');try{const c=init(),user=await c.auth.getUser(
  }
  async function sync(){
    if(busy){pending=true;return;}busy=true;
+   window.aikdocPhase13BStatus={role:ROLE,stage:'starting',lastAttempt:new Date().toISOString()};
    try{
-     const c=getClient();if(!c)return;
+     const c=getClient();if(!c){window.aikdocPhase13BStatus={role:ROLE,stage:'missing-config',error:'Supabase JS or config unavailable'};return;}
      const {data:{user},error:authError}=await c.auth.getUser();
-     if(authError||!user)return;
+     if(authError||!user){window.aikdocPhase13BStatus={role:ROLE,stage:'no-auth-session',error:authError?.message||'Doctor Supabase session missing. Sign out and sign in through the main Doctor Portal login.'};return;}
+     window.aikdocPhase13BStatus={role:ROLE,stage:'authenticated',lastAttempt:new Date().toISOString()};
      let scopeId=user.id,scopeColumn='patient_id',doctor=null;
      if(ROLE==='doctor'){
        const r=await c.from('doctors').select('id,display_name,consultation_fee').eq('user_id',user.id).maybeSingle();
        if(r.error)throw r.error;
-       if(!r.data)return;
+       if(!r.data){window.aikdocPhase13BStatus={role:ROLE,stage:'no-doctor-profile',error:'Signed-in user has no doctors row'};return;}
        doctor=r.data;scopeId=doctor.id;scopeColumn='doctor_id';
      }
      const nextScope=ROLE+':'+scopeId;
@@ -3818,7 +3820,7 @@ async function refresh(){error('');try{const c=init(),user=await c.auth.getUser(
      // Also re-render when the authoritative online-ID set changes.
      render();
      if(typeof window.aikdoc14Refresh==='function')await window.aikdoc14Refresh('doctor');
-     window.aikdocPhase13BStatus={role:ROLE,remoteCount:rows.length,lastSync:new Date().toISOString()};
+     window.aikdocPhase13BStatus={role:ROLE,stage:'complete',remoteCount:rows.length,lastSync:new Date().toISOString()};
    }catch(e){console.warn('AIKDOC Phase 13B appointment sync:',e);window.aikdocPhase13BStatus={role:ROLE,error:e.message||String(e)};}
    finally{busy=false;if(pending){pending=false;setTimeout(sync,250);}}
  }
@@ -3832,6 +3834,7 @@ async function refresh(){error('');try{const c=init(),user=await c.auth.getUser(
  setTimeout(schedule,1400);
  window.aikdocPhase13SyncNow=schedule;
  window.aikdocPhase13BSyncNow=sync;
+ window.addEventListener('aikdoc-doctor-supabase-login',()=>{setTimeout(schedule,100);});
 })();
 </script>
 <script>
