@@ -1709,6 +1709,13 @@ document.getElementById("doctorForm").addEventListener("submit", (e) => {
 function getCurrentDoctorAppointments() {
   let appts = [];
   try { const x = JSON.parse(localStorage.getItem("aikdoc_appointments") || "[]"); appts = Array.isArray(x) ? x : []; } catch(e) {}
+  // Once a successful online fetch has identified the signed-in doctor, the
+  // online appointment list is authoritative. Keep legacy records in storage
+  // for recovery, but never show them as actionable live bookings.
+  if (window.aikdocDoctorOnlineAppointmentIds instanceof Set) {
+    const allowed = window.aikdocDoctorOnlineAppointmentIds;
+    return appts.filter(a => a.supabaseAppointmentId && allowed.has(String(a.supabaseAppointmentId)));
+  }
   return appts.filter(a => doctorOwnsAppointment(a));
 }
 
@@ -3723,6 +3730,10 @@ async function refresh(){error('');try{const c=init(),user=await c.auth.getUser(
        .eq(scopeColumn,scopeId).order('created_at',{ascending:false}).limit(250);
      if(q.error)throw q.error;
      const rows=q.data||[];
+     // A successful query, including zero rows, establishes which real
+     // appointments belong to this doctor. Legacy local test bookings must
+     // never be presented as confirmed Supabase appointments.
+     if(ROLE==='doctor') window.aikdocDoctorOnlineAppointmentIds = new Set(rows.map(r=>String(r.id)));
      let doctorNames=new Map();
      if(ROLE==='patient'){
        const ids=[...new Set(rows.map(r=>r.doctor_id).filter(Boolean))];
@@ -3773,8 +3784,9 @@ async function refresh(){error('');try{const c=init(),user=await c.auth.getUser(
      if(changed){
        localStorage.setItem('aikdoc_appointments',JSON.stringify(local));
        localStorage.setItem('aikdoc_last_sync',String(Date.now()));
-       render();
      }
+     // Also re-render when the authoritative online-ID set changes.
+     render();
      window.aikdocPhase13BStatus={role:ROLE,remoteCount:rows.length,lastSync:new Date().toISOString()};
    }catch(e){console.warn('AIKDOC Phase 13B appointment sync:',e);window.aikdocPhase13BStatus={role:ROLE,error:e.message||String(e)};}
    finally{busy=false;if(pending){pending=false;setTimeout(sync,250);}}
