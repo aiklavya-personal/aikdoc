@@ -2464,7 +2464,7 @@ function checkDoctorLiveUpdates() {
     }
 
     const cancelledByDoc = appts.find(a => patientOwnsAppointment(a, liveSession) && a.status === "Cancelled" && a.cancelledBy === "Doctor" && !a.patientDismissedCancellationNotice);
-    if (cancelledByDoc && !document.getElementById("reviewModalBackdrop")?.classList.contains("show") && !document.getElementById("aikPatientRxModal")?.classList.contains("show")) {
+    if (cancelledByDoc && !completedUnreviewed && !document.getElementById("reviewModalBackdrop")?.classList.contains("show") && !document.getElementById("aikPatientRxModal")?.classList.contains("show")) {
       openDoctorCancellationNotice(cancelledByDoc);
     }
   }
@@ -3377,7 +3377,7 @@ async function aikdocRefreshBookedSlots(){
     const r=await c.rpc('aikdoc_booked_slot_times',{p_doctor_id:doctorId,p_day:dateISO});
     if(r.error)throw r.error;
     if(check!==aikdocSlotCheckCounter || selectedDoctor?.supabaseId!==doctorId || aikdocSlotDateISO(selectedSlotDate)!==dateISO)return;
-    const occupied=new Set((r.data||[]).map(x=>new Date(x.starts_at||x.occupied_at).getTime()).filter(Number.isFinite));
+    const occupied=new Set((r.data||[]).map(x=>Date.parse(x.starts_at||x.occupied_at)).filter(Number.isFinite));
     const base=new Date(dateISO+'T00:00:00+05:30');
     buttons.forEach(btn=>{
       const original=btn.dataset.slotTime || btn.dataset.slotLabel || btn.textContent.replace(/^✕\s*/, '').trim();
@@ -3421,6 +3421,7 @@ function aikdocWatchSlotUpdates(){
   }catch(err){console.error('Realtime subscription unavailable',err);}
 }
 function selectSlotTime(slotVal, btnEl) {
+  if(btnEl?.disabled)return;
   document.querySelectorAll(".modal-slot-trigger").forEach(b => {
     b.style.background = "";
     b.style.color = "";
@@ -3582,7 +3583,7 @@ function confirmPaymentAndBook() {
     if (payBtn) {payBtn.textContent = "Pay & Confirm Booking →";payBtn.disabled = false;}
     if(selectedDoctor?.supabaseId)await aikdocRefreshBookedSlots();
 
-    const bookingToken = "AIK-" + Math.floor(1000 + Math.random() * 9000);
+    const bookingToken = "AIK-" + String(serverBooking.id).slice(0,8).toUpperCase();
     const newAppointment = {
       id: Date.now(),
       supabaseAppointmentId: serverBooking.id,
@@ -4021,17 +4022,26 @@ function updateStarDisplay() {
 
 async function submitDoctorReview() {
  const comment=document.getElementById('reviewCommentInput').value.trim();
- const appts=window.aikdoc14Local(),a=appts.find(x=>x.token===reviewSelectedApptToken);
- if(!a||!a.supabaseAppointmentId){alert('Online appointment not found.');return;}
- if(a.status!=='Completed'){alert('Only completed appointments can be reviewed.');return;}
+ const appts=window.aikdoc14Local();
+ const a=appts.find(x=>x.token===reviewSelectedApptToken);
+ if(!a?.supabaseAppointmentId){alert('Online appointment ID unavailable. Please refresh appointments.');return;}
  try{
   const c=window.aikdoc14Client('patient');
-  const out=await c.from('aikdoc_appointment_reviews').insert({appointment_id:a.supabaseAppointmentId,rating:currentRating,comment});
+  const {data:{user},error:authError}=await c.auth.getUser();
+  if(authError||!user)throw Error('Sign in to your Supabase patient account again.');
+  const {data:appointment,error:apptError}=await c.from('appointments')
+    .select('id,patient_id,status').eq('id',a.supabaseAppointmentId).single();
+  if(apptError)throw apptError;
+  if(appointment.patient_id!==user.id)throw Error('This appointment belongs to another patient account. Sign in with the account used to book it.');
+  if(appointment.status!=='completed')throw Error('Only completed appointments can be reviewed.');
+  const out=await c.from('aikdoc_appointment_reviews').insert({appointment_id:appointment.id,rating:currentRating,comment});
   if(out.error)throw out.error;
   a.review={rating:currentRating,comment,date:new Date().toLocaleDateString()};
-  a.patientDismissedReview=true;window.aikdoc14Save(appts);document.getElementById('reviewModalBackdrop').classList.remove('show');
+  a.patientDismissedReview=true;
+  window.aikdoc14Save(appts);
+  document.getElementById('reviewModalBackdrop').classList.remove('show');
   showToast('Review submitted.');renderAppointmentsList();
- }catch(err){alert('Could not submit review online: '+(err.message||err)+'\n\nThe signed-in Supabase patient must own this completed appointment. Do not change RLS permissions to bypass this check.');}
+ }catch(err){alert('Could not submit review online: '+(err.message||err));}
 }
 
 function openPrivacyModal(e) {
@@ -4626,11 +4636,40 @@ if(location.hash && location.hash.startsWith("#page-") && location.hash !== "#pa
 <script>
 let aikPatientRxToken=null;
 function aikRxEscape(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-function aikGetPatientRx(){const a=JSON.parse(localStorage.getItem('aikdoc_appointments')||'[]').find(x=>String(x.token)===String(aikPatientRxToken));const session=JSON.parse(localStorage.getItem('aikdoc_patient_session')||'null');return a&&a.status==='Completed'&&a.aikPrescription&&session&&patientOwnsAppointment(a,session)?a:null;}
+function aikGetPatientRx(){
+ const list=window.aikdoc14Local();
+ const a=list.find(x=>String(x.token)===String(aikPatientRxToken));
+ return a&&a.status==='Completed'&&a.aikPrescription&&a.supabaseAppointmentId&&a.aikdocAuthenticatedPatientId===window.aikdocCurrentPatientUid?a:null;
+}
 function aikPatientMedicineLink(v){try{const u=new URL(String(v||''));return ['http:','https:'].includes(u.protocol)?u.href:''}catch(e){return ''}}
 function aikPrescriptionMarkup(a){const r=a.aikPrescription||{};const esc=aikRxEscape;const field=(label,value)=>'<div class="rx-detail"><span>'+label+'</span><strong>'+esc(value||'Not provided')+'</strong></div>';return `<article class="rx-document"><header class="rx-doc-head"><div class="rx-brand"><span class="rx-cross">✚</span><div><div class="rx-brand-title">AIKDOC <span>Healthcare</span></div><div class="rx-brand-sub">CONSULTATION & PRESCRIPTION RECORD</div></div></div><div class="rx-head-label">DOCTOR-ISSUED DOCUMENT</div></header><div class="rx-doc-content"><div class="rx-document-title"><div><div class="rx-eyebrow">MEDICAL CONSULTATION</div><h2>Prescription & Notes</h2><p>Appointment reference: ${esc(a.token)}</p></div><div class="rx-doc-date">${esc(a.date||'')}</div></div><div class="rx-details-grid">${field('PATIENT NAME',a.patientName)}${field('TREATING DOCTOR',a.doctorName)}${field('APPOINTMENT DATE',a.date)}${field('APPOINTMENT TIME',a.time)}${field('CONSULTATION MODE',a.mode)}${field('REFERENCE ID',a.token)}</div><section class="rx-notes-section"><div class="rx-section-heading"><span class="rx-section-symbol">✎</span> Doctor's Consultation Notes / Prescription</div>${r.notes?'<div class="rx-note-text">'+esc(r.notes)+'</div>':'<p class="rx-empty-note">Handwritten prescription attached below.</p>'}</section>${Array.isArray(r.medicines)&&r.medicines.length?'<section class="rx-notes-section" style="margin-top:18px"><div class="rx-section-heading">💊 Prescribed Medicines</div>'+r.medicines.map((m,i)=>'<div class="aik-patient-med-card"><div class="aik-patient-med-top"><span class="aik-patient-med-index">'+(i+1)+'</span><div class="aik-patient-med-details"><strong>'+esc(m.name||'Medicine')+'</strong>'+(m.strength?'<span class="aik-patient-med-strength">'+esc(m.strength)+'</span>':'')+'</div></div>'+(m.instructions?'<div class="aik-patient-med-directions"><b>Doctor’s instructions</b><span>'+esc(m.instructions)+'</span></div>':'')+(aikPatientMedicineLink(m.link)?'<a class="aik-patient-med-shop" href="'+esc(aikPatientMedicineLink(m.link))+'" target="_blank" rel="noopener noreferrer">🛍️ Find this medicine <span aria-hidden="true">↗</span></a>':'')+'</div>').join('')+'</section>':''}${r.image?'<section class="rx-image-section"><div class="rx-section-heading"><span class="rx-section-symbol">▧</span> Attached Handwritten Prescription</div><div class="rx-image-frame"><img alt="Handwritten prescription uploaded by the doctor" src="'+r.image+'"></div></section>':''}</div><footer class="rx-doc-footer"><strong>AIKDOC Healthcare</strong><span>Document provided by the treating doctor through AIKDOC.</span><small>Consult the issuing doctor for clarification. This record is not independently verified by AIKDOC.</small></footer></article>`;}
-async function aikOpenPatientRx(token){aikPatientRxToken=token;let a=aikGetPatientRx();if(!a){try{await window.aikdoc14Refresh?.('patient');a=aikGetPatientRx();}catch(e){console.warn('Prescription refresh failed:',e);}}if(!a){alert('No prescription has been published for this completed appointment yet, or it could not be loaded.');return;}document.getElementById('aikPatientRxBody').innerHTML=aikPrescriptionMarkup(a);document.getElementById('aikPatientRxModal').classList.add('show');}
-
+async function aikOpenPatientRx(token){
+ aikPatientRxToken=token;
+ let a=aikGetPatientRx();
+ try{
+  const c=window.aikdoc14Client('patient');
+  const {data:{user}}=await c.auth.getUser();
+  const list=window.aikdoc14Local();
+  const target=list.find(x=>x.token===token&&x.supabaseAppointmentId);
+  if(!user||!target)throw Error('Please sign in to view this appointment.');
+  const {data:own,error:ownError}=await c.from('appointments').select('id,patient_id,status').eq('id',target.supabaseAppointmentId).single();
+  if(ownError)throw ownError;
+  if(own.patient_id!==user.id)throw Error('This appointment does not belong to your signed-in account.');
+  if(own.status!=='completed')throw Error('The appointment is not completed.');
+  const {data:rx,error}=await c.from('aikdoc_clinical_records').select('notes,medicines,image_path,updated_at').eq('appointment_id',own.id).maybeSingle();
+  if(error)throw error;
+  if(!rx){alert('The doctor has not published a prescription for this appointment yet.');return;}
+  let image=null;
+  if(rx.image_path)image=await window.aikdoc14ImageURL(c,rx.image_path);
+  target.aikdocAuthenticatedPatientId=user.id;
+  target.status='Completed';
+  target.aikPrescription={notes:rx.notes||'',medicines:rx.medicines||[],image,updatedAt:rx.updated_at};
+  window.aikdoc14Save(list);
+  a=target;
+ }catch(err){alert('Could not load prescription: '+(err.message||err));return;}
+ document.getElementById('aikPatientRxBody').innerHTML=aikPrescriptionMarkup(a);
+ document.getElementById('aikPatientRxModal').classList.add('show');
+}
 function aikClosePatientRx(){document.getElementById('aikPatientRxModal').classList.remove('show');}
 function aikDownloadPatientRx(){const a=aikGetPatientRx();if(!a)return;const body=aikPrescriptionMarkup(a);const w=window.open('','_blank');if(!w){alert('Allow popups to print or save the prescription as PDF.');return;}w.document.open();w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>AIKDOC Prescription '+aikRxEscape(a.token)+'</title><style>body{background:#fff;margin:20px auto;max-width:800px}'+aikPrescriptionPrintCSS+'</style></head><body>'+body+'<script>window.onload=function(){setTimeout(function(){window.print()},600)}<\/script></body></html>');w.document.close();}
 const aikPrescriptionPrintCSS=' .rx-document{font:14px/1.55 Arial,sans-serif;color:#1b3551;background:#fff;border:1px solid #e1e9f1;border-radius:14px;overflow:hidden}.rx-doc-head{background:linear-gradient(115deg,#0c284a,#1663a2);color:white;padding:26px 30px;display:flex;justify-content:space-between;align-items:center;gap:12px}.rx-brand{display:flex;align-items:center;gap:12px}.rx-cross{display:grid;place-items:center;width:43px;height:43px;background:#ffffff20;border:1px solid #ffffff55;border-radius:12px;font-size:26px}.rx-brand-title{font-size:24px;font-weight:800;letter-spacing:-.6px;line-height:1.1}.rx-brand-title span{font-weight:400}.rx-brand-sub{font-size:9px;letter-spacing:1.8px;color:#cce5fa;margin-top:5px}.rx-head-label{font-size:9px;letter-spacing:1px;border:1px solid #ffffff66;padding:7px 10px;border-radius:20px;white-space:nowrap}.rx-doc-content{padding:29px 31px 36px}.rx-document-title{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding-bottom:21px;border-bottom:1px solid #e1eaf3}.rx-eyebrow{font-size:10px;font-weight:800;letter-spacing:1.7px;color:#2375b7}.rx-document-title h2{font-size:25px;color:#143858;margin:5px 0 4px}.rx-document-title p{font-size:12px;color:#6a8097;margin:0}.rx-doc-date{color:#3974a6;font-weight:700;font-size:12px}.rx-details-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 25px;padding:24px 0;border-bottom:1px solid #e1eaf3}.rx-detail span{display:block;color:#8494a6;font-size:10px;font-weight:800;letter-spacing:1px;margin-bottom:5px}.rx-detail strong{font-size:14px;color:#193a59;overflow-wrap:anywhere}.rx-notes-section,.rx-image-section{padding-top:25px}.rx-section-heading{font-weight:800;font-size:15px;color:#153b60;margin-bottom:15px;display:flex;align-items:center;gap:9px}.rx-section-symbol{color:#1e78bb;background:#eaf5ff;padding:4px 9px;border-radius:8px}.rx-note-text{background:#f7fafd;border:1px solid #e3edf6;border-left:4px solid #2680c2;border-radius:8px;padding:20px;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.8;min-height:80px}.rx-empty-note{color:#71849a}.rx-image-frame{border:1px solid #e1e9f1;border-radius:10px;padding:12px;text-align:center}.rx-image-frame img{max-width:100%;height:auto;max-height:850px;object-fit:contain}.rx-doc-footer{border-top:1px solid #e1eaf3;padding:17px 30px;background:#f7fafd;display:flex;flex-direction:column;gap:3px;color:#57728c;font-size:11px}.rx-doc-footer strong{color:#175b93;font-size:12px}.rx-doc-footer small{font-size:10px;color:#8798a9}@media(max-width:550px){.rx-doc-head{padding:18px}.rx-head-label{display:none}.rx-doc-content{padding:20px}.rx-brand-title{font-size:20px}.rx-document-title h2{font-size:20px}.rx-details-grid{gap:14px}.rx-doc-footer{padding:17px 20px}}@media print{@page{size:A4;margin:12mm}body{margin:0!important;padding:0!important;background:white!important}.rx-document{border:0;border-radius:0;overflow:visible;print-color-adjust:exact;-webkit-print-color-adjust:exact}.rx-doc-head,.rx-doc-footer,.rx-note-text,.rx-section-symbol{print-color-adjust:exact;-webkit-print-color-adjust:exact}.rx-image-section,.rx-notes-section{break-inside:avoid}.rx-image-frame img{max-height:210mm}.rx-doc-content{padding:25px 22px}}';
@@ -4896,6 +4935,8 @@ async function refresh(){error('');try{const c=init(),user=await c.auth.getUser(
        const name=doc?.display_name||old?.doctorName||'Doctor';
        const nextStatus=status(r.status);
        if(old){
+         const canonicalToken='AIK-'+String(r.id).slice(0,8).toUpperCase();
+         if(old.token!==canonicalToken){old.token=canonicalToken;changed=true;}
          if(ROLE==='patient' && old.aikdocAuthenticatedPatientId!==user.id){old.aikdocAuthenticatedPatientId=user.id;changed=true;}
          if(old.status!==nextStatus||old.cancelledBy!==(r.cancelled_by==='doctor'?'Doctor':r.cancelled_by==='patient'?'Patient':undefined)){
            old.status=nextStatus;
@@ -4957,6 +4998,7 @@ window.aikdoc14Refresh=async function(role){
  const c=window.aikdoc14Client(role),{data:{user}}=await c.auth.getUser();if(!user)return;
  let ids=[];
  const list=window.aikdoc14Local();
+ for(const a of list){if(a.supabaseAppointmentId)a.token='AIK-'+String(a.supabaseAppointmentId).slice(0,8).toUpperCase();}
  if(role==='doctor'){
   const r=await c.rpc('aikdoc_doctor_patient_labels');
   if(r.error)console.warn('Patient labels:',r.error.message);
