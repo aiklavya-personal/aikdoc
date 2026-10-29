@@ -3758,7 +3758,7 @@ async function refresh(){error('');try{const c=init(),user=await c.auth.getUser(
          .subscribe();
      }
      const q=await c.from('appointments')
-       .select('id,patient_id,doctor_id,starts_at,status,cancelled_by,created_at')
+       .select('id,patient_id,doctor_id,starts_at,status,created_at')
        .eq(scopeColumn,scopeId).order('created_at',{ascending:false}).limit(250);
      if(q.error)throw q.error;
      const rows=q.data||[];
@@ -3819,7 +3819,7 @@ async function refresh(){error('');try{const c=init(),user=await c.auth.getUser(
      }
      // Also re-render when the authoritative online-ID set changes.
      render();
-     if(typeof window.aikdoc14Refresh==='function')await window.aikdoc14Refresh('doctor');
+     if(typeof window.aikdoc14Refresh==='function'){try{await window.aikdoc14Refresh('doctor');}catch(clinicalError){console.warn('Clinical refresh failed (appointments still loaded):',clinicalError);}}
      window.aikdocPhase13BStatus={role:ROLE,stage:'complete',remoteCount:rows.length,lastSync:new Date().toISOString()};
    }catch(e){console.warn('AIKDOC Phase 13B appointment sync:',e);window.aikdocPhase13BStatus={role:ROLE,error:e.message||String(e)};}
    finally{busy=false;if(pending){pending=false;setTimeout(sync,250);}}
@@ -3876,6 +3876,23 @@ window.aikdoc14Refresh=async function(role){
  if(role==='patient'&&typeof renderAppointmentsList==='function')renderAppointmentsList();
  if(role==='doctor'&&typeof loadAllDoctorData==='function')loadAllDoctorData();
 };
+</script>
+
+<script>
+/* Phase 16D: doctor appointment synchronization visibility; never changes bookings. */
+(function(){
+  const badge=document.createElement('div');
+  badge.id='aikdocDoctorSyncBadge';
+  badge.style.cssText='position:fixed;bottom:12px;left:12px;z-index:99990;background:#0d2344;color:white;border-radius:10px;padding:9px 12px;max-width:320px;font:12px/1.45 system-ui;box-shadow:0 2px 12px #0003';
+  badge.textContent='Appointment sync: waiting for doctor sign-in';
+  document.addEventListener('DOMContentLoaded',()=>document.body.appendChild(badge));
+  const btn=document.createElement('button');btn.type='button';btn.textContent='Retry';btn.style.cssText='margin-left:9px;padding:3px 8px;border-radius:5px;background:#fff;color:#0d2344;border:0;cursor:pointer';
+  btn.addEventListener('click',()=>{if(typeof window.aikdocPhase13BSyncNow==='function')window.aikdocPhase13BSyncNow();});
+  badge.appendChild(btn);
+  setInterval(()=>{const st=window.aikdocPhase13BStatus;const t=st?('Appointment sync: '+(st.stage||'error')+(typeof st.remoteCount==='number'?' · '+st.remoteCount+' bookings':'')+(st.error?' · '+st.error:'')):'Appointment sync: not started';
+    const node=badge.firstChild;if(node&&node.nodeType===3)node.textContent=t;else badge.insertBefore(document.createTextNode(t),btn);
+  },1200);
+})();
 </script>
 </body>
 </html>
