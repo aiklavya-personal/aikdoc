@@ -3786,6 +3786,7 @@ async function refresh(){error('');try{const c=init(),user=await c.auth.getUser(
        try{session=JSON.parse(localStorage.getItem('aikdoc_patient_session')||'{}')||{};}catch(e){}
      }
      let changed=false;
+     const beforeRemoteSync=JSON.stringify(local);
      for(const r of rows){
        const old=existing.get(String(r.id));
        const dt=datePart(r.starts_at),tm=timePart(r.starts_at);
@@ -3793,9 +3794,14 @@ async function refresh(){error('');try{const c=init(),user=await c.auth.getUser(
        const name=doc?.display_name||old?.doctorName||'Doctor';
        const nextStatus=status(r.status);
        if(old){
-         if(old.status!==nextStatus||old.cancelledBy!==(r.cancelled_by==='doctor'?'Doctor':r.cancelled_by==='patient'?'Patient':undefined)){
+         if(old.status!==nextStatus){
+           // The doctor's own cancellation flow already marks local records as Doctor.
+           // A remote confirmed -> cancelled transition is a patient cancellation.
+           if(nextStatus==='Cancelled' && old.status!=='Cancelled') {
+             old.cancelledBy='Patient';
+             old.cancelledAt=new Date().toISOString();
+           }
            old.status=nextStatus;
-           old.cancelledBy=r.cancelled_by==='doctor'?'Doctor':r.cancelled_by==='patient'?'Patient':undefined;
            old.lastUpdated=Date.now();changed=true;
          }
          continue;
@@ -3808,7 +3814,6 @@ async function refresh(){error('');try{const c=init(),user=await c.auth.getUser(
          email:ROLE==='patient'?(session.email||authEmail):'',
          date:dt,time:tm,mode:'Not specified',fee:doc?.consultation_fee??0,
          paymentStatus:'See booking details',status:nextStatus,
-         cancelledBy:r.cancelled_by==='doctor'?'Doctor':r.cancelled_by==='patient'?'Patient':undefined,
          createdAt:r.created_at||r.starts_at};
        // Never synthesize personal details about other patients.
        local.push(a);existing.set(String(r.id),a);changed=true;
@@ -3816,6 +3821,12 @@ async function refresh(){error('');try{const c=init(),user=await c.auth.getUser(
      if(changed){
        localStorage.setItem('aikdoc_appointments',JSON.stringify(local));
        localStorage.setItem('aikdoc_last_sync',String(Date.now()));
+       // Same-tab localStorage writes do not fire a storage event. Explicitly
+       // dispatch the existing appointment notice handler for remote transitions.
+       if(ROLE==='doctor' && typeof syncDoctorAppointmentChanges==='function'){
+         try{syncDoctorAppointmentChanges(beforeRemoteSync,JSON.stringify(local));}
+         catch(noticeError){console.warn('Doctor cancellation notice:',noticeError);}
+       }
      }
      // Also re-render when the authoritative online-ID set changes.
      render();
