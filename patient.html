@@ -2381,11 +2381,15 @@ function syncFromSuperAdmin() {
     safeSetJSON("aikdoc_master_doctors", doctors);
   }
 
+  // Keep live Supabase clinic listings when admin/local data is refreshed.
+  const preservedOnlineClinics = Array.isArray(hospitals) ? hospitals.filter(h => h.aikdocOnlineClinic === true) : [];
   hospitals = safeGetJSON("aikdoc_master_hospitals", []);
   if (localStorage.getItem("aikdoc_master_hospitals") === null) {
     hospitals = DEFAULT_INITIAL_HOSPITALS;
     safeSetJSON("aikdoc_master_hospitals", hospitals);
   }
+  hospitals = hospitals.filter(h => !h.aikdocOnlineClinic);
+  hospitals.push(...preservedOnlineClinics);
 
   // Seed the initial directory only when the key has never been created.
   // Do NOT replace an admin-managed list just because it contains fewer than 10 entries:
@@ -4152,7 +4156,24 @@ async function aikdocFetchActiveSupabaseDoctors() {
       aikdocOnlineDirectoryReady = true;
       doctors = doctors.filter(d => !!d.supabaseId && incomingIds.has(d.supabaseId));
     }
+    // A published own clinic is a facility listing, not just a doctor-card field.
+    // Build its entry from Supabase; never rely on the doctor's localStorage.
+    hospitals = hospitals.filter(h => h.aikdocOnlineClinic !== true);
+    for (const d of dr.data || []) {
+      if (d.venue_type !== 'own' || d.publish_own_clinic !== true || !String(d.venue_name || '').trim()) continue;
+      const doc = doctors.find(x => x.supabaseId === d.id);
+      if (!doc) continue;
+      const stableId = -1 - Array.from(String(d.id)).reduce((n,ch) => ((n * 31 + ch.charCodeAt(0)) >>> 0), 0);
+      hospitals.push({
+        id: stableId, name: d.venue_name.trim(), type: 'clinic',
+        isOwnClinic: true, aikdocOnlineClinic: true, ownClinicDoctorId: doc.id,
+        address: d.venue_address || '', phone: d.venue_phone || '',
+        district: d.venue_district || d.district || '', pin: d.venue_pin || '',
+        photo: doc.photo, photos: [], beds: '—', emergency: 'Clinic consultation'
+      });
+    }
     renderDoctorGrid();
+    renderHospitals();
     console.info('AIKDOC: Supabase active doctors loaded:',(dr.data||[]).length,'new:',count);
   }catch(e){console.error('AIKDOC: could not load Supabase doctors:',e);showToast('Could not load online doctors: '+(e.message||String(e)));}
 }
