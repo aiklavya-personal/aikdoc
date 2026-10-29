@@ -3949,7 +3949,7 @@ async function submitPatientCancellation(){
    const auth=await client.auth.getUser();
    if(auth.error)throw auth.error;
    if(!auth.data?.user)throw Error('Sign in to cancel your appointment.');
-   const result=await client.rpc('aikdoc_cancel_appointment',{p_appointment_id:target.supabaseAppointmentId});
+   const result=await client.rpc('aikdoc_cancel_appointment_with_reason',{p_appointment_id:target.supabaseAppointmentId,p_reason:reason});
    if(result.error)throw result.error;
    if(result.data!==true)throw Error('Cancellation was not confirmed by Supabase. Please refresh and check the appointment status.');
    target.status="Cancelled";
