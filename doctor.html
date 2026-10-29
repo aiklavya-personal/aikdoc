@@ -3758,7 +3758,7 @@ async function refresh(){error('');try{const c=init(),user=await c.auth.getUser(
          .subscribe();
      }
      const q=await c.from('appointments')
-       .select('id,patient_id,doctor_id,starts_at,status,created_at')
+       .select('id,patient_id,doctor_id,starts_at,status,created_at,cancelled_by,cancellation_reason')
        .eq(scopeColumn,scopeId).order('created_at',{ascending:false}).limit(250);
      if(q.error)throw q.error;
      const rows=q.data||[];
@@ -3793,7 +3793,9 @@ async function refresh(){error('');try{const c=init(),user=await c.auth.getUser(
        const doc=ROLE==='doctor'?doctor:doctorNames.get(r.doctor_id);
        const name=doc?.display_name||old?.doctorName||'Doctor';
        const nextStatus=status(r.status);
+       const remoteCancellationReason=String(r.cancellation_reason||'').trim();
        if(old){
+         if(nextStatus==='Cancelled' && remoteCancellationReason && old.cancellationReason!==remoteCancellationReason){old.cancellationReason=remoteCancellationReason;changed=true;}
          if(old.status!==nextStatus){
            // The doctor's own cancellation flow already marks local records as Doctor.
            // A remote confirmed -> cancelled transition is a patient cancellation.
@@ -3814,6 +3816,7 @@ async function refresh(){error('');try{const c=init(),user=await c.auth.getUser(
          email:ROLE==='patient'?(session.email||authEmail):'',
          date:dt,time:tm,mode:'Not specified',fee:doc?.consultation_fee??0,
          paymentStatus:'See booking details',status:nextStatus,
+         cancellationReason:remoteCancellationReason, cancelledBy:r.cancelled_by==='patient'?'Patient':r.cancelled_by==='doctor'?'Doctor':undefined,
          createdAt:r.created_at||r.starts_at};
        // Never synthesize personal details about other patients.
        local.push(a);existing.set(String(r.id),a);changed=true;
