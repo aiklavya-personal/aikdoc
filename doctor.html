@@ -3644,13 +3644,28 @@ async function refresh(){error('');try{const c=init(),user=await c.auth.getUser(
      document.getElementById('docTimings').value=data?.opd_hours||'';
      document.getElementById('morningSlots').value=(data?.morning_slots||[]).join(', ');
      document.getElementById('eveningSlots').value=(data?.evening_slots||[]).join(', ');
-     const profile=await api().from('doctors').select('display_name,qualifications,experience_years,consultation_fee,biography,district,patient_group,consultation_modes,photo_path,speciality_name').eq('id',id).single();
+     const profile=await api().from('doctors').select('display_name,qualifications,experience_years,consultation_fee,biography,district,patient_group,consultation_modes,photo_path,speciality_name,venue_type,venue_name,venue_address,venue_phone,venue_district,venue_pin,publish_own_clinic').eq('id',id).single();
      if(profile.error)throw profile.error;
      const d=profile.data;
      const fill=(field,value)=>{const el=document.getElementById(field);if(el&&value!==null&&value!==undefined)el.value=String(value);};
      fill('docName',d.display_name);fill('docQual',d.qualifications);fill('docExp',d.experience_years);
      fill('docFee',d.consultation_fee);fill('docAbout',d.biography);fill('docDistrict',d.district);
      fill('docPatientGroup',d.patient_group);
+     if(d.venue_type==='own'){
+       const venue=document.getElementById('docHospital');
+       if(![...venue.options].some(o=>o.value==='__OWN_CLINIC__'))venue.add(new Option('＋ Own Clinic / अपना क्लिनिक','__OWN_CLINIC__'));
+       venue.value='__OWN_CLINIC__';
+       fill('ownClinicName',d.venue_name);fill('ownClinicAddress',d.venue_address);
+       fill('ownClinicPhone',d.venue_phone);fill('ownClinicDistrict',d.venue_district);fill('ownClinicPin',d.venue_pin);
+       document.getElementById('publishOwnClinic').checked=d.publish_own_clinic===true;
+       fill('docAddress',d.venue_address);
+     } else if(d.venue_name){
+       const venue=document.getElementById('docHospital');
+       const match=[...venue.options].find(o=>o.value===d.venue_name||o.textContent.trim()===d.venue_name);
+       if(match)venue.value=match.value;
+       fill('docAddress',d.venue_address);
+     }
+     if(typeof toggleOwnClinicFields==='function')toggleOwnClinicFields();
      if(d.speciality_name && typeof aikdocSetSpeciality==='function')aikdocSetSpeciality('docSpecialityInput',d.speciality_name);
      if(Array.isArray(d.consultation_modes)){
        document.getElementById('modeClinic').checked=d.consultation_modes.includes('Clinic visit');
@@ -3684,7 +3699,15 @@ async function refresh(){error('');try{const c=init(),user=await c.auth.getUser(
        consultation_fee:Number(val('docFee'))||0, biography:val('docAbout'),
        district:val('docDistrict'),patient_group:val('docPatientGroup'),
        consultation_modes:[...(document.getElementById('modeClinic')?.checked?['Clinic visit']:[]),
-                            ...(document.getElementById('modeOnline')?.checked?['Online video consult']:[])]};
+                            ...(document.getElementById('modeOnline')?.checked?['Online video consult']:[])],
+       venue_type:document.getElementById('docHospital').value==='__OWN_CLINIC__'?'own':'listed',
+       venue_name:document.getElementById('docHospital').value==='__OWN_CLINIC__'?val('ownClinicName'):document.getElementById('docHospital').selectedOptions[0]?.textContent?.trim()||val('docHospital'),
+       venue_address:document.getElementById('docHospital').value==='__OWN_CLINIC__'?val('ownClinicAddress'):val('docAddress'),
+       venue_phone:document.getElementById('docHospital').value==='__OWN_CLINIC__'?val('ownClinicPhone'):'',
+       venue_district:document.getElementById('docHospital').value==='__OWN_CLINIC__'?(val('ownClinicDistrict')||val('docDistrict')):val('docDistrict'),
+       venue_pin:document.getElementById('docHospital').value==='__OWN_CLINIC__'?val('ownClinicPin'):'',
+       publish_own_clinic:document.getElementById('docHospital').value==='__OWN_CLINIC__'&&!!document.getElementById('publishOwnClinic')?.checked};
+     if(fields.venue_type==='own'&&(!fields.venue_name||!fields.venue_address))throw Error('Enter clinic name and address before publishing.');
      if(!fields.display_name)throw Error('Enter doctor name.');
      const photo=document.getElementById('docPhotoFileInput')?.files?.[0];
      if(photo){
@@ -3702,7 +3725,7 @@ async function refresh(){error('');try{const c=init(),user=await c.auth.getUser(
      if(error)throw error;
      // Existing profile save logic continues only after online availability is saved.
      bypass=true;form.requestSubmit();
-     show('Schedule saved to Supabase.');
+     show('Profile, clinic/hospital and schedule saved to Supabase.');
    }catch(err){show('Schedule NOT saved: '+err.message);}
    finally{busy=false;if(btn)btn.disabled=false;}
  },true);
