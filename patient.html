@@ -4108,7 +4108,7 @@ async function aikdocFetchActiveSupabaseDoctors() {
     const client=getAikdocPatientAuthClient();
     // Read the minimum guaranteed columns first. Optional Phase 11 columns may not exist
     // in every database and must never make the entire directory disappear.
-    let dr=await client.from('doctors').select('id,display_name,hospital_id,speciality_id,speciality_name,qualifications,consultation_fee,approval_status,biography,consultation_modes,patient_group,district,photo_path').eq('approval_status','approved');
+    let dr=await client.from('doctors').select('id,display_name,hospital_id,speciality_id,speciality_name,qualifications,consultation_fee,approval_status,biography,consultation_modes,patient_group,district,photo_path,venue_type,venue_name,venue_address,venue_phone,venue_district,venue_pin,publish_own_clinic').eq('approval_status','approved');
     if(dr.error){
       console.warn('AIKDOC: optional profile fields unavailable; loading core doctor records:',dr.error.message);
       dr=await client.from('doctors').select('id,display_name,hospital_id,speciality_id,qualifications,consultation_fee,approval_status').eq('approval_status','approved');
@@ -4131,7 +4131,8 @@ async function aikdocFetchActiveSupabaseDoctors() {
       const record={
         id:existing?.id||Math.max(0,...doctors.map(x=>Number(x.id)||0))+1,
         supabaseId:d.id, name:d.display_name, speciality:d.speciality_name||ss.get(d.speciality_id)||'General',
-        qualification:d.qualifications||'', hospital:hs.get(d.hospital_id)||'Hospital not specified',
+        qualification:d.qualifications||'', hospital:(d.venue_type==='own'?(d.publish_own_clinic?d.venue_name:''):(d.venue_name||hs.get(d.hospital_id)))||'Hospital not specified',
+        hospitalType:d.venue_type||'listed',address:d.venue_address||'',clinicName:d.venue_name||'',clinicPhone:d.venue_phone||'',clinicPin:d.venue_pin||'',
         district:d.district||existing?.district||'', fee:Number(d.consultation_fee)||0,
         modes:Array.isArray(d.consultation_modes)?d.consultation_modes:(typeof d.consultation_modes==='string' ? (()=>{try{const x=JSON.parse(d.consultation_modes);return Array.isArray(x)?x:d.consultation_modes.split(',')}catch(e){return d.consultation_modes.split(',')}})() : (existing?.modes||[])),patientGroup:d.patient_group||existing?.patientGroup||'All',about:d.biography||existing?.about||'',quickSlots:[...(availabilityByDoctor.get(d.id)?.morning_slots||[]),...(availabilityByDoctor.get(d.id)?.evening_slots||[])],
         photo:d.photo_path ? client.storage.from('aikdoc-doctor-photos').getPublicUrl(d.photo_path).data.publicUrl : (existing?.photo||'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&w=400&q=85'),
