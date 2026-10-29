@@ -3644,7 +3644,7 @@ async function refresh(){error('');try{const c=init(),user=await c.auth.getUser(
      document.getElementById('docTimings').value=data?.opd_hours||'';
      document.getElementById('morningSlots').value=(data?.morning_slots||[]).join(', ');
      document.getElementById('eveningSlots').value=(data?.evening_slots||[]).join(', ');
-     const profile=await api().from('doctors').select('display_name,qualifications,experience_years,consultation_fee,biography,district,patient_group,consultation_modes,photo_path,speciality_name,venue_type,venue_name,venue_address,venue_phone,venue_district,venue_pin,publish_own_clinic').eq('id',id).single();
+     const profile=await api().from('doctors').select('display_name,qualifications,experience_years,consultation_fee,biography,district,patient_group,consultation_modes,photo_path,speciality_name,venue_type,venue_name,venue_address,venue_phone,venue_district,venue_pin,publish_own_clinic,clinic_photo_paths').eq('id',id).single();
      if(profile.error)throw profile.error;
      const d=profile.data;
      const fill=(field,value)=>{const el=document.getElementById(field);if(el&&value!==null&&value!==undefined)el.value=String(value);};
@@ -3664,6 +3664,12 @@ async function refresh(){error('');try{const c=init(),user=await c.auth.getUser(
        const match=[...venue.options].find(o=>o.value===d.venue_name||o.textContent.trim()===d.venue_name);
        if(match)venue.value=match.value;
        fill('docAddress',d.venue_address);
+     }
+     if(d.venue_type==='own' && Array.isArray(d.clinic_photo_paths)){
+       const urls=d.clinic_photo_paths.map(path=>api().storage.from('aikdoc-clinic-photos').getPublicUrl(path).data.publicUrl);
+       localStorage.setItem('aikdoc_own_clinic_photos',JSON.stringify(urls));
+       localStorage.setItem('aikdoc_own_clinic_photo',urls[0]||'');
+       if(typeof renderOwnClinicPhotoGallery==='function')renderOwnClinicPhotoGallery();
      }
      if(typeof toggleOwnClinicFields==='function')toggleOwnClinicFields();
      if(d.speciality_name && typeof aikdocSetSpeciality==='function')aikdocSetSpeciality('docSpecialityInput',d.speciality_name);
@@ -3719,8 +3725,39 @@ async function refresh(){error('');try{const c=init(),user=await c.auth.getUser(
        if(uploaded.error)throw uploaded.error;
        fields.photo_path=path;
      }
+     // Clinic gallery belongs to the facility, never to the doctor's portrait.
+     // Save images in Supabase Storage before publishing their paths in the profile.
+     if(fields.venue_type==='own'){
+       const {data:oldProfile,error:oldError}=await c.from('doctors').select('clinic_photo_paths').eq('id',id).single();
+       if(oldError)throw oldError;
+       const oldPaths=Array.isArray(oldProfile.clinic_photo_paths)?oldProfile.clinic_photo_paths:[];
+       const localPhotos=JSON.parse(localStorage.getItem('aikdoc_own_clinic_photos')||'[]');
+       const existingUrls=new Map(oldPaths.map(path=>[c.storage.from('aikdoc-clinic-photos').getPublicUrl(path).data.publicUrl,path]));
+       const paths=[];
+       for(let i=0;i<localPhotos.length;i++){
+         const src=localPhotos[i];
+         if(existingUrls.has(src)){paths.push(existingUrls.get(src));continue;}
+         if(typeof src!=='string'||!src.startsWith('data:image/jpeg;base64,'))throw Error('Clinic photo needs to be reselected before publishing.');
+         const raw=atob(src.split(',')[1]);
+         const bytes=new Uint8Array(raw.length);
+         for(let j=0;j<raw.length;j++)bytes[j]=raw.charCodeAt(j);
+         const path=user.id+'/clinic-'+Date.now()+'-'+i+'.jpg';
+         const upload=await c.storage.from('aikdoc-clinic-photos').upload(path,new Blob([bytes],{type:'image/jpeg'}),{contentType:'image/jpeg',upsert:false});
+         if(upload.error)throw Error('Clinic photo upload failed: '+upload.error.message);
+         paths.push(path);
+       }
+       // Preserve already-published photos if no new gallery is present locally.
+       fields.clinic_photo_paths=localPhotos.length?paths:oldPaths;
+     }
      const saved=await c.from('doctors').update(fields).eq('id',id).eq('user_id',user.id).select('id').single();
      if(saved.error)throw saved.error;
+     if(fields.venue_type==='own'&&Array.isArray(fields.clinic_photo_paths)){
+       const urls=fields.clinic_photo_paths.map(path=>c.storage.from('aikdoc-clinic-photos').getPublicUrl(path).data.publicUrl);
+       localStorage.setItem('aikdoc_own_clinic_photos',JSON.stringify(urls));
+       localStorage.setItem('aikdoc_own_clinic_photo',urls[0]||'');
+       if(typeof renderOwnClinicPhotoGallery==='function')renderOwnClinicPhotoGallery();
+     }
+
      const {error}=await api().from('doctor_availability').upsert({doctor_id:id,opd_hours:document.getElementById('docTimings').value.trim(),morning_slots:morning,evening_slots:evening,updated_at:new Date().toISOString()},{onConflict:'doctor_id'});
      if(error)throw error;
      // Existing profile save logic continues only after online availability is saved.
