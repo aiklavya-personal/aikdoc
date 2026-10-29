@@ -1949,7 +1949,23 @@ function loadAllDoctorData() {
 
 // Doctor updates status: Done or Cancelled
 let doctorCancelSelectedToken=null;
-window.doctorSetStatus=function(token,newStatus){
+async function aikdocCompleteOnlineAppointment(appt){
+  if(!appt.supabaseAppointmentId)throw Error('This appointment has no Supabase booking ID.');
+  if(!window.supabase||!window.AIKDOC_SUPABASE_URL||!window.AIKDOC_SUPABASE_PUBLISHABLE_KEY)throw Error('Supabase configuration is missing.');
+  const c=window.supabase.createClient(window.AIKDOC_SUPABASE_URL,window.AIKDOC_SUPABASE_PUBLISHABLE_KEY,{auth:{storageKey:'aikdoc-doctor-auth'}});
+  const {data:{user},error:authError}=await c.auth.getUser();
+  if(authError||!user)throw Error('Please sign in to your doctor account.');
+  const {data:doc,error:docError}=await c.from('doctors').select('id').eq('user_id',user.id).single();
+  if(docError||!doc)throw Error('Doctor account was not found.');
+  const {data:row,error:rowError}=await c.from('appointments').select('id,status').eq('id',appt.supabaseAppointmentId).eq('doctor_id',doc.id).single();
+  if(rowError||!row)throw Error('This appointment does not belong to your doctor account.');
+  if(row.status==='completed')return;
+  if(row.status!=='confirmed')throw Error('Only confirmed appointments can be completed.');
+  const {data:ok,error}=await c.rpc('aikdoc_complete_appointment',{p_appointment_id:appt.supabaseAppointmentId});
+  if(error)throw error;
+  if(ok!==true)throw Error('The database did not confirm completion.');
+}
+window.doctorSetStatus=async function(token,newStatus){
  const appts=JSON.parse(localStorage.getItem("aikdoc_appointments")||"[]"),target=appts.find(x=>x.token===token);if(!target)return;
  if(newStatus==="Cancelled"){
   doctorCancelSelectedToken=token;document.getElementById("doctorCancelReason").value="";document.getElementById("doctorCancelOther").value="";
@@ -1961,22 +1977,55 @@ window.doctorSetStatus=function(token,newStatus){
   const cancelModal=document.getElementById("doctorCancelModal");cancelModal.classList.add("show");
   window.setTimeout(()=>document.getElementById("doctorCancelReason").focus(),40);return;
  }
+ if(newStatus==='Completed'){
+   try{await aikdocCompleteOnlineAppointment(target);}
+   catch(err){alert('Could not complete appointment online: '+(err.message||err));return;}
+ }
  target.status=newStatus;target.lastUpdated=Date.now();localStorage.setItem("aikdoc_appointments",JSON.stringify(appts));localStorage.setItem("aikdoc_last_sync",Date.now().toString());
  showToast("Appointment "+token+" marked as "+newStatus+".");loadAllDoctorData();
 };
 function closeDoctorCancelModal(){document.getElementById("doctorCancelModal").classList.remove("show");doctorCancelSelectedToken=null;}
 document.addEventListener("keydown",e=>{if(e.key==="Escape"){const modal=document.getElementById("doctorCancelModal");if(modal&&modal.classList.contains("show"))closeDoctorCancelModal();}});
 document.getElementById("doctorCancelModal").addEventListener("click",e=>{if(e.target.id==="doctorCancelModal")closeDoctorCancelModal();});
-function submitDoctorCancellation(){
- if(!doctorCancelSelectedToken)return;const choice=document.getElementById("doctorCancelReason").value;
+async function submitDoctorCancellation(){
+ const token=doctorCancelSelectedToken;
+ if(!token)return;
+ const choice=document.getElementById("doctorCancelReason").value;
  const reason=choice==="Other"?document.getElementById("doctorCancelOther").value.trim():choice;
- if(!choice){showToast("Please select a cancellation reason.");return;}if(!reason){showToast("Please explain the cancellation reason.");return;}
- const appts=JSON.parse(localStorage.getItem("aikdoc_appointments")||"[]"),target=appts.find(x=>x.token===doctorCancelSelectedToken);
- if(!target||(target.status&&target.status!=="Confirmed")){closeDoctorCancelModal();showToast("This appointment can no longer be cancelled.");return;}
- target.status="Cancelled";target.cancellationReason=reason;target.cancelledAt=new Date().toISOString();target.cancelledBy="Doctor";target.lastUpdated=Date.now();target.patientDismissedCancellationNotice=false;
- localStorage.setItem("aikdoc_appointments",JSON.stringify(appts));localStorage.setItem("aikdoc_last_sync",Date.now().toString());
- const token=doctorCancelSelectedToken;closeDoctorCancelModal();showToast("Appointment "+token+" cancelled.");loadAllDoctorData();
-};
+ if(!choice||!reason){showToast("Please provide a cancellation reason.");return;}
+ const appts=JSON.parse(localStorage.getItem("aikdoc_appointments")||"[]");
+ const target=appts.find(x=>String(x.token)===String(token));
+ if(!target||String(target.status||"Confirmed").toLowerCase()!=="confirmed"){
+   showToast("This appointment is no longer confirmed.");return;
+ }
+ // Do not pretend local-only appointments have been cancelled in the online database.
+ if(!target.supabaseAppointmentId){showToast("This appointment has no online booking ID. Cancellation was not saved.");return;}
+ const btn=document.querySelector('#doctorCancelModal .cancel-confirm-btn');
+ if(btn?.disabled)return;
+ if(btn)btn.disabled=true;
+ try{
+   if(!window.supabase||!window.AIKDOC_SUPABASE_URL||!window.AIKDOC_SUPABASE_PUBLISHABLE_KEY)throw Error('Supabase configuration missing.');
+   const c=window.supabase.createClient(window.AIKDOC_SUPABASE_URL,window.AIKDOC_SUPABASE_PUBLISHABLE_KEY,{auth:{storageKey:'aikdoc-doctor-auth'}});
+   const {data:{user},error:authError}=await c.auth.getUser();
+   if(authError||!user)throw Error('Sign in to your doctor account first.');
+   const doc=await c.from('doctors').select('id').eq('user_id',user.id).single();
+   if(doc.error||!doc.data)throw Error('Doctor account not found.');
+   const existing=await c.from('appointments').select('id,status').eq('id',target.supabaseAppointmentId).eq('doctor_id',doc.data.id).single();
+   if(existing.error||!existing.data)throw Error('This appointment does not belong to your doctor account.');
+   if(existing.data.status!=='confirmed')throw Error('The appointment is no longer confirmed online.');
+   const result=await c.rpc('aikdoc_cancel_appointment',{p_appointment_id:target.supabaseAppointmentId});
+   if(result.error)throw result.error;
+   if(result.data!==true)throw Error('Supabase did not confirm cancellation.');
+   // Update the original UI only after successful server confirmation.
+   target.status='Cancelled';target.cancellationReason=reason;
+   target.cancelledAt=new Date().toISOString();target.cancelledBy='Doctor';
+   target.lastUpdated=Date.now();target.patientDismissedCancellationNotice=false;
+   localStorage.setItem('aikdoc_appointments',JSON.stringify(appts));
+   localStorage.setItem('aikdoc_last_sync',String(Date.now()));
+   closeDoctorCancelModal();showToast('Appointment '+token+' cancelled in Supabase.');loadAllDoctorData();
+ }catch(err){showToast('Cancellation NOT saved: '+(err.message||String(err)));}
+ finally{if(btn)btn.disabled=false;}
+}
 
 // Appointment notices are triggered by changes made in another AIKDOC tab.
 function doctorOwnsAppointment(a) {
@@ -3412,7 +3461,7 @@ function openAikPrescription(token){const appts=JSON.parse(localStorage.getItem(
 
 function closeAikPrescription(){document.getElementById('aikDoctorRxModal').classList.remove('show');aikRxToken=null;}
 document.getElementById('aikDoctorRxFile').addEventListener('change',async e=>{const f=e.target.files[0];if(!f)return;if(!['image/png','image/jpeg','image/webp'].includes(f.type)){alert('Please select a JPG or PNG image.');e.target.value='';return;}if(f.size>2*1024*1024){alert('Please choose an image smaller than 2 MB.');e.target.value='';return;}const img=new Image();const url=URL.createObjectURL(f);try{await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=reject;img.src=url;});const c=document.createElement('canvas');const scale=Math.min(1,1200/Math.max(img.width,img.height));c.width=Math.max(1,Math.round(img.width*scale));c.height=Math.max(1,Math.round(img.height*scale));c.getContext('2d').drawImage(img,0,0,c.width,c.height);aikRxImage=c.toDataURL('image/jpeg',0.68);document.getElementById('aikDoctorRxFileInfo').textContent='Image ready to save.';}catch(err){alert('Could not read image.');}finally{URL.revokeObjectURL(url);}});
-function saveAikPrescription(complete){if(!aikRxToken)return;const notes=document.getElementById('aikDoctorRxText').value.trim();if(!notes&&!aikRxImage&&!aikRxMedicines.length){alert('Please add notes, a prescription image, or a medicine first.');return;}const appts=JSON.parse(localStorage.getItem('aikdoc_appointments')||'[]');const a=appts.find(x=>String(x.token)===String(aikRxToken));if(!a)return;if(String(a.status||'').toLowerCase()==='completed'){alert('This appointment is completed. Notes and prescriptions are view-only.');return;}a.aikPrescription={notes,image:aikRxImage,medicines:aikRxMedicines.map(m=>({...m})),updatedAt:new Date().toISOString(),doctorName:a.doctorName||''};if(complete){a.status='Completed';a.lastUpdated=Date.now();}try{localStorage.setItem('aikdoc_appointments',JSON.stringify(appts));localStorage.setItem('aikdoc_last_sync',String(Date.now()));}catch(err){alert('Storage is full. Try a smaller image; nothing was saved.');return;}closeAikPrescription();showToast(complete?'Prescription saved and appointment completed.':'Prescription saved.');loadAllDoctorData();}
+async function saveAikPrescription(complete){if(!aikRxToken)return;const notes=document.getElementById('aikDoctorRxText').value.trim();if(!notes&&!aikRxImage&&!aikRxMedicines.length){alert('Please add notes, a prescription image, or a medicine first.');return;}const appts=JSON.parse(localStorage.getItem('aikdoc_appointments')||'[]');const a=appts.find(x=>String(x.token)===String(aikRxToken));if(!a)return;if(String(a.status||'').toLowerCase()==='completed'){alert('This appointment is completed. Notes and prescriptions are view-only.');return;}if(complete){try{await aikdocCompleteOnlineAppointment(a);}catch(err){alert('Could not complete appointment online: '+(err.message||err));return;}}a.aikPrescription={notes,image:aikRxImage,medicines:aikRxMedicines.map(m=>({...m})),updatedAt:new Date().toISOString(),doctorName:a.doctorName||''};if(complete){a.status='Completed';a.lastUpdated=Date.now();}try{localStorage.setItem('aikdoc_appointments',JSON.stringify(appts));localStorage.setItem('aikdoc_last_sync',String(Date.now()));}catch(err){alert('Storage is full. Try a smaller image; nothing was saved.');return;}closeAikPrescription();showToast(complete?'Prescription saved and appointment completed.':'Prescription saved.');loadAllDoctorData();}
 </script>
 <style>
 #aikReportsBackdrop{display:none;position:fixed;inset:0;z-index:2147483000;background:rgba(8,27,48,.72);align-items:center;justify-content:center;padding:15px}
@@ -3447,6 +3496,262 @@ backdrop.addEventListener('click',e=>{if(e.target===backdrop)aikCloseReports()})
 })();
 </script><script>
 window.aikDoctorOpenReports=function(token){const a=JSON.parse(localStorage.getItem('aikdoc_appointments')||'[]').find(x=>String(x.token)===String(token));if(!a||!doctorOwnsAppointment(a)){alert('You cannot access reports for this appointment.');return}aikSetReportToken(token)};
+</script>
+<!-- AIKDOC SUPABASE APPOINTMENT PILOT: independent of existing localStorage workflow -->
+<style>
+#aikSbOpen{position:fixed;right:18px;bottom:18px;z-index:2147483600;background:#075c9d;color:#fff;border:0;border-radius:999px;padding:13px 18px;font:700 14px system-ui;box-shadow:0 5px 20px #0005;cursor:pointer}
+#aikSbPanel{position:fixed;right:12px;bottom:76px;z-index:2147483601;background:#fff;color:#172c42;width:min(450px,calc(100vw - 24px));max-height:75vh;overflow:auto;border:1px solid #cbd5e1;border-radius:15px;box-shadow:0 12px 42px #0005;padding:16px;font:14px system-ui;display:none}
+#aikSbPanel input{display:block;box-sizing:border-box;width:100%;padding:10px;margin:7px 0 10px;border:1px solid #a6b5c5;border-radius:7px;color:#172c42;background:white}
+#aikSbPanel button{border:0;border-radius:7px;background:#075c9d;color:white;padding:9px 12px;margin:5px 4px 5px 0;cursor:pointer}
+#aikSbPanel button:disabled{opacity:.55;cursor:wait}
+#aikSbPanel .aikSbItem{padding:12px 0;border-bottom:1px solid #ddd;overflow-wrap:anywhere}
+#aikSbPanel .aikSbSmall{font-size:12px;color:#5b6d80}
+#aikSbPanel #aikSbError{color:#a11e28;white-space:pre-wrap}
+</style>
+<button type="button" id="aikSbOpen">Supabase appointments (pilot)</button>
+<section id="aikSbPanel" role="dialog" aria-label="Supabase appointment pilot">
+ <div style="display:flex;align-items:center;justify-content:space-between"><strong>AIKDOC — Supabase appointments</strong><button id="aikSbClose" type="button">Close</button></div>
+ <p class="aikSbSmall">Test accounts only. This panel reads the real Supabase database; existing website booking and cancellation buttons are not connected yet.</p>
+ <label>Email<input type="email" id="aikSbEmail" autocomplete="username"></label>
+ <label>Password<input type="password" id="aikSbPassword" autocomplete="current-password"></label>
+ <button type="button" id="aikSbLogin">Sign in</button><button type="button" id="aikSbLogout">Sign out</button><button type="button" id="aikSbRefresh">Refresh</button>
+ <div id="aikSbInfo" class="aikSbSmall" aria-live="polite">Not signed in.</div><div id="aikSbError" role="alert"></div><div id="aikSbRows"></div>
+</section>
+<script src="./aikdoc-supabase-config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+(()=>{
+'use strict';
+const ROLE='doctor';
+const $=id=>document.getElementById(id);
+let sb=null;
+function error(message){$('aikSbError').textContent=message||'';}
+function init(){if(sb)return sb;if(!window.supabase||!window.AIKDOC_SUPABASE_URL||!window.AIKDOC_SUPABASE_PUBLISHABLE_KEY)throw Error('Supabase configuration not found. Place aikdoc-supabase-config.js beside this HTML file and connect to the internet.');sb=window.supabase.createClient(window.AIKDOC_SUPABASE_URL,window.AIKDOC_SUPABASE_PUBLISHABLE_KEY,{auth:{storageKey:'aikdoc-pilot-'+ROLE}});return sb;}
+$('aikSbOpen').onclick=()=>{$('aikSbPanel').style.display='block';};
+$('aikSbClose').onclick=()=>{$('aikSbPanel').style.display='none';};
+$('aikSbLogin').onclick=async()=>{error('');$('aikSbLogin').disabled=true;try{const c=init();const r=await c.auth.signInWithPassword({email:$('aikSbEmail').value.trim(),password:$('aikSbPassword').value});if(r.error)throw r.error;const p=await c.from('profiles').select('role').eq('id',r.data.user.id).single();if(p.error)throw p.error;if(p.data.role!==ROLE){await c.auth.signOut();throw Error('This is not a '+ROLE+' account. Sign in using the correct test account.');} $('aikSbPassword').value='';await refresh();}catch(e){error(e.message||String(e));}finally{$('aikSbLogin').disabled=false;}};
+$('aikSbLogout').onclick=async()=>{error('');try{await init().auth.signOut();$('aikSbRows').replaceChildren();$('aikSbInfo').textContent='Signed out.';}catch(e){error(e.message||String(e));}};
+$('aikSbRefresh').onclick=()=>refresh();
+async function refresh(){error('');try{const c=init(),user=await c.auth.getUser();if(user.error||!user.data.user)throw Error('Sign in first.');const profile=await c.from('profiles').select('role').eq('id',user.data.user.id).single();if(profile.error)throw profile.error;if(profile.data.role!==ROLE)throw Error('Account role mismatch.');let q=c.from('appointments').select('id,patient_id,doctor_id,starts_at,status,cancelled_by').order('starts_at',{ascending:false}).limit(100);if(ROLE==='patient')q=q.eq('patient_id',user.data.user.id);else{const d=await c.from('doctors').select('id').eq('user_id',user.data.user.id).single();if(d.error)throw d.error;q=q.eq('doctor_id',d.data.id);}const r=await q;if(r.error)throw r.error;const rows=r.data||[];$('aikSbInfo').textContent='Signed in as '+ROLE+' · '+rows.length+' appointment(s).';const root=$('aikSbRows');root.replaceChildren();if(!rows.length){root.textContent='No Supabase appointments found for this account.';return;}for(const a of rows){const item=document.createElement('div');item.className='aikSbItem';const name=document.createElement('strong');name.textContent=new Date(a.starts_at).toLocaleString()+' — '+a.status;item.append(name);const meta=document.createElement('div');meta.className='aikSbSmall';meta.textContent='ID: '+a.id+(a.cancelled_by?' · Cancelled by: '+a.cancelled_by:'');item.append(meta);if(a.status==='confirmed'){const b=document.createElement('button');b.textContent='Cancel appointment';b.onclick=async()=>{if(!confirm('Cancel this confirmed test appointment? This cannot be undone.'))return;b.disabled=true;error('');try{const out=await c.rpc('aikdoc_cancel_appointment',{p_appointment_id:a.id});if(out.error)throw out.error;if(out.data!==true)throw Error('Appointment was not cancelled. It may already have changed status.');await refresh();}catch(e){error(e.message||String(e));b.disabled=false;}};item.append(b);}root.append(item);}}catch(e){error(e.message||String(e));}}
+})();
+</script>
+<!-- END AIKDOC SUPABASE APPOINTMENT PILOT -->
+
+<!-- AIKDOC: Supabase-backed existing doctor login (test build) -->
+<script>
+(()=>{
+  const form=document.getElementById('loginForm');
+  if(!form)return;
+  let client;
+  function supa(){
+    if(client)return client;
+    if(!window.supabase||!window.AIKDOC_SUPABASE_URL||!window.AIKDOC_SUPABASE_PUBLISHABLE_KEY)
+      throw new Error('Supabase is unavailable. Check aikdoc-supabase-config.js and internet connection.');
+    client=window.supabase.createClient(window.AIKDOC_SUPABASE_URL,window.AIKDOC_SUPABASE_PUBLISHABLE_KEY,{auth:{storageKey:'aikdoc-doctor-auth'}});
+    return client;
+  }
+  form.addEventListener('submit',async e=>{
+    e.preventDefault();e.stopImmediatePropagation();
+    const identifier=document.getElementById('loginIdentifier').value.trim();
+    const password=document.getElementById('loginPassword').value;
+    if(!identifier.includes('@')){showToast('Please use the email registered with Supabase.');return;}
+    const button=form.querySelector('[type="submit"]');if(button)button.disabled=true;
+    try{
+      const c=supa();
+      const auth=await c.auth.signInWithPassword({email:identifier,password});
+      if(auth.error)throw auth.error;
+      const result=await c.from('doctors').select('id,user_id,display_name,approval_status,hospital_id,speciality_id,qualifications,experience_years,consultation_fee').eq('user_id',auth.data.user.id).maybeSingle();
+      if(result.error)throw result.error;
+      if(!result.data)throw new Error('No doctor profile is linked to this Supabase account.');
+      if(result.data.approval_status!=='approved')throw new Error('Doctor account is not active yet.');
+      const d=result.data;
+      const doctor={id:d.id,user_id:d.user_id,name:d.display_name,email:auth.data.user.email,qualification:d.qualifications||'',experience:d.experience_years||0,fee:d.consultation_fee||0,hospital_id:d.hospital_id,speciality_id:d.speciality_id,supabaseDoctorId:d.id};
+      // Compatibility session for the existing UI only; Supabase Auth remains authoritative.
+      localStorage.setItem('aikdoc_doctor_session',JSON.stringify(doctor));
+      localStorage.setItem('aikdoc_doctor_session_backup',JSON.stringify(doctor));
+      showDashboard(doctor);
+      window.dispatchEvent(new CustomEvent('aikdoc-doctor-supabase-login',{detail:{doctorId:d.id}}));
+      showToast('Welcome back, '+doctor.name+'!');
+    }catch(err){showToast('❌ '+(err.message||String(err)));}
+    finally{if(button)button.disabled=false;}
+  },true);
+})();
+</script>
+<script>
+/* Phase 7: existing schedule form -> Supabase; no extra UI or fictitious slots. */
+(()=>{
+ const form=document.getElementById('doctorForm');
+ if(!form)return;
+ let client=null, bypass=false, busy=false;
+ function api(){
+   if(!client){
+     if(!window.supabase||!window.AIKDOC_SUPABASE_URL||!window.AIKDOC_SUPABASE_PUBLISHABLE_KEY)throw Error('Supabase configuration missing');
+     client=window.supabase.createClient(window.AIKDOC_SUPABASE_URL,window.AIKDOC_SUPABASE_PUBLISHABLE_KEY,{auth:{storageKey:'aikdoc-doctor-auth'}});
+   }
+   return client;
+ }
+ function slots(id){return document.getElementById(id).value.split(',').map(x=>x.trim()).filter(Boolean);}
+ function show(message){if(typeof showToast==='function')showToast(message);else alert(message);}
+ async function doctorId(){
+   const c=api(),{data:{user},error:authError}=await c.auth.getUser();
+   if(authError||!user)throw Error('Please sign in with your Supabase doctor account.');
+   const {data,error}=await c.from('doctors').select('id').eq('user_id',user.id).eq('approval_status','approved').single();
+   if(error||!data)throw Error('Active doctor profile not found for this account.');
+   return data.id;
+ }
+ async function load(){
+   try{
+     const id=await doctorId();
+     const {data,error}=await api().from('doctor_availability').select('opd_hours,morning_slots,evening_slots').eq('doctor_id',id).maybeSingle();
+     if(error)throw error;
+     // Do not misrepresent example HTML input values as a real saved schedule.
+     document.getElementById('docTimings').value=data?.opd_hours||'';
+     document.getElementById('morningSlots').value=(data?.morning_slots||[]).join(', ');
+     document.getElementById('eveningSlots').value=(data?.evening_slots||[]).join(', ');
+     const profile=await api().from('doctors').select('display_name,qualifications,experience_years,consultation_fee,biography,district,patient_group,consultation_modes,photo_path').eq('id',id).single();
+     if(profile.error)throw profile.error;
+     const d=profile.data;
+     const fill=(field,value)=>{const el=document.getElementById(field);if(el&&value!==null&&value!==undefined)el.value=String(value);};
+     fill('docName',d.display_name);fill('docQual',d.qualifications);fill('docExp',d.experience_years);
+     fill('docFee',d.consultation_fee);fill('docAbout',d.biography);fill('docDistrict',d.district);
+     fill('docPatientGroup',d.patient_group);
+     if(Array.isArray(d.consultation_modes)){
+       document.getElementById('modeClinic').checked=d.consultation_modes.includes('Clinic visit');
+       document.getElementById('modeOnline').checked=d.consultation_modes.includes('Online video consult');
+     }
+     if(d.photo_path){
+       const url=api().storage.from('aikdoc-doctor-photos').getPublicUrl(d.photo_path).data.publicUrl;
+       const img=document.getElementById('avatarPreviewImg');if(img)img.src=url;
+     }
+     if(typeof updatePreview==='function')updatePreview();
+   }catch(err){show('Could not load online schedule: '+err.message);}
+ }
+ window.addEventListener('aikdoc-doctor-supabase-login',load);
+ form.addEventListener('submit',async event=>{
+   if(bypass){bypass=false;return;}
+   event.preventDefault();event.stopImmediatePropagation();
+   if(busy)return;
+   busy=true;
+   const btn=document.getElementById('saveDoctorBtn');if(btn)btn.disabled=true;
+   try{
+     const id=await doctorId();
+     const morning=slots('morningSlots'),evening=slots('eveningSlots');
+     if(!morning.length&&!evening.length)throw Error('Enter at least one available slot.');
+     if(morning.length>40||evening.length>40)throw Error('Maximum 40 slots per session.');
+     const c=api();
+     const {data:{user}}=await c.auth.getUser();
+     const val=x=>document.getElementById(x)?.value?.trim()||'';
+     const numberExperience=parseInt(val('docExp'),10);
+     const fields={display_name:val('docName'), qualifications:val('docQual'),
+       experience_years:Number.isFinite(numberExperience)?numberExperience:null,
+       consultation_fee:Number(val('docFee'))||0, biography:val('docAbout'),
+       district:val('docDistrict'),patient_group:val('docPatientGroup'),
+       consultation_modes:[...(document.getElementById('modeClinic')?.checked?['Clinic visit']:[]),
+                            ...(document.getElementById('modeOnline')?.checked?['Online video consult']:[])]};
+     if(!fields.display_name)throw Error('Enter doctor name.');
+     const photo=document.getElementById('docPhotoFileInput')?.files?.[0];
+     if(photo){
+       if(!['image/jpeg','image/png','image/webp'].includes(photo.type))throw Error('Photo must be JPG, PNG or WEBP.');
+       if(photo.size>2*1024*1024)throw Error('Photo must be smaller than 2 MB.');
+       const ext=photo.type==='image/png'?'png':photo.type==='image/webp'?'webp':'jpg';
+       const path=user.id+'/portrait-'+Date.now()+'.'+ext;
+       const uploaded=await c.storage.from('aikdoc-doctor-photos').upload(path,photo,{contentType:photo.type,upsert:false});
+       if(uploaded.error)throw uploaded.error;
+       fields.photo_path=path;
+     }
+     const saved=await c.from('doctors').update(fields).eq('id',id).eq('user_id',user.id).select('id').single();
+     if(saved.error)throw saved.error;
+     const {error}=await api().from('doctor_availability').upsert({doctor_id:id,opd_hours:document.getElementById('docTimings').value.trim(),morning_slots:morning,evening_slots:evening,updated_at:new Date().toISOString()},{onConflict:'doctor_id'});
+     if(error)throw error;
+     // Existing profile save logic continues only after online availability is saved.
+     bypass=true;form.requestSubmit();
+     show('Schedule saved to Supabase.');
+   }catch(err){show('Schedule NOT saved: '+err.message);}
+   finally{busy=false;if(btn)btn.disabled=false;}
+ },true);
+})();
+</script>
+<script>
+/* AIKDOC Phase 13: authenticated, scoped appointment reconciliation.
+   Realtime signals are only hints: fetch rows under existing RLS. */
+(function(){
+  'use strict';
+  const ROLE='doctor';
+  let client=null,channel=null,scope=null,busy=false,queued=false,lastRun=0;
+  function getClient(){
+    if(client)return client;
+    const fn=ROLE==='patient' ? window.getAikdocPatientAuthClient : window.getAikdocDoctorAuthClient;
+    if(typeof fn==='function')client=fn();
+    else if(ROLE==='doctor' && window.supabase && window.AIKDOC_SUPABASE_URL && window.AIKDOC_SUPABASE_PUBLISHABLE_KEY)
+      client=window.supabase.createClient(window.AIKDOC_SUPABASE_URL,window.AIKDOC_SUPABASE_PUBLISHABLE_KEY,{auth:{storageKey:'aikdoc-doctor-auth'}});
+    return client;
+  }
+  function refreshUI(){
+    try{
+      if(ROLE==='patient'){
+        if(typeof renderAppointmentsList==='function')renderAppointmentsList();
+        if(typeof updateAppointmentBadge==='function')updateAppointmentBadge();
+        if(typeof aikdocRefreshBookedSlots==='function' && typeof selectedDoctor!=='undefined' && selectedDoctor?.supabaseId)aikdocRefreshBookedSlots();
+      }else if(typeof loadAllDoctorData==='function')loadAllDoctorData();
+    }catch(e){console.warn('Phase 13 UI refresh:',e);}
+  }
+  async function reconcile(){
+    if(busy){queued=true;return;}
+    busy=true;
+    try{
+      const c=getClient();if(!c)return;
+      const auth=await c.auth.getUser();const user=auth.data?.user;
+      if(!user){if(channel){await c.removeChannel(channel);channel=null;}scope=null;return;}
+      let id=user.id,column='patient_id';
+      if(ROLE==='doctor'){
+        const doc=await c.from('doctors').select('id').eq('user_id',user.id).maybeSingle();
+        if(doc.error||!doc.data)return;
+        id=doc.data.id;column='doctor_id';
+      }
+      const nextScope=column+':'+id;
+      if(nextScope!==scope){
+        if(channel){await c.removeChannel(channel);channel=null;}
+        scope=nextScope;
+        channel=c.channel('aikdoc-phase13-'+ROLE+'-'+id)
+          .on('postgres_changes',{event:'*',schema:'public',table:'appointments',filter:column+'=eq.'+id},()=>schedule())
+          .subscribe(status=>{if(status==='CHANNEL_ERROR'||status==='TIMED_OUT')console.warn('Realtime disconnected; periodic sync remains active');});
+      }
+      const result=await c.from('appointments').select('id,status,cancelled_by').eq(column,id).order('created_at',{ascending:false}).limit(250);
+      if(result.error)throw result.error;
+      const byId=new Map((result.data||[]).map(x=>[x.id,x]));
+      let stored;
+      try{stored=JSON.parse(localStorage.getItem('aikdoc_appointments')||'[]');}catch{return;}
+      if(!Array.isArray(stored))return;
+      let changed=false;
+      for(const appt of stored){
+        if(!appt.supabaseAppointmentId)continue;
+        const remote=byId.get(appt.supabaseAppointmentId);
+        if(!remote)continue; // Do not infer cancellation from missing/RLS-hidden records.
+        const status=remote.status==='cancelled'?'Cancelled':remote.status==='completed'?'Completed':remote.status==='confirmed'?'Confirmed':null;
+        if(status && appt.status!==status){appt.status=status;appt.lastUpdated=Date.now();changed=true;}
+        if(remote.cancelled_by && appt.cancelledBy!==remote.cancelled_by){
+          appt.cancelledBy=remote.cancelled_by==='doctor'?'Doctor':'Patient';changed=true;
+        }
+      }
+      if(changed){
+        localStorage.setItem('aikdoc_appointments',JSON.stringify(stored));
+        localStorage.setItem('aikdoc_last_sync',String(Date.now()));
+        refreshUI();
+        if(ROLE==='patient' && typeof checkDoctorLiveUpdates==='function')checkDoctorLiveUpdates();
+      }
+      lastRun=Date.now();
+    }catch(e){console.warn('AIKDOC Phase 13 appointment sync:',e);}
+    finally{busy=false;if(queued){queued=false;setTimeout(reconcile,200);}}
+  }
+  let debounce;
+  function schedule(){clearTimeout(debounce);debounce=setTimeout(reconcile,350);}
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)schedule();});
+  window.addEventListener('focus',schedule);
+  window.addEventListener('online',schedule);
+  setInterval(()=>{if(!document.hidden)schedule();},15000);
+  setTimeout(schedule,1200);
+  window.aikdocPhase13SyncNow=schedule;
+})();
 </script>
 </body>
 </html>
