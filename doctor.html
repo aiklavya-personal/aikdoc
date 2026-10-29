@@ -1,7 +1,6 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <script src="/aikdoc-supabase-config.js"></script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>AIKDOC Partner — Doctor Practice, Revenue & Reviews Dashboard</title>
@@ -3673,85 +3672,123 @@ async function refresh(){error('');try{const c=init(),user=await c.auth.getUser(
 })();
 </script>
 <script>
-/* AIKDOC Phase 13: authenticated, scoped appointment reconciliation.
-   Realtime signals are only hints: fetch rows under existing RLS. */
+/* AIKDOC Phase 13B: load actual Supabase appointments, not just update local copies.
+   The database remains authoritative. Never delete local legacy data on failed fetch. */
 (function(){
-  'use strict';
-  const ROLE='doctor';
-  let client=null,channel=null,scope=null,busy=false,queued=false,lastRun=0;
-  function getClient(){
-    if(client)return client;
-    const fn=ROLE==='patient' ? window.getAikdocPatientAuthClient : window.getAikdocDoctorAuthClient;
-    if(typeof fn==='function')client=fn();
-    else if(ROLE==='doctor' && window.supabase && window.AIKDOC_SUPABASE_URL && window.AIKDOC_SUPABASE_PUBLISHABLE_KEY)
-      client=window.supabase.createClient(window.AIKDOC_SUPABASE_URL,window.AIKDOC_SUPABASE_PUBLISHABLE_KEY,{auth:{storageKey:'aikdoc-doctor-auth'}});
-    return client;
-  }
-  function refreshUI(){
-    try{
-      if(ROLE==='patient'){
-        if(typeof renderAppointmentsList==='function')renderAppointmentsList();
-        if(typeof updateAppointmentBadge==='function')updateAppointmentBadge();
-        if(typeof aikdocRefreshBookedSlots==='function' && typeof selectedDoctor!=='undefined' && selectedDoctor?.supabaseId)aikdocRefreshBookedSlots();
-      }else if(typeof loadAllDoctorData==='function')loadAllDoctorData();
-    }catch(e){console.warn('Phase 13 UI refresh:',e);}
-  }
-  async function reconcile(){
-    if(busy){queued=true;return;}
-    busy=true;
-    try{
-      const c=getClient();if(!c)return;
-      const auth=await c.auth.getUser();const user=auth.data?.user;
-      if(!user){if(channel){await c.removeChannel(channel);channel=null;}scope=null;return;}
-      let id=user.id,column='patient_id';
-      if(ROLE==='doctor'){
-        const doc=await c.from('doctors').select('id').eq('user_id',user.id).maybeSingle();
-        if(doc.error||!doc.data)return;
-        id=doc.data.id;column='doctor_id';
-      }
-      const nextScope=column+':'+id;
-      if(nextScope!==scope){
-        if(channel){await c.removeChannel(channel);channel=null;}
-        scope=nextScope;
-        channel=c.channel('aikdoc-phase13-'+ROLE+'-'+id)
-          .on('postgres_changes',{event:'*',schema:'public',table:'appointments',filter:column+'=eq.'+id},()=>schedule())
-          .subscribe(status=>{if(status==='CHANNEL_ERROR'||status==='TIMED_OUT')console.warn('Realtime disconnected; periodic sync remains active');});
-      }
-      const result=await c.from('appointments').select('id,status,cancelled_by').eq(column,id).order('created_at',{ascending:false}).limit(250);
-      if(result.error)throw result.error;
-      const byId=new Map((result.data||[]).map(x=>[x.id,x]));
-      let stored;
-      try{stored=JSON.parse(localStorage.getItem('aikdoc_appointments')||'[]');}catch{return;}
-      if(!Array.isArray(stored))return;
-      let changed=false;
-      for(const appt of stored){
-        if(!appt.supabaseAppointmentId)continue;
-        const remote=byId.get(appt.supabaseAppointmentId);
-        if(!remote)continue; // Do not infer cancellation from missing/RLS-hidden records.
-        const status=remote.status==='cancelled'?'Cancelled':remote.status==='completed'?'Completed':remote.status==='confirmed'?'Confirmed':null;
-        if(status && appt.status!==status){appt.status=status;appt.lastUpdated=Date.now();changed=true;}
-        if(remote.cancelled_by && appt.cancelledBy!==remote.cancelled_by){
-          appt.cancelledBy=remote.cancelled_by==='doctor'?'Doctor':'Patient';changed=true;
-        }
-      }
-      if(changed){
-        localStorage.setItem('aikdoc_appointments',JSON.stringify(stored));
-        localStorage.setItem('aikdoc_last_sync',String(Date.now()));
-        refreshUI();
-        if(ROLE==='patient' && typeof checkDoctorLiveUpdates==='function')checkDoctorLiveUpdates();
-      }
-      lastRun=Date.now();
-    }catch(e){console.warn('AIKDOC Phase 13 appointment sync:',e);}
-    finally{busy=false;if(queued){queued=false;setTimeout(reconcile,200);}}
-  }
-  let debounce;
-  function schedule(){clearTimeout(debounce);debounce=setTimeout(reconcile,350);}
-  document.addEventListener('visibilitychange',()=>{if(!document.hidden)schedule();});
-  window.addEventListener('focus',schedule);
-  window.addEventListener('online',schedule);
-  setInterval(()=>{if(!document.hidden)schedule();},15000);
-  setTimeout(schedule,1200);
-  window.aikdocPhase13SyncNow=schedule;
+ 'use strict';
+ const ROLE='doctor';
+ let client=null, channel=null, currentScope='', busy=false, pending=false;
+ function getClient(){
+   if(client)return client;
+   if(ROLE==='patient' && typeof getAikdocPatientAuthClient==='function')return client=getAikdocPatientAuthClient();
+   if(!window.supabase||!window.AIKDOC_SUPABASE_URL||!window.AIKDOC_SUPABASE_PUBLISHABLE_KEY)return null;
+   return client=window.supabase.createClient(window.AIKDOC_SUPABASE_URL,window.AIKDOC_SUPABASE_PUBLISHABLE_KEY,
+     {auth:{storageKey:ROLE==='doctor'?'aikdoc-doctor-auth':'aikdoc-patient-auth'}});
+ }
+ const datePart=iso=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Kolkata',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(iso));
+ const timePart=iso=>new Intl.DateTimeFormat('en-IN',{timeZone:'Asia/Kolkata',hour:'2-digit',minute:'2-digit',hour12:true}).format(new Date(iso));
+ const status=s=>s==='completed'?'Completed':s==='cancelled'?'Cancelled':'Confirmed';
+ function render(){
+   try{
+     if(ROLE==='doctor' && typeof loadAllDoctorData==='function')loadAllDoctorData();
+     if(ROLE==='patient'){
+       if(typeof renderAppointmentsList==='function')renderAppointmentsList();
+       if(typeof updateAppointmentBadge==='function')updateAppointmentBadge();
+     }
+   }catch(e){console.warn('AIKDOC appointment render:',e);}
+ }
+ async function sync(){
+   if(busy){pending=true;return;}busy=true;
+   try{
+     const c=getClient();if(!c)return;
+     const {data:{user},error:authError}=await c.auth.getUser();
+     if(authError||!user)return;
+     let scopeId=user.id,scopeColumn='patient_id',doctor=null;
+     if(ROLE==='doctor'){
+       const r=await c.from('doctors').select('id,display_name,consultation_fee').eq('user_id',user.id).maybeSingle();
+       if(r.error)throw r.error;
+       if(!r.data)return;
+       doctor=r.data;scopeId=doctor.id;scopeColumn='doctor_id';
+     }
+     const nextScope=ROLE+':'+scopeId;
+     if(currentScope!==nextScope){
+       if(channel)await c.removeChannel(channel);
+       currentScope=nextScope;
+       channel=c.channel('aikdoc-13b-'+ROLE+'-'+scopeId)
+         .on('postgres_changes',{event:'*',schema:'public',table:'appointments',filter:scopeColumn+'=eq.'+scopeId},()=>schedule())
+         .subscribe();
+     }
+     const q=await c.from('appointments')
+       .select('id,patient_id,doctor_id,starts_at,status,cancelled_by,created_at')
+       .eq(scopeColumn,scopeId).order('created_at',{ascending:false}).limit(250);
+     if(q.error)throw q.error;
+     const rows=q.data||[];
+     let doctorNames=new Map();
+     if(ROLE==='patient'){
+       const ids=[...new Set(rows.map(r=>r.doctor_id).filter(Boolean))];
+       if(ids.length){
+         const d=await c.from('doctors').select('id,display_name,consultation_fee').in('id',ids);
+         if(!d.error)doctorNames=new Map((d.data||[]).map(x=>[x.id,x]));
+       }
+     }
+     let local=[];
+     try{local=JSON.parse(localStorage.getItem('aikdoc_appointments')||'[]');}catch(e){}
+     if(!Array.isArray(local))local=[];
+     const existing=new Map(local.filter(a=>a.supabaseAppointmentId).map(a=>[String(a.supabaseAppointmentId),a]));
+     const authEmail=user.email||'';
+     const profileName=user.user_metadata?.full_name||user.user_metadata?.name||'';
+     const profilePhone=user.user_metadata?.phone||'';
+     let session={};
+     if(ROLE==='patient'){
+       try{session=JSON.parse(localStorage.getItem('aikdoc_patient_session')||'{}')||{};}catch(e){}
+     }
+     let changed=false;
+     for(const r of rows){
+       const old=existing.get(String(r.id));
+       const dt=datePart(r.starts_at),tm=timePart(r.starts_at);
+       const doc=ROLE==='doctor'?doctor:doctorNames.get(r.doctor_id);
+       const name=doc?.display_name||old?.doctorName||'Doctor';
+       const nextStatus=status(r.status);
+       if(old){
+         if(old.status!==nextStatus||old.cancelledBy!==(r.cancelled_by==='doctor'?'Doctor':r.cancelled_by==='patient'?'Patient':undefined)){
+           old.status=nextStatus;
+           old.cancelledBy=r.cancelled_by==='doctor'?'Doctor':r.cancelled_by==='patient'?'Patient':undefined;
+           old.lastUpdated=Date.now();changed=true;
+         }
+         continue;
+       }
+       // New remote records have a real database ID. No fabricated clinical details.
+       const a={supabaseAppointmentId:r.id,token:'AIK-'+r.id.slice(0,8).toUpperCase(),
+         doctorName:name,doctorId:r.doctor_id,doctor_id:r.doctor_id,
+         patientName:ROLE==='patient'?(session.name||profileName||'Patient'):'Patient',
+         phone:ROLE==='patient'?(session.phone||session.mobile||profilePhone||''):'',
+         email:ROLE==='patient'?(session.email||authEmail):'',
+         date:dt,time:tm,mode:'Not specified',fee:doc?.consultation_fee??0,
+         paymentStatus:'See booking details',status:nextStatus,
+         cancelledBy:r.cancelled_by==='doctor'?'Doctor':r.cancelled_by==='patient'?'Patient':undefined,
+         createdAt:r.created_at||r.starts_at};
+       // Never synthesize personal details about other patients.
+       local.push(a);existing.set(String(r.id),a);changed=true;
+     }
+     if(changed){
+       localStorage.setItem('aikdoc_appointments',JSON.stringify(local));
+       localStorage.setItem('aikdoc_last_sync',String(Date.now()));
+       render();
+     }
+     window.aikdocPhase13BStatus={role:ROLE,remoteCount:rows.length,lastSync:new Date().toISOString()};
+   }catch(e){console.warn('AIKDOC Phase 13B appointment sync:',e);window.aikdocPhase13BStatus={role:ROLE,error:e.message||String(e)};}
+   finally{busy=false;if(pending){pending=false;setTimeout(sync,250);}}
+ }
+ let timer;
+ function schedule(){clearTimeout(timer);timer=setTimeout(sync,350);}
+ document.addEventListener('visibilitychange',()=>{if(!document.hidden)schedule();});
+ window.addEventListener('focus',schedule);
+ window.addEventListener('online',schedule);
+ window.addEventListener('storage',e=>{if(e.key==='aikdoc_appointments')render();});
+ setInterval(()=>{if(!document.hidden)schedule();},15000);
+ setTimeout(schedule,1400);
+ window.aikdocPhase13SyncNow=schedule;
+ window.aikdocPhase13BSyncNow=sync;
 })();
 </script>
 </body>
