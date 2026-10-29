@@ -2863,10 +2863,11 @@ function renderDoctorGrid(){
     const matchDocName = !docNameQuery || (d.name && d.name.toLowerCase().includes(docNameQuery.toLowerCase()));
     const matchPatientType = selectedPatientType === "All" || d.patientGroup === "All" || (d.patientGroup && d.patientGroup.toLowerCase() === selectedPatientType.toLowerCase());
     const normalizeMode = value => String(value || '').toLowerCase().replace(/[^a-z]/g, '');
-    const desired = normalizeMode(mode);
+    const modeCategory = value => { const v=normalizeMode(value); if(/online|video|virtual|teleconsult|remote/.test(v))return 'online'; if(/clinic|inperson|offline|hospital|physical|opd/.test(v))return 'clinic'; return v; };
+    const desired = modeCategory(mode);
     const matchMode = mode === 'All' || (Array.isArray(d.modes) && d.modes.some(value => {
-      const actual = normalizeMode(value);
-      return actual === desired || (desired.includes('online') && (actual.includes('online') || actual.includes('video'))) || (desired.includes('clinic') && (actual.includes('clinic') || actual.includes('inperson')));
+      const actual = modeCategory(value);
+      return actual === desired;
     }));
 
     return matchHospital && matchDistrict && matchSpeciality && matchDocName && matchPatientType && matchMode;
@@ -3375,7 +3376,7 @@ async function aikdocRefreshBookedSlots(){
     const r=await c.rpc('aikdoc_booked_slot_times',{p_doctor_id:doctorId,p_day:dateISO});
     if(r.error)throw r.error;
     if(check!==aikdocSlotCheckCounter || selectedDoctor?.supabaseId!==doctorId || aikdocSlotDateISO(selectedSlotDate)!==dateISO)return;
-    const occupied=new Set((r.data||[]).map(x=>new Date(x.starts_at).getTime()));
+    const occupied=new Set((r.data||[]).map(x=>new Date(x.starts_at||x.occupied_at).getTime()).filter(Number.isFinite));
     const base=new Date(dateISO+'T00:00:00+05:30');
     buttons.forEach(btn=>{
       const original=btn.dataset.slotTime || btn.dataset.slotLabel || btn.textContent.replace(/^✕\s*/, '').trim();
@@ -3895,7 +3896,7 @@ function renderAppointmentsList() {
           <div style="font-size:11px;color:#9f5b5b;margin-top:5px">${a.cancelledBy ? `Cancelled by ${escapePatientHtml(a.cancelledBy)}` : ''}${a.cancelledAt ? `${a.cancelledBy ? ' · ' : ''}${escapePatientHtml(new Date(a.cancelledAt).toLocaleString())}` : ''}</div></div>
         </div>` : ''}
 
-      ${a.status === 'Completed' && a.aikPrescription ? `<div style="margin:10px 0"><button type="button" class="primary" onclick="aikOpenPatientRx('${a.token}')">📄 View / Download Prescription</button></div>` : ''}
+      ${a.status === 'Completed' ? `<div style="margin:10px 0"><button type="button" class="primary" onclick="aikOpenPatientRx('${a.token}')">📄 ${a.aikPrescription ? 'View Prescription / Medicines' : 'Check Prescription / Medicines'}</button></div>` : ''}
       <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px">
         <button class="navbtn" type="button" style="padding:6px 12px;font-size:11.5px" onclick="printReceiptFromToken('${a.token}')">🖨️ Receipt</button>
         ${a.status !== 'Cancelled' ? `<button class="navbtn" type="button" style="padding:7px 12px;font-size:11.5px;background:#e8f6f5;color:#087c75;border:1px solid #a6d9d5;border-radius:9px" onclick="aikOpenReports('${escapePatientHtml(a.token)}')">📎 ${Array.isArray(a.aikPatientReports) && a.aikPatientReports.length ? (a.status === 'Completed' ? 'View Reports (' : 'Manage Reports (')+a.aikPatientReports.length+')' : (a.status === 'Completed' ? 'View Reports' : 'Upload Reports')}</button>` : ''}
@@ -4123,7 +4124,7 @@ async function aikdocFetchActiveSupabaseDoctors() {
         supabaseId:d.id, name:d.display_name, speciality:d.speciality_name||ss.get(d.speciality_id)||'General',
         qualification:d.qualifications||'', hospital:hs.get(d.hospital_id)||'Hospital not specified',
         district:d.district||existing?.district||'', fee:Number(d.consultation_fee)||0,
-        modes:Array.isArray(d.consultation_modes)?d.consultation_modes:(existing?.modes||['Clinic visit']),patientGroup:d.patient_group||existing?.patientGroup||'All',about:d.biography||existing?.about||'',quickSlots:[...(availabilityByDoctor.get(d.id)?.morning_slots||[]),...(availabilityByDoctor.get(d.id)?.evening_slots||[])],
+        modes:Array.isArray(d.consultation_modes)?d.consultation_modes:(typeof d.consultation_modes==='string' ? (()=>{try{const x=JSON.parse(d.consultation_modes);return Array.isArray(x)?x:d.consultation_modes.split(',')}catch(e){return d.consultation_modes.split(',')}})() : (existing?.modes||[])),patientGroup:d.patient_group||existing?.patientGroup||'All',about:d.biography||existing?.about||'',quickSlots:[...(availabilityByDoctor.get(d.id)?.morning_slots||[]),...(availabilityByDoctor.get(d.id)?.evening_slots||[])],
         photo:d.photo_path ? client.storage.from('aikdoc-doctor-photos').getPublicUrl(d.photo_path).data.publicUrl : (existing?.photo||'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&w=400&q=85'),
         emailVerifiedOnly:true
       };
@@ -4629,7 +4630,7 @@ function aikRxEscape(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;'
 function aikGetPatientRx(){const a=JSON.parse(localStorage.getItem('aikdoc_appointments')||'[]').find(x=>String(x.token)===String(aikPatientRxToken));const session=JSON.parse(localStorage.getItem('aikdoc_patient_session')||'null');return a&&a.status==='Completed'&&a.aikPrescription&&session&&patientOwnsAppointment(a,session)?a:null;}
 function aikPatientMedicineLink(v){try{const u=new URL(String(v||''));return ['http:','https:'].includes(u.protocol)?u.href:''}catch(e){return ''}}
 function aikPrescriptionMarkup(a){const r=a.aikPrescription||{};const esc=aikRxEscape;const field=(label,value)=>'<div class="rx-detail"><span>'+label+'</span><strong>'+esc(value||'Not provided')+'</strong></div>';return `<article class="rx-document"><header class="rx-doc-head"><div class="rx-brand"><span class="rx-cross">✚</span><div><div class="rx-brand-title">AIKDOC <span>Healthcare</span></div><div class="rx-brand-sub">CONSULTATION & PRESCRIPTION RECORD</div></div></div><div class="rx-head-label">DOCTOR-ISSUED DOCUMENT</div></header><div class="rx-doc-content"><div class="rx-document-title"><div><div class="rx-eyebrow">MEDICAL CONSULTATION</div><h2>Prescription & Notes</h2><p>Appointment reference: ${esc(a.token)}</p></div><div class="rx-doc-date">${esc(a.date||'')}</div></div><div class="rx-details-grid">${field('PATIENT NAME',a.patientName)}${field('TREATING DOCTOR',a.doctorName)}${field('APPOINTMENT DATE',a.date)}${field('APPOINTMENT TIME',a.time)}${field('CONSULTATION MODE',a.mode)}${field('REFERENCE ID',a.token)}</div><section class="rx-notes-section"><div class="rx-section-heading"><span class="rx-section-symbol">✎</span> Doctor's Consultation Notes / Prescription</div>${r.notes?'<div class="rx-note-text">'+esc(r.notes)+'</div>':'<p class="rx-empty-note">Handwritten prescription attached below.</p>'}</section>${Array.isArray(r.medicines)&&r.medicines.length?'<section class="rx-notes-section" style="margin-top:18px"><div class="rx-section-heading">💊 Prescribed Medicines</div>'+r.medicines.map((m,i)=>'<div class="aik-patient-med-card"><div class="aik-patient-med-top"><span class="aik-patient-med-index">'+(i+1)+'</span><div class="aik-patient-med-details"><strong>'+esc(m.name||'Medicine')+'</strong>'+(m.strength?'<span class="aik-patient-med-strength">'+esc(m.strength)+'</span>':'')+'</div></div>'+(m.instructions?'<div class="aik-patient-med-directions"><b>Doctor’s instructions</b><span>'+esc(m.instructions)+'</span></div>':'')+(aikPatientMedicineLink(m.link)?'<a class="aik-patient-med-shop" href="'+esc(aikPatientMedicineLink(m.link))+'" target="_blank" rel="noopener noreferrer">🛍️ Find this medicine <span aria-hidden="true">↗</span></a>':'')+'</div>').join('')+'</section>':''}${r.image?'<section class="rx-image-section"><div class="rx-section-heading"><span class="rx-section-symbol">▧</span> Attached Handwritten Prescription</div><div class="rx-image-frame"><img alt="Handwritten prescription uploaded by the doctor" src="'+r.image+'"></div></section>':''}</div><footer class="rx-doc-footer"><strong>AIKDOC Healthcare</strong><span>Document provided by the treating doctor through AIKDOC.</span><small>Consult the issuing doctor for clarification. This record is not independently verified by AIKDOC.</small></footer></article>`;}
-function aikOpenPatientRx(token){aikPatientRxToken=token;const a=aikGetPatientRx();if(!a){alert('Prescription not available for this account.');return;}document.getElementById('aikPatientRxBody').innerHTML=aikPrescriptionMarkup(a);document.getElementById('aikPatientRxModal').classList.add('show');}
+async function aikOpenPatientRx(token){aikPatientRxToken=token;let a=aikGetPatientRx();if(!a){try{await window.aikdoc14Refresh?.('patient');a=aikGetPatientRx();}catch(e){console.warn('Prescription refresh failed:',e);}}if(!a){alert('No prescription has been published for this completed appointment yet, or it could not be loaded.');return;}document.getElementById('aikPatientRxBody').innerHTML=aikPrescriptionMarkup(a);document.getElementById('aikPatientRxModal').classList.add('show');}
 
 function aikClosePatientRx(){document.getElementById('aikPatientRxModal').classList.remove('show');}
 function aikDownloadPatientRx(){const a=aikGetPatientRx();if(!a)return;const body=aikPrescriptionMarkup(a);const w=window.open('','_blank');if(!w){alert('Allow popups to print or save the prescription as PDF.');return;}w.document.open();w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>AIKDOC Prescription '+aikRxEscape(a.token)+'</title><style>body{background:#fff;margin:20px auto;max-width:800px}'+aikPrescriptionPrintCSS+'</style></head><body>'+body+'<script>window.onload=function(){setTimeout(function(){window.print()},600)}<\/script></body></html>');w.document.close();}
@@ -4960,7 +4961,7 @@ window.aikdoc14Refresh=async function(role){
   else for(const x of r.data||[]){const a=list.find(y=>y.supabaseAppointmentId===x.appointment_id);if(a){a.patientName=x.patient_name||'Patient';a.phone=x.patient_phone||'';}}
  }
  ids=list.filter(a=>a.supabaseAppointmentId && (role==='doctor'?window.aikdocDoctorOnlineAppointmentIds?.has(String(a.supabaseAppointmentId)):true)).map(a=>a.supabaseAppointmentId);
- if(!ids.length)return;
+ if(!ids.length){if(role==='patient'&&typeof checkDoctorLiveUpdates==='function')checkDoctorLiveUpdates();return;}
  const [rx,rev]=await Promise.all([
    c.from('aikdoc_clinical_records').select('appointment_id,notes,medicines,image_path,updated_at').in('appointment_id',ids),
    c.from('aikdoc_appointment_reviews').select('appointment_id,rating,comment,created_at').in('appointment_id',ids)
@@ -4973,7 +4974,7 @@ window.aikdoc14Refresh=async function(role){
  }
  for(const r of rev.data||[]){const a=list.find(x=>x.supabaseAppointmentId===r.appointment_id);if(a)a.review={rating:r.rating,comment:r.comment,date:new Date(r.created_at).toLocaleDateString()};}
  window.aikdoc14Save(list);
- if(role==='patient'&&typeof renderAppointmentsList==='function')renderAppointmentsList();
+ if(role==='patient'){if(typeof renderAppointmentsList==='function')renderAppointmentsList();if(typeof checkDoctorLiveUpdates==='function')setTimeout(()=>{if(!document.hidden)checkDoctorLiveUpdates();},200);}
  if(role==='doctor'&&typeof loadAllDoctorData==='function')loadAllDoctorData();
 };
 </script>
