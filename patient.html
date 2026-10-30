@@ -1834,40 +1834,9 @@ const DEFAULT_INITIAL_DOCTORS = [
   }
 ];
 
-const DEFAULT_INITIAL_HOSPITALS = [
-  {
-    id: 1,
-    name: "Paras HMRI Hospital",
-    district: "Patna",
-    beds: "350+ Beds",
-    phone: "85271 27888",
-    emergency: "24x7 Emergency & Trauma",
-    address: "Bailey Road, Raja Bazar, Patna, Bihar - 800014",
-    facilities: ["24x7 Emergency", "ICU", "Cath Lab", "Pharmacy", "Ambulance"],
-    photo: "https://images.unsplash.com/photo-1587351021759-3e566b6af7cc?auto=format&fit=crop&w=700&q=80",
-    photos: [
-      "https://images.unsplash.com/photo-1587351021759-3e566b6af7cc?auto=format&fit=crop&w=700&q=80",
-      "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&w=700&q=80",
-      "https://images.unsplash.com/photo-1516549655169-df83a0774514?auto=format&fit=crop&w=700&q=80"
-    ],
-    about: "NABH-accredited tertiary care multi-speciality hospital with advanced critical care."
-  },
-  {
-    id: 5,
-    name: "Sinha Hospital",
-    district: "Gaya",
-    beds: "80+ Beds",
-    phone: "85271 27888",
-    emergency: "24x7 Emergency",
-    address: "Station Road, Gaya, Bihar - 823001",
-    facilities: ["24x7 Emergency", "Diagnostics", "Daycare", "Pharmacy"],
-    photo: "https://images.unsplash.com/photo-1538108149393-fbbd81895907?auto=format&fit=crop&w=700&q=80",
-    photos: [
-      "https://images.unsplash.com/photo-1538108149393-fbbd81895907?auto=format&fit=crop&w=700&q=80"
-    ],
-    about: "Specialized clinical centre offering expert doctor consultations and high-precision diagnostic testing."
-  }
-];
+// Hospital listings are sourced exclusively from Supabase.
+// No built-in or localStorage hospital seeds are shown.
+const DEFAULT_INITIAL_HOSPITALS = [];
 
 let doctors = [];
 let hospitals = [];
@@ -2381,15 +2350,11 @@ function syncFromSuperAdmin() {
     safeSetJSON("aikdoc_master_doctors", doctors);
   }
 
-  // Keep live Supabase clinic listings when admin/local data is refreshed.
-  const preservedOnlineClinics = Array.isArray(hospitals) ? hospitals.filter(h => h.aikdocOnlineClinic === true) : [];
-  hospitals = safeGetJSON("aikdoc_master_hospitals", []);
-  if (localStorage.getItem("aikdoc_master_hospitals") === null) {
-    hospitals = DEFAULT_INITIAL_HOSPITALS;
-    safeSetJSON("aikdoc_master_hospitals", hospitals);
-  }
-  hospitals = hospitals.filter(h => !h.aikdocOnlineClinic);
-  hospitals.push(...preservedOnlineClinics);
+  // Preserve only facilities loaded from Supabase across admin/local refreshes.
+  // Do not read cached local hospitals or resurrect built-in demonstration entries.
+  hospitals = Array.isArray(hospitals)
+    ? hospitals.filter(h => h && (h.aikdocOnlineClinic === true || h.aikdocOnlineHospital === true))
+    : [];
 
   // Seed the initial directory only when the key has never been created.
   // Do NOT replace an admin-managed list just because it contains fewer than 10 entries:
@@ -4156,7 +4121,7 @@ async function aikdocFetchActiveSupabaseDoctors() {
       aikdocOnlineDirectoryReady = true;
       doctors = doctors.filter(d => !!d.supabaseId && incomingIds.has(d.supabaseId));
     }
-    // Refresh Supabase facilities without changing locally seeded hospitals or their photos.
+    // Refresh Supabase facilities; never include local/demo hospitals.
     // These online entries are transient: do not write them into localStorage.
     hospitals = hospitals.filter(h => h.aikdocOnlineClinic !== true && h.aikdocOnlineHospital !== true);
     if (hr.error) {
